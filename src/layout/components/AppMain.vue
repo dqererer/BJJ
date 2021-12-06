@@ -1,0 +1,44 @@
+<template>
+  <section class="app-main" :class="{ active: !sidebarShow }">
+    <transition name="fade-transform" mode="out-in">
+      <keep-alive>
+        <router-view :key="key" />
+      </keep-alive>
+    </transition>
+  </section>
+</template>
+
+<script>
+import { mapState } from "vuex";
+export default {
+  name: "AppMain",
+  computed: {
+    ...mapState({
+      sidebarShow: state => state.sidebar.sidebarShow
+    }),
+    key() {
+      return this.$route.path;
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.app-main {
+  /* 50= navbar  50  */
+  width: calc(100vw - 208px);
+  height: calc(100vh - 60px);
+  position: fixed;
+  overflow: hidden;
+  margin-top: 60px;
+  // padding: 0px 10px 0 10px;
+  overflow-y: scroll;
+  margin-left: 208px;
+  background-color: #f0f2f5;
+}
+.active {
+  width: calc(100vw);
+  margin-left: 0px;
+}
+</style>
+

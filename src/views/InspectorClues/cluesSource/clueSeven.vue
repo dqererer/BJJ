@@ -1,0 +1,646 @@
+<template>
+  <div>
+    <div class="title">问题案卷信息</div>
+    <div class="clue-info">
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>督察信息：
+          </span>
+          <span class="clue-item-input">{{teamInfo}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label" style="margin:0">
+            <i class="clue-import">*</i>案卷信息
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>案卷标题：
+          </span>
+          <span class="clue-item-input">{{manageInfo.archiveName}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>案卷编号：
+          </span>
+          <span class="clue-item-input">{{manageInfo.archiveCode}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>案卷内容：
+          </span>
+          <span class="clue-item-input">{{manageInfo.archiveContent}}</span>
+        </div>
+      </div>
+      <div class="clue-item clue-item-paper">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>案卷说明：
+          </span>
+          <div class="clue-item-file">
+            <div class="clue-item-file-group">
+              <span class="accounChunk">{{manageInfo.archiveExplainName}}</span>
+              <el-button size="mini" @click="handlePreviewClick(manageInfo.archiveExplain)">预览</el-button>
+              <el-button
+                size="mini"
+                @click="handleDownLoadDoc(manageInfo.archiveExplain)"
+                type="primary"
+              >下载</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect" style="overflow: hidden;">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>案卷相关问题：
+          </span>
+          <div class="clue-item-file" style="flex:1">
+            <el-table :data="problemList" border class="queryTable" :stripe="true">
+              <el-table-column width="50" label="序号">
+                <template scope="scope">
+                  <span>
+                    {{
+                    scope.$index +
+                    1
+                    }}
+                  </span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="problemDescript"
+                :show-overflow-tooltip="true"
+                label="问题名称"
+                min-width="200px"
+              ></el-table-column>
+              <el-table-column
+                prop="problemContent"
+                :show-overflow-tooltip="true"
+                label="问题内容"
+                width="120px"
+              ></el-table-column>
+              <el-table-column
+                prop="workArrangeName"
+                label="工作安排"
+                min-width="180px"
+                :show-overflow-tooltip="true"
+              ></el-table-column>
+              <el-table-column label="线索数" width="70px">
+                <template v-slot="scope">
+                  <span
+                    class="accounChunkb"
+                    @click="
+                          handleFileDialog(scope.row.id, scope.row.lineNum, '1')
+                        "
+                  >{{ scope.row.lineNum }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="书证" width="70px">
+                <template v-slot="scope">
+                  <span
+                    class="accounChunkb"
+                    @click="
+                          handleFileDialog(
+                            scope.row.evidenceId,
+                            scope.row.evidenceNum,
+                            '2'
+                          )
+                        "
+                  >{{ scope.row.evidenceNum }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="取证笔录" width="80px">
+                <template v-slot="scope">
+                  <span
+                    class="accounChunkb"
+                    @click="
+                          handleFileDialog(
+                            scope.row.inquiryId,
+                            scope.row.inquiryNum,
+                            '3'
+                          )
+                        "
+                  >{{ scope.row.inquiryNum }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="勘察笔录" width="80px">
+                <template v-slot="scope">
+                  <span
+                    class="accounChunkb"
+                    @click="
+                          handleFileDialog(
+                            scope.row.surveyId,
+                            scope.row.surveyNum,
+                            '4'
+                          )
+                        "
+                  >{{ scope.row.surveyNum }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="多媒体记录" width="100px">
+                <template v-slot="scope">
+                  <span
+                    class="accounChunkb"
+                    @click="
+                          handleFileDialog(
+                            scope.row.mediaId,
+                            scope.row.mediaNum,
+                            '5'
+                          )
+                        "
+                  >{{ scope.row.mediaNum }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>移交情况
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>调查人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.investigatorName}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>身份证号：
+          </span>
+          <span class="clue-item-input">{{manageInfo.investigatorNum}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>联系电话：
+          </span>
+          <span class="clue-item-input">{{manageInfo.investigatorPhone}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>移交时间：
+          </span>
+          <span class="clue-item-input">{{manageInfo.transferDate}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>简要说明情况：
+          </span>
+          <span class="clue-item-input">{{manageInfo.infoNote}}</span>
+        </div>
+      </div>
+      <div class="clue-item clue-item-paper">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>移交依据：
+          </span>
+          <div class="clue-item-file">
+            <div
+              class="clue-item-file-group"
+              v-for="(item,index) in transferBasisArry"
+              :key="index"
+            >
+              <span class="accounChunk">{{item.file_name}}</span>
+              <el-button
+                size="mini"
+                @click="handleKnowPreviewClick(item.id,item.save_path,item.file_name,item.object_id)"
+              >预览</el-button>
+              <el-button
+                size="mini"
+                @click="handleKnowDownloadClick(item.id,item.save_path,item.file_name,item.object_id)"
+                type="primary"
+              >下载</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>移交移送建议：
+          </span>
+          <span class="clue-item-input">{{manageInfo.transferProposal}}</span>
+        </div>
+      </div>
+      <el-dialog
+        title="查看"
+        :visible.sync="fileOpen"
+        width="80%"
+        append-to-body
+        :before-close="handleFileDialogClose"
+      >
+        <div>
+          <span
+            class="accounChunk file-item"
+            v-for="item in seeData"
+            :key="item.id"
+            @click="handleFileShow(item.id, item.sort)"
+          >{{ item.text }}</span>
+        </div>
+      </el-dialog>
+      <clew-info
+        ref="clewRef"
+        :clewId="clewId"
+        :lookOpen="lookOpen"
+        @handleLookClose="handleLookClose"
+      />
+      <inspect-index-preview
+        ref="inspectIndexRef"
+        v-if="previewIndexOpen"
+        :inspectName="queryParams.inspectName"
+        @handleInspectIndexPreviewClose="handleInspectIndexPreviewClose"
+        :previewIndexOpen="previewIndexOpen"
+        :previewIndexOpenId="previewIndexOpenId"
+      ></inspect-index-preview>
+      <spot-index-preview
+        ref="spotIndexRef"
+        v-if="spotIndexOpen"
+        :inspectName="queryParams.inspectName"
+        @handleSpotIndexPreviewClose="handleSpotIndexPreviewClose"
+        :spotIndexOpen="spotIndexOpen"
+        :spotIndexOpenId="spotIndexOpenId"
+      ></spot-index-preview>
+      <media-index-preview
+        ref="mediaIndexRef"
+        :mediaIndexOpen="mediaIndexOpen"
+        :mediaIndexId="mediaIndexId"
+        @handleMediaIndexClose="handleMediaIndexClose"
+      ></media-index-preview>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  getSingleInfo,
+  getKnownSingleInfo,
+  filePreview,
+  filetKnownPreview
+} from "@/utils/styem";
+import { overSee } from "@/api/burg/garrison";
+import { threadTeamInfo } from "@/api/InspectorClues";
+import { getFileInfo } from "@/api/file";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+import inspectIndexPreview from "@/views/burg/garrison/sink/sinkIssue/inspectIndexPreview";
+import spotIndexPreview from "@/views/burg/garrison/sink/sinkIssue/spotIndexPreview";
+import mediaIndexPreview from "@/views/burg/garrison/sink/sinkIssue/mediaIndexPreview";
+export default {
+  components: {
+    clewInfo,
+    inspectIndexPreview,
+    spotIndexPreview,
+    mediaIndexPreview
+  },
+  props: {
+    tailId: {
+      type: String
+    },
+    teamId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      teamInfo: undefined,
+      manageInfo: {
+        areaName: undefined,
+        archiveName: undefined,
+        archiveCode: undefined,
+        archiveContent: undefined,
+        archiveExplain: [],
+        investigatorName: undefined,
+        investigatorNum: undefined,
+        investigatorPhone: undefined,
+        transferDate: undefined,
+        infoNote: undefined,
+        transferBasis: [],
+        transferProposal: undefined
+      },
+      problemList: undefined,
+      transferBasisArry: [],
+      seeData: undefined,
+      fileOpen: false,
+      clewId: undefined,
+      lookOpen: false,
+      previewIndexOpen: undefined,
+      previewIndexOpenId: undefined,
+      spotIndexOpen: undefined,
+      spotIndexOpenId: undefined,
+      mediaIndexOpen: undefined,
+      mediaIndexId: undefined
+    };
+  },
+  methods: {
+    async getTeamInfo() {
+      const reponse = await threadTeamInfo({ id: this.teamId });
+      const subject = reponse.data;
+      this.teamInfo =
+        subject.superviseName +
+        subject.roundName +
+        subject.batchName +
+        subject.name;
+    },
+    async getInfo() {
+      const reponse = await overSee({ id: this.tailId });
+      console.log(reponse);
+      const subject = reponse.data.archive;
+      const problemList = reponse.data.problemList;
+      this.manageInfo.archiveName = subject.archiveName;
+      this.manageInfo.archiveCode = subject.archiveCode;
+      this.manageInfo.archiveContent = subject.archiveContent;
+      this.manageInfo.investigatorName = subject.investigatorName;
+      this.manageInfo.investigatorNum = subject.investigatorNum;
+      this.manageInfo.investigatorPhone = subject.investigatorPhone;
+      this.manageInfo.transferDate = subject.transferDate;
+      this.manageInfo.infoNote = subject.infoNote;
+      this.manageInfo.transferProposal = subject.transferProposal;
+      this.problemList = problemList;
+      this.manageInfo.archiveExplainName =
+        subject.archiveExplainName || undefined;
+      this.manageInfo.archiveExplain = subject.archiveExplain;
+      if (subject.transferBasis) {
+        this.transferBasisArry = await this.getSingleMessagInfo(
+          subject.transferBasis
+        );
+      } else {
+        this.transferBasisArry = [];
+      }
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      return reponse.data;
+    },
+    async handleFileDialog(ids, num, selectType) {
+      let res = [];
+      if (num == 0 || num == undefined) {
+        return;
+      }
+      if (selectType == 1) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.clueName,
+            sort: "线索数"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 2) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.attachmentId,
+            text: subject.name,
+            sort: "书证"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 3) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.theme + "询问笔录",
+            sort: "取证笔录"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 4) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.actualCityName + "勘察笔录",
+            sort: "勘察笔录"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 5) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.mediaExplain + "现场多媒体证据",
+            sort: "多媒体记录"
+          };
+          res.push(temp);
+        }
+      }
+      this.fileOpen = true;
+      this.seeData = res;
+    },
+    async handleFileShow(id, sort) {
+      if (sort == "线索数") {
+        this.clewId = id;
+        this.lookOpen = true;
+        this.$nextTick(() => {
+          this.$refs.clewRef.handleEdit();
+        });
+      } else if (sort == "书证") {
+        this.handlePreviewClick(id);
+      } else if (sort == "取证笔录") {
+        this.previewIndexOpenId = id;
+        this.previewIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.inspectIndexRef.handleEdit();
+        });
+      } else if (sort == "勘察笔录") {
+        this.spotIndexOpenId = id;
+        this.spotIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.spotIndexRef.handleEdit();
+        });
+      } else if (sort == "多媒体记录") {
+        this.mediaIndexId = id;
+        this.mediaIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.mediaIndexRef.handleEdit();
+        });
+      }
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleInspectIndexPreviewClose() {
+      this.previewIndexOpen = false;
+    },
+    handleSpotIndexPreviewClose() {
+      this.spotIndexOpen = false;
+    },
+    handleMediaIndexClose() {
+      this.mediaIndexOpen = false;
+    },
+    handleFileDialogClose() {
+      this.fileOpen = false;
+    },
+    handleDownLoadDoc(fileId) {
+      getSingleInfo(fileId);
+    },
+    handlePreviewClick(fileId) {
+      filePreview(fileId);
+    },
+    handleKnowDownloadClick(fileId, fileUrl, fileName, state) {
+      getKnownSingleInfo(fileId, fileUrl, fileName, state);
+    },
+    handleKnowPreviewClick(fileId, fileUrl, fileName, state) {
+      filetKnownPreview(fileId, fileUrl, fileName, state);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.title {
+  height: 20px;
+  border-left: 3px solid #2196f3;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.clue-info {
+  width: 100%;
+  .clue-item {
+    display: flex;
+    margin-top: 16px;
+    &.two-clue-item {
+      .clue-item-quare {
+        &:first-child {
+          margin-right: 16px;
+        }
+      }
+    }
+    .clue-item-quare {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      &.clue-item-inspect {
+        flex-direction: row;
+        .clue-item-label {
+          width: 110px;
+          text-align: right;
+          margin-bottom: 0;
+          margin-top: 10px;
+        }
+      }
+      .clue-item-file {
+        display: block;
+        overflow: hidden;
+      }
+      .clue-item-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        .clue-import {
+          display: inline-block;
+          margin-right: 4px;
+          color: #f56c6c;
+        }
+      }
+      .clue-item-input {
+        width: 100%;
+        min-height: 32px;
+        line-height: 32px;
+        font-size: 14px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding-left: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+        flex: 1;
+      }
+      .clue-item-select {
+        display: flex;
+        .clue-item-select-city {
+          width: 11%;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          margin-right: 16px;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+        .clue-item-select-address {
+          flex: 1;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}
+.clue-question {
+  display: flex;
+  flex-direction: column;
+  .question-item {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    .question-top {
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+    .question-bottom {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+  }
+}
+.clue-item-paper .clue-item-label {
+  margin-top: 4px !important;
+}
+.accounChunkb {
+  color: blue;
+  max-width: 500px;
+}
+.accounChunk {
+  display: block;
+  padding: 4px 10px 4px 10px;
+  background-color: #eee;
+  margin-bottom: 4px;
+  max-width: 500px;
+}
+</style>

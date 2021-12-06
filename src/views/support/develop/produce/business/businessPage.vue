@@ -1,0 +1,70 @@
+<template>
+  <div class="information-inner information-styem" ref="informationInner">
+    <el-row :gutter="20" class="information-styme-row">
+      <el-col :span="24" class="information-styme-col">
+        <el-tabs v-model="activeName" type="card" @tab-click="tabClick">
+          <el-tab-pane label="业务表列表" name="list">
+            <business-list
+              ref="dataList"
+              @handleSeeAmend="handleSeeAmend"
+              @backHandle="backHandle"
+            ></business-list>
+          </el-tab-pane>
+          <el-tab-pane
+            ref="amendList"
+            :label="tabState == 'add' ? '业务表添加' : '业务表修改'"
+            name="add"
+          >
+            <business-amend @backHandle="backHandle"></business-amend>
+          </el-tab-pane>
+        </el-tabs>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script>
+import businessList from "./businessList";
+import businessAmend from "./businessAmend";
+import { officeTreeData } from "@/api/styem/dept.js";
+import Bus from "@/utils/vueBus";
+export default {
+  components: {
+    businessList,
+    businessAmend
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+    };
+  },
+  methods: {
+    tabClick(tab) {
+      if (tab.name === "list") {
+        this.tabState = "add";
+      } else if (tab.name === "add") {
+        Bus.$emit("outComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      this.tabState = stateObj.tabState;
+      this.activeName = stateObj.name;
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      this.tabState = "add";
+      if (name == "update") {
+        this.$refs.dataList.getGenTableList();
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.tree-container {
+  margin-top: 10px;
+  overflow-y: scroll;
+}
+</style>

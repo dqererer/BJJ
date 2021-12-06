@@ -1,0 +1,241 @@
+<template>
+  <div class="burg-pop" v-show="bugrPopTaskBoolean">
+    <span class="burg-pop-close" @click="handleBurgTaskCloseClick"></span>
+    <h1 class="manage-title">案卷信息1</h1>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">案卷标题：</i>
+        <b class="line-text">{{ checkInfo.archiveName }}</b>
+      </span>
+      <span class="pop-line-quare">
+        <i class="line-name">案卷编号：</i>
+        <b class="line-text">{{ checkInfo.archiveCode }}</b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">案卷内容：</i>
+        <b class="line-text">{{ checkInfo.archiveContent }}</b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">案卷说明：</i>
+        <b
+          class="line-text accounChunk"
+          @click="handleDownLoadDoc(checkInfo.archiveExplain)"
+        >{{ checkInfo.archiveExplainName }}</b>
+      </span>
+    </p>
+    <!-- <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">案卷相关问题：</i>
+        <b class="line-text">{{ checkInfo.archiveName }}</b>
+      </span>
+    </p>-->
+    <h1 class="manage-title">移交情况</h1>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">调查人员：</i>
+        <b class="line-text">{{ checkInfo.investigatorName }}</b>
+      </span>
+      <span class="pop-line-quare">
+        <i class="line-name">身份证号：</i>
+        <b class="line-text">{{ checkInfo.investigatorNum }}</b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">联系电话：</i>
+        <b class="line-text">{{ checkInfo.investigatorPhone }}</b>
+      </span>
+      <span class="pop-line-quare">
+        <i class="line-name">移交时间：</i>
+        <b class="line-text">{{ checkInfo.transferDate }}</b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">简要情况说明：</i>
+        <b class="line-text">{{ checkInfo.infoNote }}</b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">移交依据：</i>
+        <b class="line-text">
+          <span
+            @click="handleDownLoadPathDoc(item.id,item.save_path,item.file_name,item.object_id)"
+            v-for="(item,index) in checkInfo.attachementArry"
+            :key="index"
+          >{{ item.file_name }}</span>
+        </b>
+      </span>
+    </p>
+    <p class="burg-pop-line">
+      <span class="pop-line-quare">
+        <i class="line-name">移交移送建议：</i>
+        <b class="line-text">{{ checkInfo.transferProposal }}</b>
+      </span>
+    </p>
+  </div>
+</template>
+
+<script>
+import Bus from "@/utils/vueBus";
+import { overSee } from "@/api/burg/garrison";
+import { getSingleInfo, getKnownSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+export default {
+  name: "burgLetterPop",
+  data() {
+    return {
+      bugrPopTaskBoolean: false,
+      checkInfo: {
+        areaName: undefined,
+        archiveName: undefined,
+        archiveCode: undefined,
+        archiveContent: undefined,
+        archiveExplain: undefined,
+        archiveExplainName: undefined,
+        investigatorName: undefined,
+        investigatorNum: undefined,
+        investigatorPhone: undefined,
+        transferDate: undefined,
+        infoNote: undefined,
+        transferBasis: undefined,
+        transferProposal: undefined,
+        attachementArry: [],
+        problemId: undefined
+      }
+    };
+  },
+  created() {
+    Bus.$off("middleTask");
+  },
+  mounted() {
+    Bus.$on("middleTask", id => {
+      console.log(id);
+      this.bugrPopTaskBoolean = true;
+      this.getOverSee(id);
+    });
+  },
+  methods: {
+    handleBurgTaskCloseClick() {
+      this.bugrPopTaskBoolean = false;
+      this.handleClearFrom();
+    },
+    handleClearFrom() {
+      this.checkInfo.areaName = undefined;
+      this.checkInfo.archiveName = undefined;
+      this.checkInfo.archiveCode = undefined;
+      this.checkInfo.archiveContent = undefined;
+      this.checkInfo.archiveExplain = undefined;
+      this.checkInfo.archiveExplainName = undefined;
+      this.checkInfo.reporterPhoneShow = undefined;
+      this.checkInfo.tipOffContent = undefined;
+      this.checkInfo.remarks = undefined;
+      this.checkInfo.tipAddress = undefined;
+      this.checkInfo.pollutionType = undefined;
+      this.checkInfo.industryName = undefined;
+      this.checkInfo.longitude = undefined;
+      this.checkInfo.latitude = undefined;
+    },
+    async getOverSee(id) {
+      const reponse = await overSee({ id });
+      const subject = reponse.data.archive;
+      const problemList = reponse.data.problemList;
+      this.checkInfo.id = subject.id;
+      this.checkInfo.archiveName = subject.archiveName;
+      this.checkInfo.archiveCode = subject.archiveCode;
+      this.checkInfo.archiveContent = subject.archiveContent;
+      this.checkInfo.archiveExplain = subject.archiveExplain;
+      this.checkInfo.archiveExplainName = subject.archiveExplainName;
+      this.checkInfo.investigatorName = subject.investigatorName;
+      this.checkInfo.investigatorNum = subject.investigatorNum;
+      this.checkInfo.investigatorPhone = subject.investigatorPhone;
+      this.checkInfo.transferDate = subject.transferDate.split(" ")[0];
+      this.checkInfo.infoNote = subject.infoNote;
+      this.checkInfo.transferBasis = subject.transferBasis;
+      this.checkInfo.transferProposal = subject.transferProposal;
+      // this.questionSureList = problemList;
+      subject.transferBasis && this.getSingleMessagInfo(subject.transferBasis);
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      this.checkInfo.attachementArry = reponse.data;
+    },
+    handleDownLoadDoc(fileId) {
+      getSingleInfo(fileId);
+    },
+    handleDownLoadPathDoc(fileId, fileUrl, fileName, state) {
+      getKnownSingleInfo(fileId, fileUrl, fileName, state);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.burg-pop {
+  .manage-title {
+    font-size: 24px;
+    color: #fff;
+    font-weight: normal;
+    margin: 0;
+    margin-bottom: 6px;
+  }
+  width: 720px;
+  height: 430px;
+  border: 1px solid #23fffc;
+  position: absolute;
+  margin: auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  z-index: 9999999999;
+  background-color: #050b47;
+  box-shadow: 1px 1px 10px rgba(35, 255, 252, 0.43);
+  padding: 20px;
+  .burg-pop-close {
+    width: 24px;
+    height: 24px;
+    background: url("~@/assets/images/close-iconb.png") no-repeat center center;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: inline-block;
+    cursor: pointer;
+    background-size: cover;
+  }
+  .burg-pop-line {
+    line-height: 36px;
+    margin: 0;
+    display: flex;
+    .pop-line-quare {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      overflow: hidden;
+      .line-name {
+        font-size: 14px;
+        color: #23fffc;
+        font-style: normal;
+      }
+      .line-text {
+        font-size: 14px;
+        color: #fff;
+        font-weight: normal;
+        flex: 1;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        display: block;
+        span {
+          margin-right: 12px;
+        }
+      }
+    }
+  }
+}
+</style>

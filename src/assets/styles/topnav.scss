@@ -1,0 +1,117 @@
+.el-header {
+  padding: 0px;
+  background-color: #409efe;
+  background-size: 100% 100%;
+  display: flex;
+  justify-content: space-between;
+
+  .header-logo {
+    margin-left: 1%;
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    justify-content: center;
+
+    .title {
+      font-size: 16px;
+      color: #fff;
+      font-weight: bolder
+    }
+
+    .subtitle {
+      color: white;
+      font-size: 13px;
+      display: flex;
+
+      .line {
+        width: 40px;
+        height: 10px;
+        border-bottom: 1px solid white;
+        margin-right: 4px;
+      }
+    }
+  }
+
+  .el-menu {
+    background: none;
+    border-bottom: none;
+    float: right;
+
+    .el-menu-item {
+      padding: 0px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      // width: 110px;
+      padding-right: 15px;
+      border-bottom: none;
+      margin-right: 10px;
+
+      &.is-active {
+        background-color: #5eb2ff !important;
+      }
+
+      &:hover,
+      &:focus {
+        background: none;
+      }
+
+      .menu-img {
+        width: 33px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-size: 17px !important;
+
+        &.menu_develop {
+          background: url("../../assets/images/nav-data.png") no-repeat center center;
+        }
+
+        &.menu_set {
+          background: url("../../assets/images/nav-set.png") no-repeat center center;
+        }
+      }
+
+      .menu-text {
+        font-size: 14px;
+        line-height: 18px;
+        color: #fff;
+        text-align: center;
+      }
+    }
+  }
+
+  .el-dropdown {
+    margin-right: 10px;
+
+    .el-dropdown-selfdefine {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      height: 60px;
+
+      .manage-name {
+        color: #fff;
+        margin-left: 10px;
+        max-width: 100px;
+        overflow: hidden;
+        display: block;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}
+
+@media screen and (min-width: 1750px) {
+  .header-logo {
+    span {
+      font-size: 24px !important;
+    }
+  }
+
+  .menu-text {
+    font-size: 16px !important;
+  }
+}

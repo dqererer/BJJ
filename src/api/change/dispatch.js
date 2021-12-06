@@ -1,0 +1,76 @@
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+// 整改方案
+const getChangeProgramList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/list`, params);  //获取方案列表--分页
+const getAllChangeProgramList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/getAllPlanByCon`, params);  //获取方案列表--不分页
+const saveChangeProgram = params => postForm(path + `/center/trectify/plan/tRectifyPlan/save`, params);  //保存方案
+const deleteChangeProgram = params => postAction(path + `/center/trectify/plan/tRectifyPlan/delete`, params);  //删除方案
+const getRoundOrBatchList = params => getAction(path + `/center/tinspect/round/tInspectRound/getInspectRoundList`, params);  //获取轮次/批次列表
+const getSpectTypeList = params => getAction(path + `/center/tinspect/round/tInspectRound/findInspectTypeList`, params);  //获取轮次/批次列表
+const getCityList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/getInfoById`, params);  //获取地区信息
+
+
+
+// 整改任务
+const getChangeTaskList = params => getAction(path + `/center/trectify/taskmain/tRectifyTaskMain/list`, params);  //获取任务列表
+const saveChangeTask = params => postForm(path + `/center/trectify/taskmain/tRectifyTaskMain/save`, params);  //保存方案
+const getUnitList = params => getAction(path + `/center/trectify/office/tRectifyOffice/getOfficeByCity`, params);  //获取进度记录
+const deleteProgress = params => postAction(path + `/center/trectify/taskprogress/tRectifyTaskProgress/delete`, params);  //删除进度记录
+const getTaskDetail = params => getAction(path + `/center/trectify/taskmain/tRectifyTaskMain/getInfoById`, params);  //获取任务详细信息
+const getProgressList = params => getAction(path + `/center/trectify/taskprogress/tRectifyTaskProgress/getInfoByMeasureId`, params);  //获取进度记录
+
+
+//整改问责
+const getAskList = params => getAction(path + `/center/tcommon/account/tAccount/list`, params);  //获取问责列表
+const saveAsk = params => postForm(path + `/center/tcommon/account/tAccount/save`, params);  //保存问责
+const deleteAsk = params => postAction(path + `/center/tcommon/account/tAccount/delete`, params);  //删除问责记录
+const getTaskList = params => getAction(path + `/center/tcommon/account/tAccount/getTaskMainList`, params);  //获取任务列表
+
+//月度报告
+const getReportList = params => getAction(path + `/center/trectify/monthly/tRectifyMonthly/list`, params);  //获取月度报告列表
+const deleteReport = params => postAction(path + `/center/trectify/monthly/tRectifyMonthly/delete`, params);  //删除月度报告
+const saveReportTask = params => postForm(path + `/center/trectify/monthly/tRectifyMonthly/save`, params);  //保存月度报告
+
+
+//首页
+const getProgressData = params => getAction(path + `/center/trectify/statistics/getProgressList`, params);  //获取任务列表
+const getPieData1 = params => getAction(path + `/center/trectify/statistics/getOverdueWarning`, params);  //获取饼状图----cq
+const getPieData2 = params => getAction(path + `/center/trectify/statistics/getOverdueWarningYJ`, params);  //获取饼状图--yj
+const getTaskData = params => getAction(path + `/center/trectify/statistics/getTaskList`, params);  //获取任务列表
+const getTaskDataByYJM = params => getAction(path + `/center/trectify/statistics/getTaskListByYJM`, params);  //获取任务列表
+const getProgress = params => getAction(path + `/center/trectify/statistics/getReportRate`, params);  //整改任务上报率
+const getBarData = params => getAction(path + `/center/trectify/statistics/getBarData`, params);  //柱状图数据
+
+
+
+
+export {
+  getChangeProgramList,
+  saveChangeProgram,
+  getRoundOrBatchList,
+  getSpectTypeList,
+  getCityList,
+  deleteChangeProgram,
+  getChangeTaskList,
+  saveChangeTask,
+  getAllChangeProgramList,
+  getTaskDetail,
+  getProgressList,
+  getUnitList,
+  deleteProgress,
+  getReportList,
+  deleteReport,
+  getAskList,
+  saveReportTask,
+  getProgressData,
+  getTaskList,
+  saveAsk,
+  deleteAsk,
+  getTaskData,
+  getPieData1,
+  getPieData2,
+
+  getProgress,
+  getBarData,
+  getTaskDataByYJM,
+}

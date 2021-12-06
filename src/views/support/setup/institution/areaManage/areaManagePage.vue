@@ -1,0 +1,76 @@
+<template>
+  <div class="information-inner information-styem" ref="informationInner">
+    <el-tabs v-model="activeName" type="card" @tab-click="tabClick" ref="tabs" class="information-styem-tab">
+      <el-tab-pane label="区域列表" name="list">
+        <area-manage-list
+          ref="dataList"
+          @handleSeeAmend="handleSeeAmend"
+          @backHandle="backHandle"
+        ></area-manage-list>
+      </el-tab-pane>
+      <el-tab-pane
+        :label="tabState == 'add' ? '区域添加' : '区域修改'"
+        name="add"
+      >
+        <area-manage-amend
+          @backHandle="backHandle"
+        ></area-manage-amend>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script>
+import areaManageList from "./areaManageList";
+import areaManageAmend from "./areaManageAmend";
+import bus from "@/utils/vueBus";
+
+export default {
+  components: {
+    areaManageList,
+    areaManageAmend,
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+    };
+  },
+  activated() {
+    this.activeName = "list";
+    this.tabState = "add";
+  },
+  methods: {
+    tabClick(tab) {
+      if (tab.name === "list") {
+        this.tabState = "add";
+        this.tabControlShow(1);
+      } else if (tab.name === "add") {
+        bus.$emit("outAreaComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      const tabState = stateObj.tabState;
+      const name = stateObj.name;
+      if (tabState == "amend" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }else if (tabState == "add" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      this.tabState = "add";
+      this.tabControlShow(1);
+      if (name == "update") {
+        this.$refs.dataList.getAreaList();
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

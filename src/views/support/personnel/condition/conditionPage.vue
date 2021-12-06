@@ -1,0 +1,400 @@
+<template>
+  <div class="people">
+    <div class="top">
+      <div class="left">
+        <div class="card ruku">
+          <p class="title">入库总人数（人）</p>
+          <p class="num">{{ rukuNum }}</p>
+        </div>
+
+        <div class="card ducha">
+          <p class="title">参与督察人数（人）</p>
+          <p class="num">{{ duchaNum }}</p>
+        </div>
+        <div class="card pie">
+          <div id="pie"></div>
+        </div>
+      </div>
+      <div class="card right">
+        <p>各地区入库人员分布情况</p>
+        <div id="water"></div>
+      </div>
+    </div>
+    <div class="card bottom">
+      <p>全省督察人员活跃情况</p>
+      <div id="bar"></div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  basicAna,
+  timesAna,
+  areaAna,
+  areaPctAna,
+} from "@/api/support/personnel";
+import * as echarts from "echarts";
+require("echarts/theme/macarons"); //引入主题
+export default {
+  data() {
+    return {
+      rukuNum: 0,
+      duchaNum: 0,
+      pieData: [],
+      pieCharts: null,
+      xWaterData: [],
+      yWaterOther: [],
+      yWaterData: [],
+      xBarData: [],
+      yRuku: [],
+      yCanYu: [],
+      yHuoYue: [],
+    };
+  },
+  created() {
+    this.getBasicData();
+    this.getPieData();
+    this.getWaterfall();
+    this.getBarData();
+  },
+  computed: {},
+  methods: {
+    getBasicData: function () {
+      basicAna().then((res) => {
+        this.duchaNum = res.data.partin;
+        this.rukuNum = res.data.total;
+      });
+    },
+    getPieData: function () {
+      timesAna().then((res) => {
+        let arr = [
+          {
+            name: "1次",
+            value: res.data.one,
+          },
+          {
+            name: "2次",
+            value: res.data.two,
+          },
+          {
+            name: "3次",
+            value: res.data.three,
+          },
+          {
+            name: "4次及以上",
+            value: res.data.four,
+          },
+        ];
+        this.pieData = arr;
+        // this.$nextTick(() => {
+        this.drawPie();
+        // });
+      });
+    },
+    drawPie: function () {
+      this.pieCharts = echarts.init(document.getElementById("pie"), "macarons");
+      this.pieCharts.clear();
+      this.pieCharts.setOption({
+        tooltip: {
+          trigger: "item",
+        },
+        legend: {
+          data: ["1次", "2次", "3次", "4次及以上"],
+          top: "bottom",
+          padding: 5,
+          icon: "rect",
+          itemWidth: 12,
+          itemHeight: 12,
+        },
+        series: [
+          {
+            type: "pie",
+            radius: "50%",
+            data: this.pieData,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+
+            label: {
+              show: true,
+              formatter: "{d}%",
+            },
+            labelLine: { show: true },
+          },
+        ],
+        color: ["#5470c6", "#91cc75", "#fac858", "#ee6666"],
+      });
+    },
+    getWaterfall: function () {
+      areaAna().then((res) => {
+        let xArr = [],
+          yOther = [],
+          yData = [],
+          total = res.data[0].num;
+        res.data.forEach((item) => {
+          xArr.push(item.name);
+          yData.push(item.num);
+          let other = (total = item.num);
+          yOther.push(other);
+        });
+        this.xWaterData = xArr;
+        this.yWaterData = yData;
+        this.yWaterOther = yOther;
+        this.drawWaterFall();
+      });
+    },
+    drawWaterFall: function () {
+      this.waterCharts = echarts.init(
+        document.getElementById("water"),
+        "macarons"
+      );
+      this.waterCharts.clear();
+      this.waterCharts.setOption({
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+          formatter: function (params) {
+            var tar = params[1];
+            return tar.name + " : " + tar.value;
+          },
+        },
+        grid: {
+          left: "3%",
+          right: "4%",
+          bottom: "3%",
+          containLabel: true,
+        },
+        xAxis: {
+          type: "category",
+          splitLine: { show: false },
+          data: this.xWaterData,
+        },
+        yAxis: {
+          type: "value",
+        },
+        series: [
+          {
+            name: "Placeholder",
+            type: "bar",
+            stack: "Total",
+            itemStyle: {
+              borderColor: "transparent",
+              color: "transparent",
+            },
+            emphasis: {
+              itemStyle: {
+                borderColor: "transparent",
+                color: "transparent",
+              },
+            },
+            data: this.yWaterOther,
+          },
+          {
+            name: "Life Cost",
+            type: "bar",
+            stack: "Total",
+            label: {
+              show: true,
+              position: "inside",
+            },
+            data: this.yWaterData,
+          },
+        ],
+        color: ["#5470c6"],
+      });
+    },
+    getBarData: function () {
+      areaPctAna().then((res) => {
+        let xArr = [],
+          rkArr = [],
+          cyArr = [],
+          hyArr = [];
+        res.data.forEach((item) => {
+          xArr.push(item.name);
+          rkArr.push(item.num);
+          cyArr.push(item.inpart);
+          hyArr.push(item.pct);
+        });
+        this.xBarData = xArr;
+        this.yRuku = rkArr;
+        this.yCanYu = cyArr;
+        this.yHuoYue = hyArr;
+        this.drawBar();
+      });
+    },
+    drawBar: function () {
+      this.pieCharts = echarts.init(document.getElementById("bar"), "macarons");
+      this.pieCharts.clear();
+      const colors = ["#5470C6", "#91CC75", "#EE6666"];
+      this.pieCharts.setOption({
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "cross",
+            crossStyle: {
+              color: "#999",
+            },
+          },
+          formatter: function (params) {
+            let tip = "";
+            if (params != null && params.length > 0) {
+              for (let i = 0; i < params.length; i++) {
+                tip += params[i].seriesName + ":" + params[i].value + "</br>";
+                if (i == 2) {
+                  tip =
+                    params[0].seriesName +
+                    ":" +
+                    params[0].value +
+                    "%</br>" +
+                    params[1].seriesName +
+                    ":" +
+                    params[1].value +
+                    "</br>" +
+                    params[2].seriesName +
+                    ":" +
+                    params[2].value +
+                    "</br>";
+                }
+              }
+            }
+            return tip;
+          },
+        },
+
+        legend: {
+          data: ["入库人数", "参与人数", "活跃度"],
+        },
+        xAxis: [
+          {
+            type: "category",
+            data: this.xBarData,
+            axisPointer: {
+              type: "shadow",
+            },
+          },
+        ],
+        yAxis: [
+          {
+            type: "value",
+            name: "活跃度",
+            min: 0,
+            max: "dataMax",
+            axisLabel: {
+              formatter: "{value} %",
+            },
+          },
+          {
+            type: "value",
+            name: "人数",
+            min: 0,
+            max: "dataMax",
+            axisLabel: {
+              formatter: "{value} 人",
+            },
+          },
+        ],
+        series: [
+          {
+            name: "活跃度",
+            type: "line",
+            yAxisIndex: 0,
+            data: this.yHuoYue,
+          },
+          {
+            name: "入库人数",
+            type: "bar",
+            yAxisIndex: 1,
+            data: this.yRuku,
+          },
+          {
+            yAxisIndex: 1,
+            name: "参与人数",
+            type: "bar",
+            data: this.yCanYu,
+          },
+        ],
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.people {
+  color: #606266;
+  p {
+    margin: 0;
+    padding: 0;
+  }
+  padding: 20px;
+  .card {
+    background: white;
+    width: 100%;
+    .title {
+      height: 48px;
+      line-height: 48px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .num {
+      color: #d9001b;
+      text-align: center;
+      height: 52px;
+      line-height: 32px;
+      font-weight: bold;
+      font-size: 26px;
+    }
+  }
+  .top {
+    display: flex;
+    margin-bottom: 20px;
+    .left {
+      width: 260px;
+      margin-right: 14px;
+
+      .ruku {
+        height: 100px;
+        margin-bottom: 10px;
+      }
+      .ducha {
+        height: 100px;
+        margin-bottom: 10px;
+      }
+      #pie {
+        height: 160px;
+        width: 100%;
+        padding-bottom: 10px;
+      }
+    }
+    .right {
+      flex: 1;
+      p {
+        margin: 12px 0 0 15px;
+        font-weight: bolder;
+        font-size: 20px;
+      }
+      #water {
+        height: 320px;
+      }
+    }
+  }
+  .bottom {
+    padding-top: 10px;
+    p {
+      margin: 12px 0 0 15px;
+      font-weight: bolder;
+      font-size: 20px;
+    }
+    #bar {
+      height: 380px;
+    }
+  }
+}
+</style>

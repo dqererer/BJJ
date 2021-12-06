@@ -1,0 +1,187 @@
+<template>
+  <div>
+    <div class="tab-list-content">
+      <div class="box-body">
+        <el-form :model="queryParams" label-width="100px">
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="分系统名称：">
+                <el-input
+                  v-model="queryParams.name"
+                  placeholder="请输入分系统名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onSubmit">查询</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+
+      <el-table
+        :data="bSysData"
+        v-loading="loading"
+        border
+        style="width: 100%"
+        row-key="id"
+        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+      >
+        <!--            <el-table-column  prop="hasChild" label="是否有下级系统"  width="180px"></el-table-column>-->
+        <el-table-column prop="hasChild" label="分系统名称" min-width="180px">
+          <template v-slot="scope">
+            <div
+              class="linStyle"
+              style="padding-left: 20px;"
+              @click="handleEdit(scope.row)"
+              min-width="180px"
+            >
+              {{ scope.row.name }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="type"
+          label="类型"
+          width="80px"
+        ></el-table-column>
+        <el-table-column
+          prop="code"
+          label="编码"
+          width="80px"
+        ></el-table-column>
+        <el-table-column
+          prop="href"
+          label="path"
+          width="180px"
+        ></el-table-column>
+        <el-table-column
+          prop="router"
+          label="name"
+          width="180px"
+        ></el-table-column>
+        <el-table-column
+          prop="redirect"
+          label="redirect"
+          width="140px"
+        ></el-table-column>
+        <el-table-column
+          prop="component"
+          label="component"
+          width="180px"
+        ></el-table-column>
+        <el-table-column label="操作" width="300">
+          <template slot-scope="scope">
+            <el-button size="mini" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+            <el-button
+              size="mini"
+              type="primary"
+              @click="handleAddLower(scope.row)"
+              ><i class="el-icon-plus" style="margin-right:5px;"></i
+              >添加下级机构</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+  </div>
+</template>
+
+<script>
+import { dictListType } from "@/api/styem/dict/type.js";
+import {
+  sysSubList,
+  sysSubDelete,
+  sysSubTreeData
+} from "@/api/support/bRoleSys";
+import { MessageBox } from "element-ui";
+import Bus from "@/utils/vueBus";
+export default {
+  data() {
+    return {
+      queryParams: {
+        name: undefined,
+        pageNo: 1,
+        pageSize: 10
+      },
+      loading: true,
+      delFlagArry: [],
+      bSysData: [],
+      normalizer(node) {
+        return {
+          label: node.name
+        };
+      }
+    };
+  },
+  created() {
+    this.getList();
+  },
+  methods: {
+    async getList() {
+      const reponse = await sysSubTreeData(this.queryParams);
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.bSysData = menu;
+      this.loading = false;
+    },
+    onSubmit() {
+      this.queryParams.pageNo = 1;
+      this.getList();
+    },
+    handleEdit(row) {
+      const { id } = row;
+      Bus.$emit("outStyemComeId", {
+        state: "amend",
+        id
+      });
+      this.$emit("handleSeeAmend", { tabState: "amend", name: "add" });
+    },
+    handleAddLower(row) {
+      const { id } = row;
+      Bus.$emit("outStyemComeId", {
+        state: "addNext",
+        id
+      });
+      this.$emit("handleSeeAmend", { tabState: "add", name: "add" });
+    },
+    handleDelete(row) {
+      const { id } = row;
+      MessageBox.confirm("是否要删除", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        sysSubDelete({ id }).then(reponse => {
+          if (reponse.code == 200) {
+            this.queryParams.pageNo = 1;
+            this.getList();
+          }
+        });
+      });
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .el-table .cell {
+  display: flex;
+}
+/deep/.el-table__expand-icon {
+  margin-right: -20px !important;
+}
+</style>

@@ -1,0 +1,369 @@
+<template>
+  <div class="people">
+    <div class="content">
+      <div class="bg header">
+        <div class="title">督察人员业绩报告</div>
+        <div class="info">
+          <div class="basic">
+            <span class="name">{{ peopleInfo.name }}</span>
+            <span>{{ peopleInfo.birthday }}</span>
+            <span>{{ peopleInfo.sexName }}</span>
+            <span>{{ peopleInfo.telephone }}</span>
+          </div>
+          <div class="detail">
+            <span>{{ peopleInfo.areaName }}</span>
+            <span>{{ peopleInfo.unit }}</span>
+            <span>{{ peopleInfo.position }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg statistics">
+        <div
+          :class="[curIndex == '0' ? 'green' : '', 'box-card']"
+          @click="handleTypeClick(0)"
+        >
+          <i class="el-icon-s-cooperation"></i>
+          <div class="data">
+            <p>参与督察次数</p>
+            <p>
+              <span class="num">{{ rolemap.total }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div
+          :class="[curIndex == '1' ? 'green' : '', 'box-card']"
+          @click="handleTypeClick(1)"
+        >
+          <i class="el-icon-s-management"></i>
+          <div class="data">
+            <p>督察组长次数</p>
+            <p>
+              <span class="num">{{ rolemap.leader }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div
+          :class="[curIndex == '2' ? 'green' : '', 'box-card']"
+          @click="handleTypeClick(2)"
+        >
+          <i class="el-icon-s-check"></i>
+          <div class="data">
+            <p>副组长次数</p>
+            <p>
+              <span class="num">{{ rolemap.deputy }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div
+          :class="[curIndex == '3' ? 'green' : '', 'box-card']"
+          @click="handleTypeClick(3)"
+        >
+          <i class="el-icon-s-help"></i>
+          <div class="data">
+            <p>总协调人次数</p>
+            <p>
+              <span class="num">{{ rolemap.chief }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div
+          :class="[curIndex == '4' ? 'green' : '', 'box-card']"
+          @click="handleTypeClick(4)"
+        >
+          <i class="el-icon-s-custom"></i>
+          <div class="data">
+            <p>普通成员次数</p>
+            <p>
+              <span class="num">{{ rolemap.member }}</span
+              >次
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="bg box">
+        <div class="title">参与督察分布情况</div>
+        <div class="table">
+          <el-table
+            :data="tableData"
+            border
+            style="width: 100%"
+            @row-click="handleTableClick"
+            highlight-current-row
+          >
+            <el-table-column label="类型" width="280">
+              <template slot-scope="scope">
+                <p>
+                  {{ scope.row.superviseOneName }} -
+                  {{ scope.row.superviseName }}
+                </p>
+              </template>
+            </el-table-column>
+            <el-table-column prop="roundName" label="轮次"> </el-table-column>
+            <el-table-column prop="batchName" label="批次"> </el-table-column>
+            <el-table-column prop="name" label="督查组"> </el-table-column>
+            <el-table-column label="督察时间">
+              <template slot-scope="scope">
+                <p>{{ scope.row.startDate }} - {{ scope.row.endDate }}</p>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <div class="bg box">
+        <div class="title">督察填写信息情况统计</div>
+        <el-empty description="无查询结果" v-if="isNull"></el-empty>
+        <div id="bar" v-else></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import * as echarts from "echarts";
+import {
+  getMemberInfo,
+  findTeamListByMemberAndRole,
+  memberWorkAna,
+} from "@/api/support/search";
+require("echarts/theme/macarons"); //引入主题
+
+export default {
+  data() {
+    return {
+      curIndex: 0,
+      id: "",
+      barCharts: null,
+      xData: [],
+      yData: [],
+      peopleInfo: {},
+      rolemap: {},
+      teamRole: "",
+      tableData: [],
+      teamId: "",
+      isNull: false,
+    };
+  },
+  computed: {},
+  props: {
+    personId: String,
+  },
+  created() {
+    this.getMemberInfo();
+    this.findTeamListByMemberAndRole();
+    this.memberWorkAna();
+  },
+  methods: {
+    handleTypeClick: function (index) {
+      this.curIndex = index;
+      switch (index) {
+        case 0:
+          this.teamRole = "";
+          break;
+        case 1:
+          this.teamRole = "1097988735452062048,1097988735452062010";
+          break;
+        case 2:
+          this.teamRole = "1097988735452062055,1097988735452062020";
+          break;
+        case 3:
+          this.teamRole = "1097988735452062062";
+          break;
+        case 4:
+          this.teamRole = "1097988735452062069,1097988735452062040";
+          break;
+      }
+      this.findTeamListByMemberAndRole();
+      this.memberWorkAna();
+    },
+    handleTableClick: function (row) {
+      this.teamId = row.id;
+      this.memberWorkAna();
+    },
+    drawBar() {
+      this.barCharts = echarts.init(document.getElementById("bar"), "macarons");
+      this.barCharts.clear();
+      this.barCharts.setOption({
+        color: ["#409eff"],
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: this.xData,
+          // axisLabel: {
+          //   interval: 0,
+          //   formatter: function (value) {
+          //     return value.split("").join("\n");
+          //   },
+          // },
+          axisLabel: {
+            interval: 0,
+            rotate: -45,
+          },
+        },
+        yAxis: {
+          type: "value",
+          minInterval: 1,
+        },
+        series: [
+          {
+            data: this.yData,
+            type: "bar",
+          },
+        ],
+      });
+    },
+    getMemberInfo: function () {
+      getMemberInfo({
+        id: this.personId,
+      }).then((res) => {
+        this.peopleInfo = res.data.memberInfo;
+        this.rolemap = res.data.roleMap;
+      });
+    },
+    findTeamListByMemberAndRole: function () {
+      findTeamListByMemberAndRole({
+        personId: this.personId,
+        teamRole: this.teamRole,
+      }).then((res) => {
+        this.tableData = res.data;
+      });
+    },
+    memberWorkAna() {
+      memberWorkAna({
+        personId: this.personId,
+        teamId: this.teamId,
+        teamRole: this.teamRole,
+      }).then((res) => {
+        if (res.msg == "无查询结果") {
+          this.isNull = true;
+        } else {
+          this.isNull = false;
+          this.xData = Object.keys(res.data);
+          this.yData = Object.values(res.data);
+          this.$nextTick(() => {
+            this.drawBar();
+          });
+        }
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.people {
+  .content {
+    padding: 20px 0;
+    margin: 0 auto;
+    .header {
+      height: 120px;
+      display: flex;
+      .title {
+        width: 270px;
+        border-right: 1px solid #9fa0a2;
+        text-align: center;
+        line-height: 100px;
+        font-size: 24px;
+        font-weight: bold;
+        color: #303133;
+        height: 100px;
+      }
+      .info {
+        span {
+          color: #3a3b3c;
+          margin-right: 70px;
+          line-height: 50px;
+          font-size: 16px;
+        }
+        padding: 0 40px;
+        .basic {
+          height: 50px;
+          border-bottom: 1px solid #9fa0a2;
+          .name {
+            font-size: 20px;
+            font-weight: bold;
+          }
+        }
+        .detail {
+          height: 50px;
+          span {
+            margin-right: 30px;
+          }
+        }
+      }
+    }
+    .statistics {
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-around;
+      height: 140px;
+      align-items: center;
+      .box-card {
+        width: 200px;
+        height: 92px;
+        background: #409eff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        i {
+          font-size: 40px;
+          margin-right: 10px;
+        }
+        .num {
+          font-size: 22px;
+          color: red;
+        }
+      }
+    }
+    .box {
+      .title {
+        color: #303133;
+        font-size: 20px;
+        font-weight: bold;
+        padding-left: 40px;
+        height: 60px;
+        line-height: 60px;
+      }
+    }
+    .table {
+      padding: 0 30px;
+    }
+  }
+  .bg {
+    // background: #eee;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+
+  p {
+    margin: 0;
+  }
+  .green {
+    background: #67c23a !important;
+  }
+  #bar {
+    width: 112%;
+    height: 400px;
+    margin-left: -6%;
+    margin-top: -30px;
+  }
+}
+.el-table {
+  /deep/tbody tr:hover > td {
+    cursor: pointer;
+  }
+}
+</style>
+
+

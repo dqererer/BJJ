@@ -1,0 +1,1142 @@
+<template>
+  <div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="spotOpen"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-button
+        class="inspect-preview"
+        @click.stop="inspectPreviewClick"
+        size="small"
+        type="primary"
+        v-if="curStatus != 'view'"
+      >预览</el-button>
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">相关线索信息</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <span class="info-item-title">线索信息：</span>
+          <span class="info-item-content">
+            <el-button
+              size="mini"
+              type="success"
+              :disabled="curStatus == 'view'"
+              @click="handleClew"
+            >新增线索</el-button>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-item-title">新增线索信息：</span>
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in clewList"
+                :key="item.clueId"
+              >
+                <span @click.stop="handleClewClick(item.clueId)">{{ index + 1 }}、{{ item.clueName }}</span>
+                <span
+                  v-if="curStatus != 'view'"
+                  class="clue-close"
+                  @click="handleClueClose(index, item.clueId)"
+                >X</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">现场勘察笔录</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="时间：" prop="startTime">
+              <el-date-picker
+                class="datetimerange-box"
+                v-model="issueDate"
+                type="datetimerange"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd hh:mm"
+                @change="issueDateChange"
+                :disabled="curStatus == 'view'"
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮编：" prop="actualIntervieweePostcode">
+              <el-input
+                :disabled="curStatus == 'view'"
+                v-model="dialogParams.actualIntervieweePostcode"
+                placeholder="请输入邮编"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="地点：" class="meet-address" prop="actualAddress">
+              <el-select
+                v-model="dialogParams.actualCityCode"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+                :disabled="curStatus == 'view'"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.actualCountyCode"
+                filterable
+                placeholder="请选择区县"
+                @change="handleActualCountyChange"
+                :disabled="curStatus == 'view'"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-input
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.actualAddress"
+                placeholder="请输入详细地址"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="勘察人员：" prop="actualSpeakerIds">
+              <el-select
+                v-model="dialogParams.actualSpeakerIds"
+                placeholder="请选择勘察人员"
+                multiple
+                @change="handleActualPersonClick"
+                :disabled="curStatus == 'view'"
+              >
+                <el-option
+                  v-for="item in teamPersonArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="记录人员：" prop="actualRecordId">
+              <el-select
+                v-model="dialogParams.actualRecordId"
+                placeholder="请选择记录人员"
+                @change="handleActualRecordClick"
+                :disabled="curStatus == 'view'"
+              >
+                <el-option
+                  v-for="item in teamPersonArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="被勘察人：" prop="actualInterviewee">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.actualInterviewee"
+                placeholder="请输入被勘察人"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="现场负责人：" prop="siteLeader">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.siteLeader"
+                placeholder="请输入现场负责人"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="手机号码：" prop="actualIntervieweePhone">
+              <el-input
+                :disabled="curStatus == 'view'"
+                v-model="dialogParams.actualIntervieweePhone"
+                placeholder="请输入手机号码"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="身份证号码：" prop="actualIntervieweeIdcard">
+              <el-input
+                :disabled="curStatus == 'view'"
+                v-model="dialogParams.actualIntervieweeIdcard"
+                placeholder="请输入身份证号码"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="年龄：" prop="actualIntervieweeAge">
+              <el-input
+                v-model.number="dialogParams.actualIntervieweeAge"
+                placeholder="请输入年龄"
+                maxlength="2"
+                show-word-limit
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="工作单位：" prop="actualIntervieweeUnit">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.actualIntervieweeUnit"
+                placeholder="请输入工作单位"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="职务：" prop="actualIntervieweePost">
+              <el-input
+                maxlength="22"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.actualIntervieweePost"
+                placeholder="请输入职务"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="其他参与人员：" prop="otherHander">
+              <el-input
+                maxlength="50"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.otherHander"
+                placeholder="请输入其他参与人员"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="现场情况：" prop="siteCondition">
+              <el-input
+                type="textarea"
+                maxlength="240"
+                show-word-limit
+                rows="4"
+                class="textarea-limt-padding"
+                v-model="dialogParams.siteCondition"
+                placeholder="请输入现场情况"
+                :disabled="curStatus == 'view'"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="电子件：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                accept=".doc, .docx, .pdf"
+                :limit="5"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                params="dialogParams"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+                :uneditable="curStatus == 'view'"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter" v-if="curStatus != 'view'">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="新增线索"
+      :visible.sync="clewOpen"
+      :before-close="handleDialogClewClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">线索信息</h1>
+      </div>
+      <el-form
+        ref="dialogClewForm"
+        :model="dialogClewParams"
+        :rules="dialogClewRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索名称：" prop="clueName">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogClewParams.clueName"
+                placeholder="请输入线索名称"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索编号：" prop="clueNum">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogClewParams.clueNum"
+                placeholder="请输入线索编号"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="线索来源：" prop="clueSource">
+              <el-select v-model="dialogClewParams.clueSource" placeholder="请选择线索来源">
+                <el-option
+                  v-for="item in sourceArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="污染类型：" prop="pollutionType">
+              <el-select v-model="dialogClewParams.pollutionType" placeholder="请选择污染类型">
+                <el-option
+                  v-for="item in pollutantArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="问题属性：" prop="problemType">
+              <el-input
+                maxlength="8"
+                show-word-limit
+                v-model="dialogClewParams.problemType"
+                placeholder="请输入问题属性"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索所在地：" class="meet-addressb" prop="address">
+              <el-select
+                v-model="dialogClewParams.cityCode"
+                placeholder="请选择市"
+                @change="handleClewCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-select
+                v-model="dialogClewParams.countyCode"
+                placeholder="请选择区县"
+                @change="handleClewCountyChange"
+              >
+                <el-option
+                  v-for="item in countClewyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-select v-model="dialogClewParams.townCode" placeholder="请选择镇">
+                <el-option
+                  v-for="item in townClewArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-input
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogClewParams.address"
+                placeholder="请输入详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="经度：" prop="longitude">
+              <el-input placeholder="请输入经度" v-model="dialogClewParams.longitude"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="纬度：" prop="latitude">
+              <el-input placeholder="请输入纬度" v-model="dialogClewParams.latitude"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索内容：" prop="clueContent">
+              <el-input
+                type="textarea"
+                placeholder="请输入线索内容"
+                v-model="dialogClewParams.clueContent"
+                maxlength="240"
+                show-word-limit
+                rows="4"
+                class="textarea-limt-padding"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索相关资料：" prop="attachmentId">
+              <upload
+                ref="uploadFile1"
+                :limit="1"
+                :fileId="dialogClewParams.attachmentId"
+                fromKey="attachmentId"
+                params="dialogClewParams"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="重点关注：" prop="weatherFocus">
+              <el-radio-group v-model="dialogClewParams.weatherFocus" placeholder="请选择重点关注">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogClewSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClewClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <spot-preview
+      v-if="previewOpen"
+      @handlePreviewClose="handlePreviewClose"
+      :previewOpen="previewOpen"
+      :inspectName="inspectName"
+      :previewData="previewData"
+      :dialogParams="dialogParams"
+    ></spot-preview>
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+  </div>
+</template>
+
+<script>
+import examineInfo from "@/components/examineInfo";
+import {
+  issueSpotSave,
+  severalSee,
+  interviewGetNewId,
+  severalShowNum,
+  severalRelationSave
+} from "@/api/burg/garrison";
+import { severalPersonList } from "@/api/burg/garrison";
+import { areaTreeNew } from "@/api/styem/dept";
+import { dictListType } from "@/api/styem/dict/type";
+import { mapGetters } from "vuex";
+import spotPreview from "./spotPreview";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+export default {
+  props: {
+    inspectId: {
+      type: String
+    },
+    inspectAreaCode: {
+      type: String
+    },
+    inspectName: {
+      type: String
+    },
+    spotInfoId: {
+      type: String
+    },
+    spotInfoIndex: {
+      type: Number
+    },
+    spotArry: {
+      type: Array
+    },
+    list: {
+      type: Array
+    },
+    tabIndex: {
+      type: [String, Number]
+    },
+    curStatus: {
+      type: String
+    },
+    teamPersonArry:{
+      type: Array,
+      default: () => []
+    }
+  },
+  components: {
+    examineInfo,
+    spotPreview,
+    clewInfo
+  },
+  data() {
+    return {
+      dialogTitle: "新增勘察笔录",
+      dialogParams: {
+        type: 4,
+        id: undefined,
+        isNewRecord: true,
+        inspectId: undefined,
+        showNum: undefined,
+        startTime: undefined,
+        endTime: undefined,
+        actualCityCode: undefined,
+        actualCountyCode: undefined,
+        actualAddress: undefined,
+        actualSpeakerIds: [],
+        actualRecordId: undefined,
+        actualInterviewee: undefined,
+        siteLeader: undefined,
+        actualIntervieweePhone: undefined,
+        actualIntervieweeIdcard: undefined,
+        actualIntervieweeAge: undefined,
+        actualIntervieweeUnit: undefined,
+        actualIntervieweePost: undefined,
+        actualIntervieweePostcode: undefined,
+        otherHander: undefined,
+        siteCondition: undefined,
+        attachmentId: undefined,
+        newClueList: []
+      },
+      clewOpen: false, //新增线索
+      dialogClewParams: {
+        clueName: undefined,
+        clueNum: undefined,
+        clueSource: undefined,
+        pollutionType: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentId: undefined,
+        inspectTeamId: undefined,
+        relationId: undefined,
+        longitude: undefined,
+        latitude: undefined,
+        weatherFocus:undefined
+      },
+      dialogRules: {
+        startTime: [
+          { required: true, message: "请选择时间", trigger: "change" }
+        ],
+        actualAddress: [
+          { required: true, message: "请输入详细地址", trigger: "blur" }
+        ],
+        actualSpeakerIds: [
+          { required: true, message: "请选择勘察人员", trigger: "change" }
+        ],
+        actualRecordId: [
+          { required: true, message: "请选择记录人员", trigger: "change" }
+        ],
+        actualInterviewee: [
+          { required: true, message: "请输入被询问人", trigger: "blur" }
+        ],
+        siteLeader: [
+          { required: true, message: "请输入现场负责人", trigger: "blur" }
+        ],
+        actualIntervieweePhone: [
+          { required: true, message: "请输入手机号码" },
+          {
+            pattern: /^1[34578]\d{9}$/,
+            message: "请输入正确的手机号码",
+            trigger: "blur"
+          }
+        ],
+        actualIntervieweeIdcard: [
+          { required: true, message: "请输入身份证号码" },
+          {
+            pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/,
+            message: "你的身份证格式不正确",
+            trigger: "blur"
+          }
+        ],
+        actualIntervieweeAge: [
+          { required: true, message: "请输入年龄", trigger: "blur" }
+        ],
+        actualIntervieweeUnit: [
+          { required: true, message: "请输入工作单位", trigger: "blur" }
+        ],
+        actualIntervieweePost: [
+          { required: true, message: "请输入职务", trigger: "blur" }
+        ],
+        actualIntervieweePostcode: [
+          { required: true, message: "请输入邮编" },
+          {
+            pattern: /^[0-9]{6}$/,
+            message: "请输入正确的邮编",
+            trigger: "blur"
+          }
+        ],
+        otherHander: [
+          { required: true, message: "请输入其他参与人员", trigger: "blur" }
+        ],
+        siteCondition: [
+          { required: true, message: "请输入现场情况", trigger: "blur" }
+        ],
+        attachmentId: [
+          { required: true, message: "请上传电子件", trigger: "change" }
+        ]
+      },
+      dialogClewRules: {
+        clueName: [{ required: true, message: "请输入线索名称" }],
+        clueNum: [{ required: true, message: "请输入线索编号" }],
+        clueSource: [{ required: true, message: "请选择线索来源" }],
+        pollutionType: [{ required: true, message: "请选择污染类型" }],
+        problemType: [{ required: true, message: "请输入问题属性" }],
+        address: [{ required: true, message: "请输入详细地址" }],
+        clueContent: [{ required: true, message: "请输入线索内容" }],
+        attachmentId: [{ required: true, message: "请上传线索相关资料" }],
+        longitude: [
+          { required: true, message: "请输入经度" },
+          {
+            validator: function(rule, value, callback) {
+              if (isNaN(value)) {
+                callback(new Error("请输入数字"));
+              } else if (value < 0 || value > 180) {
+                callback(new Error("请输入有效经度"));
+              } else {
+                callback();
+              }
+            }
+          }
+        ],
+        latitude: [
+          { required: true, message: "请输入纬度" },
+          {
+            validator: function(rule, value, callback) {
+              if (isNaN(value)) {
+                callback(new Error("请输入数字"));
+              } else if (value < 0 || value > 90) {
+                callback(new Error("请输入有效纬度"));
+              } else {
+                callback();
+              }
+            }
+          }
+        ],
+        weatherFocus: [{ required: true, message: "请选择重点关注" }]
+      },
+      countyArry: [],
+      spotArryOther: [],
+      previewOpen: false,
+      issueDate: undefined,
+      previewData: {
+        actualSpeakerNmae: undefined,
+        actualRecordName: undefined,
+        city: undefined,
+        county: undefined,
+        address: undefined,
+        startTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        },
+        endTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        }
+      },
+      spotOpen: false,
+      clewList: [],
+      otherClewList: [],
+      countClewyArry: [],
+      townClewArry: [],
+      sourceArry: [],
+      pollutantArry: [],
+      lookOpen: false,
+      clewId: undefined,
+    };
+  },
+  created() {
+    this.getDictSource();
+    this.getDictPollutant();
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo"])
+  },
+  methods: {
+    handleInspectArry() {
+      this.spotOpen = true;
+      this.dialogParams.id = undefined;
+      this.dialogParams.isNewRecord = true;
+      this.dialogTitle = "新增勘察笔录";
+      this.handleformClear("dialogForm");
+      this.spotArryOther = this.list[this.tabIndex].spotArry;
+      this.otherClewList = this.list[this.tabIndex].clewList;
+      console.log(this.list[this.tabIndex]);
+    },
+    async getDictSource() {
+      const reponse = await dictListType({ type: "clue_source" });
+      this.sourceArry = reponse.data;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    async handleClewCityChange(code) {
+      this.countClewyArry = [];
+      this.townClewArry = [];
+      this.dialogClewParams.countyCode = undefined;
+      this.dialogClewParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countClewyArry = reponse.data;
+    },
+    async handleClewCountyChange(code) {
+      this.townClewArry = [];
+      this.dialogClewParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.townClewArry = reponse.data;
+    },
+    async getNewId() {
+      const reponse = await interviewGetNewId();
+      this.dialogParams.id = reponse.data.id;
+    },
+    async getShowNum() {
+      const reponse = await severalShowNum({
+        type: 4,
+        areaCode: this.inspectAreaCode
+      });
+      this.dialogParams.showNum = reponse.data.showNum;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.actualCountyCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+      for (const item in this.areaArry) {
+        const subject = this.areaArry[item];
+        if (subject.id === code) {
+          this.previewData.city = subject.label;
+        }
+      }
+    },
+    async handleActualCountyChange(code) {
+      for (const item in this.countyArry) {
+        const subject = this.countyArry[item];
+        if (subject.id === code) {
+          this.previewData.county = subject.label;
+        }
+      }
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    dailogSubmit() {
+      console.log(this.clewList);
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          if (this.dialogTitle == "新增勘察笔录") {
+            this.dialogParams.newClueList = this.clewList;
+          }
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.actualSpeakerIds = this.dialogParams.actualSpeakerIds.join(
+            ","
+          );
+          this.dialogParams.inspectId = this.inspectId;
+          const reponse = await issueSpotSave(this.dialogParams);
+          const subject = reponse.data;
+          if (this.stateText === "修改") {
+            this.spotArryOther.splice(this.spotInfoIndex, 1);
+          }
+          this.spotArryOther.push({
+            id: subject.id,
+            actualCityName: subject.actualCityName + "勘察笔录"
+          });
+          this.$emit("handleSpotClose", {
+            spotArryOther: this.spotArryOther,
+            clewList: this.otherClewList
+          });
+          loading.close();
+          this.handleDialogClose();
+        }
+      });
+    },
+    handleClew() {
+      this.clewOpen = true;
+      this.handleformClear("dialogClewForm");
+      this.dialogClewParams.inspectTeamId = this.inspectId;
+    },
+    dailogClewSubmit() {
+      this.$refs.dialogClewForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await severalRelationSave(this.dialogClewParams);
+          const clewTemp = {
+            clueId: reponse.data.id,
+            teamId: this.inspectId,
+            relationTable: "TInspectTalk",
+            relationId: this.dialogParams.id,
+            clueName: reponse.data.clueName,
+            indentId: this.dialogParams.id
+          };
+          this.otherClewList.push(clewTemp);
+          const clewList = JSON.parse(JSON.stringify(this.clewList));
+          clewList.push(clewTemp);
+          this.clewList = clewList;
+          if (this.dialogTitle == "修改勘察笔录") {
+            const newClueList = JSON.parse(
+              JSON.stringify(this.dialogParams.newClueList)
+            );
+            newClueList.push(clewTemp);
+            this.dialogParams.newClueList = newClueList;
+          }
+          loading.close();
+          this.handleDialogClewClose();
+          this.$refs.uploadFile1.handleClear();
+        }
+      });
+    },
+    handleDialogClewClose() {
+      this.clewOpen = false;
+      this.dialogClewParams.cityCode = undefined;
+      this.dialogClewParams.countyCode = undefined;
+      this.dialogClewParams.townCode = undefined;
+    },
+    async handleEdit() {
+      const id = this.spotInfoId;
+      this.spotOpen = true;
+      this.dialogTitle = "修改勘察笔录";
+      this.stateText = "修改";
+      if (this.curStatus == "view") {
+        this.dialogTitle = "查看勘察笔录";
+      }
+      this.spotArryOther = this.list[this.tabIndex].spotArry;
+      this.otherClewList = this.list[this.tabIndex].clewList;
+      const reponse = await severalSee({ id });
+      const subject = reponse.data;
+      this.getReacodEditInfo(subject);
+    },
+    getReacodEditInfo(data) {
+      this.dialogParams.isNewRecord = false;
+      this.dialogParams.id = data.id;
+      this.dialogParams.startTime = data.startTime;
+      this.dialogParams.endTime = data.endTime;
+      this.dialogParams.actualCityCode = data.actualCityCode;
+      this.dialogParams.actualCountyCode = data.actualCountyCode;
+      this.dialogParams.actualAddress = data.actualAddress;
+      this.dialogParams.actualSpeakerIds = data.actualSpeakerIds.split(",");
+      this.dialogParams.actualRecordId = data.actualRecordId;
+      this.dialogParams.actualInterviewee = data.actualInterviewee;
+      this.dialogParams.siteLeader = data.siteLeader;
+      this.dialogParams.actualIntervieweePhone = data.actualIntervieweePhone;
+      this.dialogParams.actualIntervieweeIdcard = data.actualIntervieweeIdcard;
+      this.dialogParams.actualIntervieweeAge = data.actualIntervieweeAge;
+      this.dialogParams.actualIntervieweeUnit = data.actualIntervieweeUnit;
+      this.dialogParams.actualIntervieweePost = data.actualIntervieweePost;
+      this.clewList = data.newClueList || [];
+      this.dialogParams.newClueList = data.newClueList || [];
+      this.dialogParams.actualIntervieweePostcode =
+        data.actualIntervieweePostcode;
+      this.dialogParams.otherHander = data.otherHander;
+      this.dialogParams.siteCondition = data.siteCondition;
+      this.dialogParams.attachmentId = data.attachmentId;
+      this.issueDate = [data.startTime, data.endTime];
+      this.handleCityChangeb(data.actualCityCode);
+      this.$nextTick(() => {
+        this.$refs.uploadFile.getFileMessageInfo();
+      });
+
+      this.previewData.startTime = this.getTimeValue(data.startTime);
+      this.previewData.endTime = this.getTimeValue(data.endTime);
+      this.previewData.actualSpeakerNmae = data.actualSpeaker;
+      this.previewData.actualRecordName = data.actualRecord;
+      this.previewData.city = data.actualCityName;
+      this.previewData.county = data.actualCountyName;
+    },
+    handleDialogClose() {
+      this.spotOpen = false;
+      this.handleformClear("dialogForm");
+      this.$refs.uploadFile.handleClear && this.$refs.uploadFile.handleClear();
+      this.spotArryOther = [];
+      this.stateText = undefined;
+      this.dialogParams.actualCityCode = undefined;
+      this.dialogParams.actualCountyCode = undefined;
+      this.issueDate = undefined;
+      this.clewList = [];
+      this.previewData = {
+        actualSpeakerNmae: undefined,
+        actualRecordName: undefined,
+        city: undefined,
+        county: undefined,
+        address: undefined,
+        startTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        },
+        endTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        }
+      };
+    },
+    async handleClueClose(index, clueId) {
+      if (this.dialogTitle == "新增勘察笔录") {
+        this.clewList.splice(index, 1);
+      } else {
+        const clewList = JSON.parse(JSON.stringify(this.clewList));
+        const removeData = clewList.splice(index, 1);
+        removeData[0].delFlag = "1";
+        const newClueList = JSON.parse(
+          JSON.stringify(this.dialogParams.newClueList)
+        );
+        newClueList.splice(index, 1);
+        newClueList.push(...removeData);
+        this.dialogParams.newClueList = newClueList;
+        this.clewList = clewList;
+      }
+      for (const item in this.otherClewList) {
+        const subject = this.otherClewList[item];
+        if (subject.clueId == clueId) {
+          this.otherClewList.splice(item, 1);
+        }
+      }
+    },
+    inspectPreviewClick() {
+      this.previewOpen = true;
+    },
+    handlePreviewClose() {
+      this.previewOpen = false;
+    },
+    async handleClewClick(id) {
+      this.clewId = id;
+      this.lookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.clewRef.handleEdit();
+      });
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleformClear(formName) {
+      this.$nextTick(() => {
+        this.resetFieldsTap(formName);
+      });
+    },
+    setUrlPath(file) {
+      this[file.params][file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this[file.params][file.fromKey] = undefined;
+    },
+    handleActualPersonClick(val) {
+      let teamPersonArry = [];
+      for (const item in this.teamPersonArry) {
+        const subject = this.teamPersonArry[item];
+        if (val.indexOf(subject.id) > -1) {
+          teamPersonArry.push(subject.name);
+        }
+      }
+      this.previewData.actualSpeakerNmae = teamPersonArry.join("、");
+    },
+    handleActualRecordClick(val) {
+      for (const item in this.teamPersonArry) {
+        const subject = this.teamPersonArry[item];
+        if (subject.id === val) {
+          this.previewData.actualRecordName = subject.name;
+        }
+      }
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.dialogParams.startTime = undefined;
+        this.dialogParams.endTime = undefined;
+        this.previewData.startTime = {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        };
+        this.previewData.endTime = {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        };
+      } else {
+        this.dialogParams.startTime = picker[0];
+        this.dialogParams.endTime = picker[1];
+        this.previewData.startTime = this.getTimeValue(picker[0]);
+        this.previewData.endTime = this.getTimeValue(picker[1]);
+      }
+    },
+    getTimeValue(time) {
+      const timeArry = time.split(" ");
+      const yearArry = timeArry[0].split("-");
+      const secondArry = timeArry[1].split(":");
+      return {
+        year: yearArry[0],
+        month: yearArry[1],
+        day: yearArry[2],
+        hour: secondArry[0],
+        min: secondArry[1]
+      };
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 62%;
+      }
+    }
+  }
+}
+.twoLayoutForm {
+  .meet-addressb {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 43%;
+      }
+    }
+  }
+}
+.info-item-list {
+  margin: 0px;
+  padding: 0px;
+  .info-item-item {
+    list-style: none;
+  }
+}
+.clue-close {
+  color: red;
+  margin-left: 20px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  text-align: center;
+  line-height: 20px;
+}
+.inspect-preview {
+  position: fixed;
+  right: 5%;
+}
+/deep/.el-dialog__body {
+  .examineInfo:nth-child(2) {
+    margin-top: 0px;
+  }
+}
+</style>

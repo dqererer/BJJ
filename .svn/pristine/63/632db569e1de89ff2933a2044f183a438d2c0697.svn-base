@@ -1,0 +1,632 @@
+<template>
+  <div>
+    <national-info
+      :teamId.sync="queryParams.superviseGroupId"
+      :areaCode.sync="queryParams.inspectAreaCode"
+      :areaName.sync="queryParams.inspectAreaName"
+      :inspectName.sync="queryParams.inspectName"
+      @nameChange="getList"
+    ></national-info>
+    <div class="box-body" v-show="showSearch">
+      <el-form :model="queryParams" label-width="120px">
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="转往地区：">
+              <el-select
+                v-model="queryParams.citys"
+                placeholder="请选择转往地区"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="转办编号：">
+              <el-input
+                placeholder="请输入转办编号"
+                v-model="queryParams.transfetNumber"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="转往单位：">
+              <el-input
+                placeholder="请输入转往单位"
+                v-model="queryParams.toUnit"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="举报时间：">
+              <el-date-picker
+                v-model="issueDate"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+                @change="issueDateChange"
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-form-item class="pull-right marginLeft0">
+            <el-button type="primary" @click="onQuery">查询</el-button>
+            <el-button type="primary" @click="onClear">清空</el-button>
+          </el-form-item>
+        </el-row>
+      </el-form>
+    </div>
+    <el-row :gutter="10" class="mb8">
+      <el-button size="small" @click="handleListExport" type="primary"
+        >导出转办清单</el-button
+      >
+      <right-toolbar
+        :showSearch.sync="showSearch"
+        @queryTable="getList"
+      ></right-toolbar>
+    </el-row>
+    <el-table
+      v-loading="loading"
+      :data="List"
+      border
+      @selection-change="handleSelectionChange"
+      :stripe="true"
+    >
+      <el-table-column type="selection" width="50"></el-table-column>
+      <el-table-column type="index" label="序号" width="50">
+        <template scope="scope">
+          <span>{{
+            (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+          }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="cityName"
+        label="督察地市"
+        width="120px"
+      ></el-table-column>
+      <el-table-column
+        prop="transfetNumber"
+        label="转办编号"
+        min-width="200px"
+      ></el-table-column>
+      <el-table-column
+        prop="toUnit"
+        label="转往单位"
+        width="160px"
+      ></el-table-column>
+      <el-table-column label="转办来电" width="160px">
+        <template scope="scope">
+          <span
+            class="accounChunk"
+            @click="handleAccounClick(scope.row, 0, scope.row.phoneNum)"
+            >{{ scope.row.phoneNum }}</span
+          >
+        </template>
+      </el-table-column>
+      <el-table-column label="转办来信" width="160px">
+        <template scope="scope">
+          <span
+            class="accounChunk"
+            @click="handleAccounClick(scope.row, 1, scope.row.letterNum)"
+            >{{ scope.row.letterNum }}</span
+          >
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="dealPerson"
+        label="经办人"
+        width="160px"
+      ></el-table-column>
+      <el-table-column
+        prop="acceptPerson"
+        label="接收人"
+        width="160px"
+      ></el-table-column>
+      <el-table-column
+        prop="transferTime"
+        label="转办时间"
+        width="160px"
+      ></el-table-column>
+      <el-table-column label="签章转办单" width="160px">
+        <template slot-scope="scope" v-if="scope.row.uploadFlag == 1">
+          <el-button size="mini" @click="handlePreviewClick(scope.row.fileId)"
+            >预览</el-button
+          >
+          <el-button
+            size="mini"
+            type="primary"
+            @click="handleDownloadClick(scope.row.fileId)"
+            >下载</el-button
+          >
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="350px">
+        <template slot-scope="scope">
+          <el-button size="mini" @click="handleSeePrintClick(scope.row)"
+            >查看打印</el-button
+          >
+          <el-button
+            size="mini"
+            type="primary"
+            @click="handleSingleExport(scope.row)"
+            >导出转办清单</el-button
+          >
+
+          <el-button
+            size="mini"
+            v-if="scope.row.uploadFlag == 1"
+            type="success"
+            @click="handleAgainUpload(scope.row)"
+            >重新上传</el-button
+          >
+          <el-button
+            size="mini"
+            v-else
+            class="new-add-btn"
+            @click="handleUpload(scope.row)"
+            >上传签章转办单</el-button
+          >
+        </template>
+      </el-table-column>
+    </el-table>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :pageNo.sync="queryParams.pageNo"
+      :limit.sync="queryParams.pageSize"
+      @pagination="getList"
+    />
+    <el-dialog
+      title="转办清单"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+      :close-on-click-modal="false"
+      class="information-inner"
+    >
+      <div class="box-body">
+        <el-form :model="queryLogParams" label-width="100px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="受理编号：">
+                <el-input
+                  v-model="queryLogParams.acceptNum"
+                  placeholder="请输入受理编号"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="10">
+              <el-form-item label="污染类型：">
+                <el-select
+                  v-model="queryLogParams.pollutionLevelOne"
+                  placeholder="请选择污染类型"
+                >
+                  <el-option
+                    v-for="item in pollutantArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-form-item class="pull-right marginLeft0">
+              <el-button type="primary" @click="onDialogQuery">查询</el-button>
+              <el-button type="primary" @click="onDialogClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-table
+        :data="accounList"
+        v-loading="dialogLoading"
+        style="width: 100%"
+      >
+        <el-table-column type="index" label="序号" width="50">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="acceptNum"
+          label="受理编号"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="acceptDate"
+          label="受理时间"
+          min-width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="tipOffContent"
+          label="举报主要内容"
+          min-width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="pollutionType"
+          label="污染类型"
+          width="160px"
+          :show-overflow-tooltip="true"
+        ></el-table-column>
+        <el-table-column
+          prop="tipTime"
+          label="举报时间"
+          width="120px"
+        ></el-table-column>
+      </el-table>
+      <pagination
+        v-show="dialogTotal > 0"
+        :total="dialogTotal"
+        :pageNo.sync="queryLogParams.pageNo"
+        :limit.sync="queryLogParams.pageSize"
+        @pagination="getSourceList"
+      />
+    </el-dialog>
+
+    <el-dialog
+      title="查看打印"
+      :visible.sync="printOpen"
+      width="80%"
+      :before-close="handleDialogPrintClose"
+      append-to-body
+    >
+      <div ref="print">
+        <div class="print-box">
+          <div class="turn-dialog-top">
+            <h1 class="turn-dialog-title">
+              {{ inspectInfo.provinceName }}环境保护督察组转办单
+            </h1>
+            <el-button
+              class="dialog-top-btn"
+              @click="handlePrintClick"
+              type="primary"
+              size="mini"
+              >打印</el-button
+            >
+          </div>
+          <div class="turn-dialog-box">
+            <span class="turn-dialog-name">{{ inspectInfo.name }}</span>
+            <span class="turn-dialog-number">
+              环督【{{ orderPrint.shortenedName }}】转【自动生成】号</span
+            >
+          </div>
+          <div class="turn-dialog-content">
+            <p class="turn-dialog-item">转往单位：</p>
+            <p class="turn-dialog-item">
+              转办内容：来电举报材料<span class="dialog-item-fill">{{
+                orderPrint.phoneNum
+              }}</span
+              >件，来信举报材料<span class="dialog-item-fill">{{
+                orderPrint.letterNum
+              }}</span
+              >件，请按规定处理。总体办理情况及标“*”问题查处情况请于10日内反馈督察组。
+            </p>
+            <p class="turn-dialog-item">经办人：{{ orderPrint.dealPerson }}</p>
+            <p class="turn-dialog-item">
+              接收人：{{ orderPrint.acceptPerson }}
+            </p>
+            <p class="turn-dialog-year">
+              202<b class="dialog-year-empty">年</b
+              ><b class="dialog-year-empty">月</b
+              ><b class="dialog-year-empty">日</b>
+            </p>
+          </div>
+        </div>
+        <div class="print-box">
+          <div class="turn-dialog-top">
+            <h1 class="turn-dialog-title">
+              {{ inspectInfo.provinceName }}环境保护督察组转办单
+            </h1>
+          </div>
+          <div class="turn-dialog-box">
+            <span class="turn-dialog-name">{{ inspectInfo.name }}</span>
+            <span class="turn-dialog-number">
+              环督【{{ orderPrint.shortenedName }}】转【自动生成】号</span
+            >
+          </div>
+          <div class="turn-dialog-content">
+            <p class="turn-dialog-item turn-dialog-itemno">
+              常德市协调联络组：
+            </p>
+            <p class="turn-dialog-item">
+              兹转来电举报材料<span class="dialog-item-fill">{{
+                orderPrint.phoneNum
+              }}</span
+              >件，来信举报材料<span class="dialog-item-fill">{{
+                orderPrint.letterNum
+              }}</span
+              >件，请按规定处理。总体办理情况及标“*”问题查处情况请于10日内反馈督察组。
+            </p>
+            <p class="turn-dialog-item">经办人：{{ orderPrint.dealPerson }}</p>
+            <p class="turn-dialog-item">
+              接收人：{{ orderPrint.acceptPerson }}
+            </p>
+            <p class="turn-dialog-year">
+              {{ inspectInfo.provinceName }}环境保护督察组
+            </p>
+            <p class="turn-dialog-year">
+              202<b class="dialog-year-empty">年</b
+              ><b class="dialog-year-empty">月</b
+              ><b class="dialog-year-empty">日</b>
+            </p>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      :title="upload.title"
+      :visible.sync="upload.open"
+      width="400px"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-upload
+        ref="upload"
+        :limit="1"
+        accept=".xlsx,.xls,.doc,.docx,.pdf,.png,.jpg"
+        :headers="upload.headers"
+        :action="upload.url"
+        :disabled="upload.isUploading"
+        :on-progress="handleFileUploadProgress"
+        :on-success="handleFileSuccess"
+        :auto-upload="false"
+        drag
+      >
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">
+          将文件拖到此处，或
+          <em>点击上传</em>
+        </div>
+      </el-upload>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitFileForm">确 定</el-button>
+        <el-button @click="upload.open = false">取 消</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import {
+  orderList,
+  orderLetterList,
+  orderLetterUpload
+} from "@/api/national/casemanage";
+import { dictName,dictListType } from "@/api/styem/dict/type";
+import { deletefile, getFileInfo } from "@/api/file";
+import { downLoadZip } from "@/utils/zipdownload";
+import { getToken } from "@/utils/auth";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+import nationalInfo from "@/components/nationalInfo";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        citys: undefined,
+        transfetNumber: undefined,
+        toUnit: undefined,
+        beginTransferTime: undefined,
+        endTransferTime: undefined,
+        superviseGroupId: undefined,
+        inspectAreaCode: undefined,
+        inspectAreaName: undefined,
+        inspectName: undefined
+      },
+      issueDate: undefined,
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      accounList: [],
+      dialogTotal: 0,
+      dialogLoading: true,
+      queryLogParams: {
+        pageNo: 1,
+        pageSize: 10,
+        transferId: undefined,
+        tipType: undefined,
+        acceptNum: undefined,
+        pollutionLevelOne: undefined
+      },
+      printOpen: false,
+      orderPrint: {
+        shortenedName: undefined,
+        phoneNum: undefined,
+        letterNum: undefined,
+        dealPerson: undefined
+      },
+      multipleSelection: undefined,
+      upload: {
+        open: false,
+        title: "上传签章转办单",
+        isUploading: false,
+        headers: { Authorization: getToken() },
+        url: process.env.VUE_APP_BASE_API + "/center/file/uploadFile"
+      },
+      uploadItemId: undefined,
+      againFileId: undefined,
+      pollutantArry:[]
+    };
+  },
+  created() {
+    this.getList();
+    this.getDictPollutant();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "areaArry"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await orderList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.city = undefined;
+      this.queryParams.transfetNumber = undefined;
+      this.queryParams.toUnit = undefined;
+      this.queryParams.beginTransferTime = undefined;
+      this.queryParams.endTransferTime = undefined;
+      this.issueDate = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginTransferTime = undefined;
+        this.queryParams.endTransferTime = undefined;
+      } else {
+        this.queryParams.beginTransferTime = picker[0];
+        this.queryParams.endTransferTime = picker[1];
+      }
+    },
+    handleAccounClick(data, tipType, num) {
+      if (num > 0) {
+        const { id } = data;
+        this.open = true;
+        this.queryLogParams.transferId = id;
+        this.queryLogParams.tipType = tipType;
+        this.getSourceList();
+      }
+    },
+    async getSourceList() {
+      this.dialogLoading = true;
+      const reponse = await orderLetterList(this.queryLogParams);
+      this.dialogLoading = false;
+      this.dialogTotal = reponse.data.count;
+      this.accounList = reponse.data.list;
+    },
+    onDialogQuery() {
+      this.queryLogParams.pageNo = 1;
+      this.getSourceList();
+    },
+    onDialogClear() {
+      this.queryLogParams.acceptNum = undefined;
+      this.queryLogParams.pollutionLevelOne = undefined;
+    },
+    handleDialogClose() {
+      this.open = false;
+    },
+    async handleSeePrintClick(data) {
+      const { city, phoneNum, letterNum, dealPerson, acceptPerson } = data;
+      this.printOpen = true;
+      const reponse = await dictName({
+        type: "province_brife",
+        value: city
+      });
+      this.orderPrint.shortenedName = reponse.data.label;
+      this.orderPrint.phoneNum = phoneNum;
+      this.orderPrint.letterNum = letterNum;
+      this.orderPrint.dealPerson = dealPerson;
+      this.orderPrint.acceptPerson = acceptPerson;
+    },
+    handleDialogPrintClose() {
+      this.printOpen = false;
+    },
+    handlePrintClick() {
+      this.$print(this.$refs.print);
+    },
+    handleSingleExport(data) {
+      const { id } = data;
+      this.handleExport([id]);
+    },
+    handleSelectionChange(data) {
+      this.multipleSelection = data;
+    },
+    handleListExport() {
+      const ids = [];
+      this.multipleSelection.forEach(item => {
+        ids.push(item.id);
+      });
+      this.handleExport(ids);
+    },
+    handleUpload(data) {
+      const { id, uploadFlag } = data;
+      this.upload.open = true;
+      this.uploadItemId = id;
+      this.upload.title = "上传签章转办单";
+    },
+    // 文件上传中处理
+    handleFileUploadProgress(event, file, fileList) {
+      this.upload.isUploading = true;
+    },
+    // 提交上传文件
+    submitFileForm() {
+      this.$refs.upload.submit();
+    },
+    // 文件上传成功处理
+    async handleFileSuccess(response, file, fileList) {
+      this.upload.isUploading = false;
+      this.$message.success("上传成功");
+      const fileId = response.data.fileId;
+      this.handleOrderUpload(fileId);
+      if (this.againFileId) {
+        const reponse = await deletefile({ ids: this.againFileId });
+        this.againFileId = undefined;
+      }
+    },
+    async handleOrderUpload(fileId) {
+      const id = this.uploadItemId;
+      const reponse = await orderLetterUpload({ id, fileId });
+      this.$refs.upload.clearFiles();
+      this.upload.open = false;
+      this.uploadItemId = undefined;
+      this.getList();
+    },
+    handleAgainUpload(data) {
+      const { id, fileId } = data;
+      this.againFileId = fileId;
+      this.upload.open = true;
+      this.uploadItemId = id;
+      this.upload.title = "重新上传";
+    },
+    handlePreviewClick(fileId) {},
+    async handleDownloadClick(fileId) {
+      getSingleInfo(fileId);
+    },
+    /** 导出按钮操作 */
+    handleExport(params) {
+      this.$confirm("是否确认导出用户数据项?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(function() {
+        downLoadZip(
+          `/center/ttip/transfer/tInspectTipTransfer/export?transferIds=${params}`
+        );
+      });
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

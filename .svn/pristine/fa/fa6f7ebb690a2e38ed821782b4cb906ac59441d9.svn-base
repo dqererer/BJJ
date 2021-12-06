@@ -1,0 +1,193 @@
+import { axios } from '@/utils/request'
+
+var tiandituLayer_V,tiandituLayer_I,tiandituLayer_T,tianMarkerLayer;
+var mapIdArr=[];
+var mapArr=[];
+var pointLayerArr=[];
+var pointTpye={"5":"未办理","6":"未办理","2":"未受理",
+    "3":"已转办","8":"阶段办结","9":"已办结","7":"未办结"};
+var pointStyle= { //未办理 5 6 未受理 2 已转办 3 阶段办结 8 已办结 9 未办结 7
+    "2": {
+        externalGraphic:require("../assets/images/legend-stat1.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "3": {
+        externalGraphic:require("../assets/images/legend-stat2.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "5": {
+        externalGraphic:require("../assets/images/legend-stat3.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "6": {
+        externalGraphic:require("../assets/images/legend-stat3.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "7": {
+        externalGraphic:require("../assets/images/legend-stat4.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "8": {
+        externalGraphic:require("../assets/images/legend-stat5.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+    "9": {
+        externalGraphic:require("../assets/images/legend-stat5.png"),
+        graphicWidth: 15,
+        graphicHeight: 15,
+        pointRadius:15
+    },
+
+};
+var defaultStyle={
+    fillColor: "red",
+    strokeColor: "yellow",
+    pointRadius: 7
+};
+var shortObj={};
+const baseUrl = process.env.VUE_APP_BASE_API;
+var module ={
+    initMap:(rel,flag) => {
+        mapIdArr=[];
+        mapArr=[];
+        pointLayerArr=[];
+        if (flag) {
+            for (let index in rel) {
+                mapIdArr[index] = {
+                    id: "map" + rel[index].code,
+                    name: rel[index].name,
+                    type: rel[index].type,
+                    value: rel[index].value
+                };
+            }
+        } else {
+            mapIdArr[0] = { id: "map" };
+        }
+
+        for (let i in mapIdArr) {
+            mapArr[i] = new SuperMap.Map(mapIdArr[i].id, {
+                controls: [
+                    new SuperMap.Control.Navigation({
+                        dragPanOptions: {
+                            enableKinetic: true
+                        }
+                    })
+                ],
+                allOverlays: true,
+                projection: "EPSG:4326"
+            });
+            //天地图矢量
+            // tiandituLayer_V = new SuperMap.Layer.Tianditu();
+            // tiandituLayer_V.isBaseLayer = true;
+            // tiandituLayer_V.url="http://t${num}.tianditu.com/DataServer?T=${type}_${proj}&x=${x}&y=${y}&l=${z}&tk=92e894ee619fa45bf2395fcbd12d559b"
+            //天地图影像
+            tiandituLayer_I = new SuperMap.Layer.Tianditu();
+            tiandituLayer_I.layerType = "img";
+            // tiandituLayer_I.visibility = true;
+            tiandituLayer_I.url =
+                "http://t${num}.tianditu.com/DataServer?T=${type}_${proj}&x=${x}&y=${y}&l=${z}&tk=92e894ee619fa45bf2395fcbd12d559b";
+            //天地图地形
+            // tiandituLayer_T = new SuperMap.Layer.Tianditu();
+            // tiandituLayer_T.layerType = "ter";
+            // tiandituLayer_T.visibility = false;
+            // tiandituLayer_T.url="http://t${num}.tianditu.com/DataServer?T=${type}_${proj}&x=${x}&y=${y}&l=${z}&tk=92e894ee619fa45bf2395fcbd12d559b"
+            //天地图标注
+            tianMarkerLayer = new SuperMap.Layer.Tianditu();
+            tianMarkerLayer.layerType = "cia";
+            tianMarkerLayer.url =
+                "http://t${num}.tianditu.com/DataServer?T=${type}_${proj}&x=${x}&y=${y}&l=${z}&tk=92e894ee619fa45bf2395fcbd12d559b";
+            mapArr[i].addLayers([tiandituLayer_I, tianMarkerLayer]);
+            pointLayerArr[i] = new SuperMap.Layer.Vector("pointLayer"+i);
+            pointLayerArr[i].id = "pointLayer"+i;
+            pointLayerArr[i].style = defaultStyle;
+            mapArr[i].addLayer(pointLayerArr[i]);
+            mapArr[i].setCenter(new SuperMap.LonLat(111.765617, 40.817498), 12);
+        }
+    },
+    destroyMap:() => {
+        mapArr.map((val, index, obj) => {
+            val.destroy();
+        });
+    },
+    getPointData:(code,id) => {
+        axios({
+            methon:'get',
+            url:baseUrl+'/center/analyse/getMiddleDataPoint',
+            params:{'cityCode':code,'batchId':id}
+        }).then(rel => {module.addPoint(rel)});
+    },
+    addPoint:(rel) => {
+        var pointVec = [];
+        // shortObj=rel.data;
+        var a = () =>{
+            for(let i in rel.data){
+                var val =rel.data[i];
+                val.map((item,index,obj) => {
+                    var point = new SuperMap.Geometry.Point(parseFloat(item.longitude),parseFloat(item.latitude));
+                    var vector = new SuperMap.Feature.Vector(point,item,pointStyle[item.handleState]);
+                    pointVec[index] = vector;
+                })
+            }
+            pointLayerArr[pointLayerArr.length-1].addFeatures(pointVec);
+            var lon = parseFloat(pointLayerArr[0].features[0].geometry.x);
+            var lat = parseFloat(pointLayerArr[0].features[0].geometry.y);
+            mapArr[mapArr.length-1].setCenter(new SuperMap.LonLat(lon,lat),10);
+        };
+        var b = () => {
+            for(let i in rel.data){
+                var val =rel.data[i];
+                val.map((item,index,obj) => {
+                    var point = new SuperMap.Geometry.Point(parseFloat(item.longitude),parseFloat(item.latitude));
+                    var vector = new SuperMap.Feature.Vector(point,item,pointStyle[item.handleState]);
+                    pointVec[index] = vector;
+                })
+            }
+            console.log(pointVec);
+            pointLayerArr[0].addFeatures(pointVec);
+        };
+        if(mapArr.length<2){
+            a();
+        }else{
+            b();
+        }
+    },
+    editPointLayer:(state,flag) => {
+        var stateArr = [];
+        if(state.length>2){
+            stateArr = state.split(",");
+        }else{
+            stateArr[0] = state;
+        }
+        stateArr.map((val) => {
+            var fliterArr = pointLayerArr[pointLayerArr.length-1].getFeaturesByAttribute("handleState",val+'');
+            if(fliterArr.length>0){
+                shortObj[val]=fliterArr;
+            }
+            if(flag){
+                pointLayerArr[pointLayerArr.length-1].addFeatures(shortObj[val]);
+            }else{
+                pointLayerArr[pointLayerArr.length-1].removeFeatures(fliterArr);
+            }
+
+        });
+
+
+    }
+
+};
+
+export {
+    module
+}

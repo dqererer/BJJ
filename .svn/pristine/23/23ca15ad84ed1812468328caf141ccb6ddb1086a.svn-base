@@ -1,0 +1,488 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">下沉总结会</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.teamId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        :areaName.sync="queryParams.inspectAreaName"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="会议名称：">
+                <el-input v-model="queryParams.meetName" placeholder="请输入会议名称"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="会议主持人：">
+                <el-input v-model="queryParams.host" placeholder="请输入会议主持人"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <div class="button-authority-style" v-if="buttonAuthority">
+          <el-button size="small" @click="handleNewly" type="primary">新增</el-button>
+        </div>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="meetName" label="会议名称" :show-overflow-tooltip="true" min-width="200px" class="column-left"></el-table-column>
+        <el-table-column prop="host" label="会议主持人" :show-overflow-tooltip="true" width="120px"></el-table-column>
+        <el-table-column prop="meetDate" label="会议时间"  width="120px"></el-table-column>
+        <el-table-column label="会议地点" :show-overflow-tooltip="true" width="240px">
+          <template slot-scope="scope">
+            {{ scope.row.meetCityName }}{{ scope.row.meetCountyName
+            }}{{ scope.row.meetAddress }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="attendees" label="参会人员" :show-overflow-tooltip="true" width="200px"></el-table-column>
+        <el-table-column label="会议纪要" width="200px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              v-if="scope.row.attachmentId"
+              @click="handlePreviewClick(scope.row.attachmentId)"
+            >{{ scope.row.attachmentName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
+          <template slot-scope="scope" v-if="buttonAuthority">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">会议信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="会议名称：" prop="meetName">
+              <el-input
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.meetName"
+                placeholder="请输入会议名称"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="会议主持人：" prop="host">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.host"
+                placeholder="请输入会议主持人"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="会议时间：" prop="meetDate">
+              <el-date-picker
+                v-model="dialogParams.meetDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请输入会议时间"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="参会人员：" prop="attendees">
+              <el-input
+                v-model="dialogParams.attendees"
+                placeholder="请输入参会人员"
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="会议地点：" class="meet-address" prop="meetAddress">
+              <el-select
+                v-model="dialogParams.meetCity"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-select v-model="dialogParams.meetCounty" filterable placeholder="请选择区县">
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+              <el-input
+                v-model="dialogParams.meetAddress"
+                placeholder="请输入详细地址"
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="会议纪要：" prop="meetingMinutesFileIds">
+              <upload
+                ref="uploadFile1"
+                :limit="1"
+                accept=".doc, .docx, .pdf"
+                :fileId="dialogParams.meetingMinutesFileIds"
+                fromKey="meetingMinutesFileIds"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="汇报稿：" prop="reportDraftFileIds">
+              <upload
+                ref="uploadFile2"
+                :limit="5"
+                accept=".doc, .docx, .pdf"
+                :fileId="dialogParams.reportDraftFileIds"
+                fromKey="reportDraftFileIds"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="照片：" prop="photoFileIds">
+              <upload
+                ref="uploadFile8"
+                :limit="5"
+                accept=".jpg, jpeg, .png"
+                :fileId="dialogParams.photoFileIds"
+                fromKey="photoFileIds"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="其他资料：" prop="otherFiles">
+              <upload
+                ref="uploadFile11"
+                :limit="5"
+                accept=".xlsx, .xls, .doc, .docx, .pdf, .txt"
+                :fileId="dialogParams.otherFiles"
+                fromKey="otherFiles"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  trainList,
+  trainSave,
+  trainSee,
+  trainDelete
+} from "@/api/burg/prepare";
+import { dictListType } from "@/api/styem/dict/type";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import { areaTreeNew } from "@/api/styem/dept";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo
+  },
+  data() {
+    return {
+      dialogTitle:"新增下沉总结会",
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        type: 8,
+        inspectTeamName: undefined,
+        clueName: undefined,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        batchId: undefined,
+        teamId: undefined,
+        inspectAreaCode: undefined,
+        inspectAreaName: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        teamId: undefined,
+        cityCode: undefined,
+        city: undefined,
+        batchId: undefined,
+        type: 8,
+        meetName: undefined,
+        host: undefined,
+        meetDate: undefined,
+        meetCity: undefined,
+        meetCounty: undefined,
+        meetAddress: undefined,
+        attendees: undefined,
+        meetingMinutesFileIds: [],
+        reportDraftFileIds: [],
+        photoFileIds: [],
+        otherFiles: []
+      },
+      dialogRules: {
+        meetName: [{ required: true, message: "请输入会议名称" }],
+        host: [{ required: true, message: "请输入会议主持人" }],
+        meetDate: [{ required: true, message: "请输入会议时间" }],
+        meetAddress: [{ required: true, message: "请输入会议地点" }],
+        attendees: [{ required: true, message: "请输入参会人员" }],
+        meetingMinutesFileIds: [{ required: true, message: "请上传会议纪要" }],
+        reportDraftFileIds: [{ required: true, message: "请上传汇报稿" }],
+        photoFileIds: [{ required: true, message: "请上传照片" }],
+        otherFiles: [{ required: true, message: "请上传其他资料" }]
+      },
+      countyArry: [],
+      buttonAuthority: true
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.code;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.batchId = superviseSubject.batchId;
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo", "userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await trainList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.meetCounty = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.meetName = undefined;
+      this.queryParams.host = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+      this.dialogTitle = "新增下沉总结会";
+      this.dialogParams.id = undefined;
+      this.dialogParams.meetCity = undefined;
+      this.dialogParams.meetCounty = undefined;
+      this.handleformClear("dialogForm");
+    },
+    handleDialogClose() {
+      this.open = false;
+      for (const item in this.$refs) {
+        this.$refs[item].handleClear && this.$refs[item].handleClear();
+      }
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          this.dialogParams.meetingMinutesFileIds = this.dialogParams.meetingMinutesFileIds.join(
+            ","
+          );
+          this.dialogParams.reportDraftFileIds = this.dialogParams.reportDraftFileIds.join(
+            ","
+          );
+          this.dialogParams.photoFileIds = this.dialogParams.photoFileIds.join(
+            ","
+          );
+          this.dialogParams.otherFiles = this.dialogParams.otherFiles.join(",");
+          this.dialogParams.teamId = this.queryParams.teamId;
+          this.dialogParams.city = this.queryParams.inspectAreaName;
+          this.dialogParams.cityCode = this.queryParams.inspectAreaCode;
+          this.dialogParams.batchId = this.inspectInfo.suite.batchId;
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await trainSave(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getList();
+        }
+      });
+    },
+    handleEdit({ id }) {
+      this.open = true;
+      this.dialogTitle = "修改下沉总结会";
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await trainSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.meetName = subject.meetName;
+      this.dialogParams.host = subject.host;
+      this.dialogParams.meetDate = subject.meetDate;
+      this.dialogParams.meetCity = subject.meetCity;
+      this.dialogParams.meetCounty = subject.meetCounty;
+      this.dialogParams.meetAddress = subject.meetAddress;
+      this.dialogParams.attendees = subject.attendees;
+      this.dialogParams.meetingMinutesFileIds = subject.meetingMinutesFileIds.split(
+        ","
+      );
+      this.dialogParams.reportDraftFileIds = subject.reportDraftFileIds.split(
+        ","
+      );
+      this.dialogParams.photoFileIds = subject.photoFileIds.split(",");
+      this.dialogParams.otherFiles = subject.otherFiles.split(",");
+      this.handleCityChangeb(subject.meetCity);
+      this.$nextTick(() => {
+        for (const item in this.$refs) {
+          this.$refs[item].getFileMessageInfo &&
+            this.$refs[item].getFileMessageInfo();
+        }
+      });
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await trainDelete({ id });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.$nextTick(()=>{
+        this.resetFieldsTap(formName);
+      })
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey].push(file.fileId);
+    },
+    deleteServeFile(file) {
+      const fromKeyVal = this.dialogParams[file.fromKey];
+      const fileId = file.fileId;
+      const fromKey = file.fromKey;
+      const index = fromKeyVal.indexOf(fileId);
+      this.dialogParams[file.fromKey].splice(index, 1);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 62%;
+      }
+    }
+  }
+}
+.file-item {
+  display: block;
+  margin-top: 10px;
+}
+</style>

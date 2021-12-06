@@ -1,0 +1,198 @@
+<template>
+  <div class="oneMap">
+    <el-container>
+      <el-header>
+        <div class="oneMap-left">生态环境保护督察一张图</div>
+        <div class="oneMap-right">
+          <i class="el-icon-right" @click="loginMap">进入系统</i>
+          <i class="el-icon-switch-button" @click="exitMap"></i>
+        </div>
+      </el-header>
+      <el-container>
+        <el-aside width="112px"> </el-aside>
+        <el-main>
+          <ul class="main-right">
+            <li>
+              <p class="dataStatistics">数 据 统 计</p>
+              <div class="dataCentent">
+                <div class="data-centent-title">
+                  <p>2021年<span class="data-title-right">呼和浩特市</span></p>
+                </div>
+                <ol class="data-centent-nums">
+                  <li>
+                    <p>线索累计<span class="data-title-right">2352</span>条</p>
+                  </li>
+                  <li>
+                    <p>污染类型<span class="data-title-right">5</span>种</p>
+                  </li>
+                  <li>
+                    <p>线索来源<span class="data-title-right">12</span>种</p>
+                  </li>
+                </ol>
+              </div>
+            </li>
+            <li>
+              <p class="dataStatistics">线 索 污 染 类 型 统 计</p>
+              <div class="dataCentent">
+                <CircleCharts />
+              </div>
+            </li>
+            <li>
+              <p class="dataStatistics">线 索 来 源 统 计</p>
+              <div class="dataCentent">
+                <StripCharts />
+              </div>
+            </li>
+          </ul>
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
+</template>
+
+<script>
+import CircleCharts from "@/components/Echarts/circleCharts.vue";
+import StripCharts from "@/components/Echarts/stripCharts.vue";
+import { mapActions } from "vuex";
+
+export default {
+  name: "oneMap",
+  data() {
+    return {};
+  },
+  components: {
+    CircleCharts,
+    StripCharts,
+  },
+  methods: {
+    ...mapActions["PlatformRouters"],
+    // 点击跳转平台
+    loginMap() {
+      this.$router.push({ path: "/platform" });
+      this.$store.dispatch('PlatformRouters',11111)
+    },
+    // exitMap
+    exitMap() {
+      this.$confirm("确定注销并退出系统吗？", "提示", {
+        type: "warning",
+      }).then(() => {
+        this.$store.dispatch("LogOut").then(() => {
+          location.reload();
+        });
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.oneMap {
+  width: 100%;
+  height: auto;
+  background: url(../../assets/images/platform/onemapbj.png);
+  background-size: 100% 100%;
+  background-position: 10px -10px;
+  .el-header {
+    display: flex;
+    justify-content: space-between;
+    background-color: #0d195b;
+    line-height: 60px;
+    .oneMap-left {
+      font-size: 24px;
+      color: #fff;
+      font-weight: 600;
+    }
+    .oneMap-right {
+      i {
+        font-size: 14px;
+        font-weight: 600 !important;
+        color: #fff;
+        &:nth-of-type(2) {
+          margin-left: 20px;
+        }
+      }
+    }
+  }
+  .el-aside {
+    margin-bottom: 0px;
+    background-color: #0d195b;
+  }
+  .el-main {
+    .main-right {
+      float: right;
+      width: 370px;
+      height: auto;
+      & > li {
+        display: flex;
+        width: 100%;
+        height: 260px;
+        margin-bottom: 10px;
+        .dataStatistics {
+          width: 30px;
+          height: 100%;
+          margin: 0px;
+          padding-top: 20px;
+          color: #fff;
+          text-align: center;
+          background: url(../../assets/images/platform/onemaplf1.png) no-repeat
+            top center;
+          background-size: 100% 100%;
+        }
+        .dataCentent {
+          flex: 1;
+          background: url(../../assets/images/platform/onemaplf4.png) no-repeat
+            top center;
+          background-size: 100% 100%;
+          .data-centent-title {
+            width: 100%;
+            height: 60px;
+            padding: 28px 30px;
+            & > p {
+              width: 100%;
+              line-height: 50px;
+              font-size: 26px;
+              font-weight: 600;
+              color: #fff;
+              text-align: center;
+              background: url(../../assets/images/platform/onemapborder1.png)
+                no-repeat top center;
+              background-size: 100% 100%;
+            }
+          }
+          .data-centent-nums {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            height: 160px;
+            & > li {
+              margin-left: 30px;
+              background: url(../../assets/images/platform/onemapborder2.png)
+                no-repeat top center;
+              background-size: 100% 100%;
+              & > p {
+                padding: 8px 40px;
+                color: #fff;
+                & > span {
+                  font-size: 20px;
+                  color: #f1ea19;
+                }
+              }
+            }
+          }
+          .data-title-right {
+            margin: 0px 4px 0px 16px;
+          }
+        }
+        &:nth-of-type(2) {
+          height: 278px;
+        }
+        &:nth-of-type(3) {
+          height: 300px;
+          margin-bottom: 0px;
+        }
+      }
+    }
+  }
+}
+</style>

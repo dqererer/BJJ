@@ -1,0 +1,338 @@
+<template>
+  <div class="total">
+    <ComTitle :text="text" />
+    <div class="card fitler">
+      <div class="row">
+        <CheckListGroup
+          :completeArr="resourceList"
+          type="roundIds"
+          title = '问题来源'
+          @handleCheckChange="handleCheckChange"
+        />
+      </div>
+      <div class="row">
+        <CheckListGroup
+          :completeArr="pollutionList"
+          type="pollutes"
+          title = '污染类型'
+          @handleCheckChange="handleCheckChange"
+        />
+      </div>
+      <div class="row">
+        <CheckListGroup
+          :completeArr="executionList"
+          type="finishStates"
+          title = '完成情况'
+          @handleCheckChange="handleCheckChange"
+        />
+      </div>
+    </div>
+    <div class="card content">
+      <div class="data-info">
+        <div id="bar"></div>
+        <div class="table">
+          <el-table :data="tableData" border style="width: 100%">
+            <el-table-column prop="polluteType" label="" width="180">
+            </el-table-column>
+            <el-table-column
+              :render-header="setTableHeader"
+              :prop="item.code"
+              :label="item.name"
+              width="180"
+              v-for="(item, index) in tableHeader"
+              v-bind:key="index"
+            >
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+    </div>
+    <el-dialog
+      :title="subTitel"
+      :visible="true"
+      v-if="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <el-table :data="detailTableData" border style="width: 100%">
+        <el-table-column prop="polluteType" label="" width="180">
+        </el-table-column>
+        <el-table-column
+          :prop="item"
+          :label="item"
+          width="180"
+          v-for="(item, index) in detailTableHeader"
+          v-bind:key="index"
+        >
+        </el-table-column>
+      </el-table>
+      <!-- <el-button type="primary" @click="handleDialogClose">关闭</el-button> -->
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import ComTitle from "../title";
+import CheckListGroup from "../checkListGroup.vue";
+import {
+  getAreaBarData,
+  getAreaTableData,
+  getAreaTableDataByCityCode,
+  getRoundList,
+} from "@/api/support/analyse";
+import { dictListType } from "@/api/styem/dict/type";
+import * as echarts from "echarts";
+require("echarts/theme/macarons"); //引入主题
+const SWQD = "尚未启动";
+const YWC = "已完成";
+const YXH = "已销号";
+const WDJD = "未达序时进度";
+const CQ = "超期未完成";
+const DDJD = "达到序时进度";
+const barDataInit = function () {
+  return {
+    xData: [],
+    yData1: [],
+    yData2: [],
+    yData3: [],
+    yData4: [],
+    yData5: [],
+    yData6: [],
+  };
+};
+export default {
+  name: "RegionalDistribution",
+  data() {
+    return {
+      text: "整改地区分布情况",
+      resourceList: [],
+      pollutionList: [],
+      executionList: [],
+      barCharts: null,
+      barData: {
+        xData: [],
+        yData1: [],
+        yData2: [],
+        yData3: [],
+        yData4: [],
+        yData5: [],
+        yData6: [],
+      },
+      queryParams: {
+        finishStates: "",
+        pollutes: "",
+        roundIds: "",
+      },
+      tableData: [],
+      tableHeader: [],
+      open: false,
+      subTitel: "",
+      detailTableData: [],
+      detailTableHeader: [],
+    };
+  },
+  computed: {},
+  components: {
+    ComTitle,
+    CheckListGroup,
+  },
+  created() {
+    this.init();
+  },
+  methods: {
+    init: function () {
+      this.getAreaBarData();
+      this.getAreaTableData();
+      dictListType({
+        type: "clue_pollution_type",
+      }).then((res) => {
+        this.pollutionList = res.data;
+      });
+      dictListType({
+        type: "execution",
+      }).then((res) => {
+        this.executionList = res.data;
+      });
+      getRoundList().then((res) => {
+        let arr = res.data.map((item) => {
+          return {
+            value: item.roundId,
+            label: item.roundName,
+          };
+        });
+        this.resourceList = arr;
+      });
+    },
+    setTableHeader: function (h, { column }) {
+      let _this = this;
+      let id = column.property;
+      return h("span", {}, [
+        h(
+          "span",
+          {
+            on: {
+              click: function () {
+                _this.getAreaTableDataByCityCode(id);
+                _this.open = true;
+              },
+            },
+          },
+          column.label
+        ),
+      ]);
+    },
+    handleDialogClose: function () {
+      this.open = false;
+    },
+    handleCheckChange: function (type, checkList) {
+      this.queryParams[type] = checkList;
+      this.getAreaBarData();
+      this.getAreaTableData();
+    },
+    drawBar: function () {
+      this.barCharts = echarts.init(document.getElementById("bar"), "macarons");
+      this.barCharts.clear();
+      this.barCharts.setOption({
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: this.barData.xData,
+        },
+        yAxis: {
+          type: "value",
+        },
+        legend: {
+          orient: "horizontal",
+          left: "center",
+          top: "bottom",
+        },
+        series: [
+          {
+            name: SWQD,
+            type: "bar",
+            barGap: 0,
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData1,
+          },
+          {
+            name: YWC,
+            type: "bar",
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData2,
+          },
+          {
+            name: YXH,
+            type: "bar",
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData3,
+          },
+          {
+            name: WDJD,
+            type: "bar",
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData4,
+          },
+          {
+            name: CQ,
+            type: "bar",
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData5,
+          },
+          {
+            name: DDJD,
+            type: "bar",
+            emphasis: {
+              focus: "series",
+            },
+            data: this.barData.yData6,
+          },
+        ],
+      });
+    },
+    getAreaBarData: function () {
+      getAreaBarData(this.queryParams).then((res) => {
+        this.barData = barDataInit();
+        res.data && res.data.data && res.data.data.forEach((item) => {
+          this.barData.xData.push(item.name);
+          this.barData.yData1.push(item[SWQD]);
+          this.barData.yData2.push(item[YWC]);
+          this.barData.yData3.push(item[YXH]);
+          this.barData.yData4.push(item[WDJD]);
+          this.barData.yData5.push(item[CQ]);
+          this.barData.yData6.push(item[DDJD]);
+        });
+        this.$nextTick(() => {
+          this.drawBar();
+        });
+      });
+    },
+    getAreaTableData: function () {
+      getAreaTableData(this.queryParams).then((res) => {
+        this.tableData = res.data.data;
+        this.tableHeader = res.data.tableHeader;
+      });
+    },
+    getAreaTableDataByCityCode: function (id) {
+      getAreaTableDataByCityCode({
+        ...this.queryParams,
+        cityCode: id,
+      }).then((res) => {
+        this.subTitel = res.data.header[0] + " - 完成情况";
+        res.data.header.splice(0, 1);
+        this.detailTableData = res.data.data;
+        this.detailTableHeader = res.data.header;
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.total {
+  height: 100%;
+  padding: 20px;
+  .card {
+    border: 1px solid #ebeef5;
+    background-color: #fff;
+    overflow: hidden;
+    color: #303133;
+    .row {
+      padding-bottom: 20px;
+    }
+  }
+  .fitler {
+    margin-bottom: 10px;
+    padding: 20px;
+  }
+  .content {
+    #bar {
+      width: 100%;
+      height: 400px;
+    }
+    .table {
+      padding: 20px;
+    }
+  }
+}
+/deep/ .el-table thead{
+  cursor: pointer;
+}
+</style>
+
+

@@ -1,0 +1,18 @@
+import { getAction ,postAction } from './manage';
+
+const path = process.env.VUE_APP_BASE_API;
+//文件上传
+const uploadFile = params => postAction(`${path}/center/file/uploadFile`,params);
+//文件删除
+const deletefile = params => postAction(`${path}/center/file/deletefile`,params);
+//获取文件
+const getFileInfo = params => getAction(`${path}/center/file/getFileInfo`,params);
+//文件下载
+const downloadFile = params => getAction(`${path}/center/file/downloadFile`,params);
+
+export {
+    uploadFile,
+    deletefile,
+    getFileInfo,
+    downloadFile
+}

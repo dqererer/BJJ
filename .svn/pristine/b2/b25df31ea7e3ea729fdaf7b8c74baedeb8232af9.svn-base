@@ -1,0 +1,195 @@
+<template>
+  <div>
+    <div class="retrieve-search result">
+      <el-select class="search-select ">
+        <el-option label="会议类" value="1"></el-option>
+        <!-- <el-option
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
+        </el-option> -->
+      </el-select>
+      <el-input
+        class="search-input"
+        v-model="queryParams.name"
+        placeholder="请输入要查找的内容"
+      ></el-input>
+      <el-button class="search-btn" @click="handleSearchClick" type="primary"
+        >检索</el-button
+      >
+    </div>
+    <div class="retrieve-content" v-if="count > 0">
+      <p class="retrieve-record">
+        共为您检索到：<span class="record-nub">{{ count }}</span
+        >个相关记录
+      </p>
+      <div class="retrieve-list">
+        <div class="retrieve-item" v-for="item in retrieveList" :key="item.id">
+          <h1 class="retrieve-title">
+            {{ item.title }}
+          </h1>
+          <div class="retrieve-state">
+            <span class="state-item"
+              >所属地区：<b class="state-text">{{ item.areaName }}</b></span
+            >
+            <span class="state-item"
+              >提供人：<b class="state-text">{{ item.fromPerson }}</b></span
+            >
+            <span class="state-item"
+              >提供单位：<b class="state-text">{{ item.fromUnit }}</b></span
+            >
+            <span class="state-item"
+              >提供时间：<b class="state-text">{{ item.uploadTime }}</b></span
+            >
+          </div>
+          <p class="retrieve-synopsis">
+            <b class="state-text">简介：</b>{{ item.content }}
+          </p>
+          <el-button type="primary">查看文件</el-button>
+        </div>
+      </div>
+      <pagination
+        v-show="count > 0"
+        :total="count"
+        :pageNum.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+  </div>
+</template>
+
+<script>
+import { fullSearch } from "@/api/support/material";
+export default {
+  data() {
+    return {
+      queryParams: {
+        name: undefined,
+        pageNo: 1,
+        pageSize: 10
+      },
+      retrieveList: undefined,
+      count: undefined
+    };
+  },
+  methods: {
+    async getList() {
+      const loading = this.$loading({
+        lock: true,
+        text: "正在搜索...",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.1)"
+      });
+      const reponse = await fullSearch(this.queryParams);
+      this.retrieveList = reponse.data.list;
+      this.count = reponse.data.count;
+      loading.close();
+    },
+    async handleSearchClick() {
+      if (!this.queryParams.name) {
+        this.$message({
+          message: "搜索内容不能为空",
+          type: "warning"
+        });
+      }
+      this.getList()
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.retrieve-search {
+  display: flex;
+  justify-content: center;
+  &.default {
+    align-items: center;
+    height: calc(100vh - 70px);
+  }
+  &.result {
+    margin-top: 20px;
+    background-color: #eeeeee;
+    padding: 20px 0;
+  }
+  .search-select {
+    width: 124px;
+    height: 50px;
+    /deep/.el-input__inner {
+      height: 50px;
+      border-radius: 6px 0 0 6px;
+    }
+  }
+  .search-input {
+    width: 520px;
+    /deep/.el-input__inner {
+      height: 50px;
+      border-left: none;
+      border-right: none;
+      border-radius: 0px;
+    }
+  }
+  .search-btn {
+    width: 130px;
+    height: 50px;
+    border-radius: 0 6px 6px 0;
+    font-size: 18px;
+  }
+}
+.retrieve-content {
+  margin-top: 10px;
+  .retrieve-record {
+    font-size: 14px;
+    padding-left: 20px;
+    line-height: 40px;
+    margin: 0px;
+    border-bottom: 1px solid #eeeeee;
+    .record-nub {
+      color: #bd0202;
+    }
+  }
+  .retrieve-list {
+    margin-top: 20px;
+    background-color: #f7f7f7;
+    padding: 0 30px;
+    overflow: hidden;
+    .retrieve-item {
+      padding: 0 0 20px 0;
+      border-bottom: 1px dotted #2479ce;
+      &:last-child {
+        border-bottom: none;
+      }
+      .retrieve-title {
+        font-size: 18px;
+        color: #126ecb;
+        line-height: 60px;
+        font-weight: normal;
+        margin: 0;
+      }
+      .retrieve-state {
+        .state-item {
+          font-size: 14px;
+          color: #999999;
+          margin-right: 40px;
+          .state-text {
+            font-size: 14px;
+            color: #333333;
+            font-weight: normal;
+          }
+        }
+      }
+      .retrieve-synopsis {
+        .state-text {
+          font-size: 16px;
+          color: #333333;
+          font-weight: normal;
+        }
+        font-size: 16px;
+        line-height: 24px;
+        color: #999999;
+      }
+    }
+  }
+}
+</style>

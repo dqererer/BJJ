@@ -1,0 +1,82 @@
+<template>
+  <div class="information-inner" ref="informationInner">
+    <el-tabs v-model="activeName" type="card" @tab-click="tabClick" ref="tabs">
+      <el-tab-pane label="菜单列表" name="list">
+        <menu-mange-list
+          ref="dataList"
+          @handleSeeAmend="handleSeeAmend"
+          @backHandle="backHandle"
+          :menuListData="menuListData"
+        ></menu-mange-list>
+      </el-tab-pane>
+      <el-tab-pane
+        :label="tabState == 'add' ? '菜单添加' : '菜单修改'"
+        name="add"
+      >
+        <menu-mange-amend
+          @backHandle="backHandle"
+          :menuListData="menuListData"
+        ></menu-mange-amend>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script>
+import menuMangeList from "./menuMangeList";
+import menuMangeAmend from "./menuMangeAmend";
+import { menuList } from "@/api/styem/menu";
+import bus from "@/utils/vueBus";
+
+export default {
+  components: {
+    menuMangeList,
+    menuMangeAmend,
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+      menuListData:[]
+    };
+  },
+  created () {
+    this.getMenuList();
+  },
+  methods: {
+    async getMenuList(){
+      const reponse = await menuList();
+      this.menuListData = reponse.data;
+      this.loading = false;
+    },
+    tabClick(tab) {
+      if (tab.name === "list") {
+        this.tabState = "add";
+      } else if (tab.name === "add") {
+        bus.$emit("outComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      const tabState = stateObj.tabState;
+      const name = stateObj.name;
+      if (tabState == "amend" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }else if (tabState == "add" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      this.tabState = "add";
+      if (name == "update") {
+        this.getMenuList();
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

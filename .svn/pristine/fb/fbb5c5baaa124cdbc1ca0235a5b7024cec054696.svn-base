@@ -1,0 +1,120 @@
+<template>
+  <!-- 用户导入对话框 -->
+  <el-dialog
+    :title="title"
+    :visible.sync="importOpen"
+    :before-close="handleImportDialogClose"
+    width="400px"
+    append-to-body
+  >
+    <el-upload
+      ref="upload"
+      :limit="1"
+      accept=".xlsx, .xls"
+      :headers="upload.headers"
+      :action="upload.url"
+      :disabled="upload.isUploading"
+      :on-progress="handleFileUploadProgress"
+      :on-success="handleFileSuccess"
+      :auto-upload="false"
+      drag
+    >
+      <i class="el-icon-upload"></i>
+      <div class="el-upload__text">
+        将文件拖到此处，或
+        <em>点击上传</em>
+      </div>
+      <div class="el-upload__tip" slot="tip">
+        <!-- <el-checkbox v-model="upload.updateSupport" />是否更新已经存在的用户数据 -->
+        <el-link
+          type="info"
+          style="font-size:12px;color:#red;font-weight:bold;"
+          @click="importTemplate"
+          >下载模板</el-link
+        >
+      </div>
+      <div class="el-upload__tip" style="color:red" slot="tip">
+        提示：仅允许导入“xls”或“xlsx”格式文件！
+      </div>
+    </el-upload>
+    <div slot="footer" class="dialog-footer">
+      <el-button type="primary" @click="submitFileForm">确 定</el-button>
+      <el-button @click="handleImportDialogClose">取 消</el-button>
+    </div>
+  </el-dialog>
+</template>
+
+<script>
+import { getToken } from "@/utils/auth";
+import { downLoadZip } from "@/utils/zipdownload";
+export default {
+  props: {
+    importOpen: {
+      type: Boolean,
+      default: false
+    },
+    importPattern: {
+      type: Boolean,
+    },
+    importUrl: {
+      type: String
+    },
+    importDownUrl: {
+      type: String
+    },
+    title: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      upload: {
+        isUploading: false,
+        updateSupport: 0,
+        headers: { Authorization: getToken() },
+        url: process.env.VUE_APP_BASE_API + this.importUrl
+      }
+    };
+  },
+  methods: {
+    handleImportDialogClose() {
+      this.$emit("changeOpen");
+    },
+    importTemplate(){
+      if(this.importPattern){
+        this.importOneTemplate()
+      }else{
+        this.importOtherTemplate();
+      }
+    },
+    importOneTemplate() {
+      downLoadZip(this.importDownUrl);
+    },
+    importOtherTemplate() {
+      downLoadZip("/center/file/downloadFile", {
+        savePath: this.importDownUrl
+      });
+    },
+    // 文件上传中处理
+    handleFileUploadProgress(event, file, fileList) {
+      this.upload.isUploading = true;
+    },
+    // 文件上传成功处理
+    handleFileSuccess(response, file, fileList) {
+      this.upload.open = false;
+      this.upload.isUploading = false;
+      this.$refs.upload.clearFiles();
+      this.$message.success(response.msg);
+      this.handleImportDialogClose();
+      this.$emit("update");
+    },
+    // 提交上传文件
+    submitFileForm() {
+      this.$refs.upload.submit();
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

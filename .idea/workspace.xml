@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="5daf435c-6aa1-4b04-bdc0-5ecb86ff58ca" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/api/bpeople" afterDir="true" />
+      <change afterPath="$PROJECT_DIR$/src/api/bpeople/bPeople.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage" afterDir="true" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage/bpeople" afterDir="true" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage/bpeople/bPeopleAmend.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage/bpeople/bPeopleList.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage/bpeople/bPeoplePage.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/views/peopleManage/bpeople/bPeopleSee.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/permission.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/permission.js" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
+  </component>
+  <component name="ProjectId" id="1oxULuWyKWbVHd8aCOWcHEU7uas" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="prettierjs.PrettierConfiguration.Package" value="D:\MyeclipseWorkSpace\huazxEBP4\huazxEBP-UI\node_modules\prettier" />
+    <property name="ts.external.directory.path" value="C:\Program Files\JetBrains\WebStorm 2019.3.1\plugins\JavaScriptLanguage\jsLanguageServicesImpl\external" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\views\develop\shili" />
+      <recent name="D:\MyeclipseWorkSpace\huazxEBP4\huazxEBP-UI\src\views\develop\shili" />
+      <recent name="D:\MyeclipseWorkSpace\huazxEBP4\huazxEBP-UI\src\views\develop" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\views\peopleManage" />
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\api" />
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\views" />
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\views\baseSys" />
+      <recent name="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI\src\views\personManger" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="serve" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="serve" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="npm.serve" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="SshConsoleOptionsProvider">
+    <option name="myEncoding" value="UTF-8" />
+  </component>
+  <component name="SvnConfiguration" cleanupOnStartRun="true">
+    <configuration>C:\Users\shenxt\AppData\Roaming\Subversion</configuration>
+    <supportedVersion>125</supportedVersion>
+  </component>
+  <component name="SvnFileUrlMappingImpl">
+    <option name="myMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI" />
+          <option name="myCopyRoot" value="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+    <option name="myMoreRealMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI" />
+          <option name="myCopyRoot" value="D:\MyeclipseWorkSpace\Company\2021\envMonitor\huazxEBP-UI" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5daf435c-6aa1-4b04-bdc0-5ecb86ff58ca" name="Default Changelist" comment="" />
+      <created>1614227683227</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1614227683227</updated>
+      <workItem from="1614227687632" duration="6150000" />
+      <workItem from="1614240054251" duration="839000" />
+      <workItem from="1614303634137" duration="2128000" />
+      <workItem from="1618552210948" duration="3261000" />
+      <workItem from="1618557626142" duration="8357000" />
+      <workItem from="1619163179478" duration="8003000" />
+      <workItem from="1619316637666" duration="6144000" />
+      <workItem from="1619340609779" duration="1399000" />
+      <workItem from="1619403103629" duration="657000" />
+      <workItem from="1619404001984" duration="5244000" />
+      <workItem from="1619485109973" duration="10633000" />
+      <workItem from="1619572617300" duration="5361000" />
+      <workItem from="1619597781586" duration="1317000" />
+      <workItem from="1619658534967" duration="7497000" />
+      <workItem from="1619690683886" duration="154000" />
+      <workItem from="1620264072513" duration="2127000" />
+      <workItem from="1620280823123" duration="4433000" />
+      <workItem from="1620349465766" duration="4224000" />
+      <workItem from="1620370164211" duration="26000" />
+      <workItem from="1620374234366" duration="1528000" />
+      <workItem from="1620376239928" duration="835000" />
+      <workItem from="1620437646027" duration="596000" />
+      <workItem from="1620784282760" duration="1445000" />
+    </task>
+    <task id="LOCAL-00001">
+      <created>1619404119753</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1619404119753</updated>
+    </task>
+    <task id="LOCAL-00002">
+      <created>1619420317812</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1619420317812</updated>
+    </task>
+    <task id="LOCAL-00003">
+      <created>1619681001513</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1619681001513</updated>
+    </task>
+    <task id="LOCAL-00004">
+      <created>1619682283640</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1619682283640</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="LAST_COMMIT_MESSAGE" value="" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1614235320679">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1614235320679" />
+    <state x="40" y="114" width="1768" height="812" key="CommitChangelistDialog2" timestamp="1619682279419">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="40" y="114" width="1768" height="812" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1619682279419" />
+    <state x="739" y="262" key="FileChooserDialogImpl" timestamp="1620370187134">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="739" y="262" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1620370187134" />
+    <state width="1899" height="177" key="GridCell.Tab.0.bottom" timestamp="1620790381530">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1620790381530" />
+    <state width="1899" height="177" key="GridCell.Tab.0.center" timestamp="1620790381530">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1620790381530" />
+    <state width="1899" height="177" key="GridCell.Tab.0.left" timestamp="1620790381529">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1620790381529" />
+    <state width="1899" height="177" key="GridCell.Tab.0.right" timestamp="1620790381530">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1620790381530" />
+    <state width="1899" height="177" key="GridCell.Tab.1.bottom" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.1.center" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.1.left" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.1.right" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.2.bottom" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.2.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.2.center" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.2.center/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.2.left" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.2.left/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.2.right" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.2.right/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.3.bottom" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.3.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.3.center" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.3.center/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.3.left" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.3.left/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state width="1899" height="177" key="GridCell.Tab.3.right" timestamp="1620377078906">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="177" key="GridCell.Tab.3.right/0.0.1920.1040@0.0.1920.1040" timestamp="1620377078906" />
+    <state x="773" y="366" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1620264076327">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="773" y="366" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.1920.1040@0.0.1920.1040" timestamp="1620264076327" />
+    <state x="636" y="253" width="786" height="600" key="find.popup" timestamp="1619594778033">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="636" y="253" width="786" height="600" key="find.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1619594778033" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1619598378409">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/0.0.1920.1040@0.0.1920.1040" timestamp="1619598378409" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/utils/util.js</url>
+          <line>24</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

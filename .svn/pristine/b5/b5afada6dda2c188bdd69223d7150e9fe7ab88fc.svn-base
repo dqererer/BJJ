@@ -1,0 +1,2251 @@
+<template>
+  <div class="information-inner">
+    <div class="left">
+      <el-button size="small" @click="handleNewly" type="primary"
+        >新增</el-button
+      >
+      <section style="padding-top: 10px">
+        <div
+          class="type"
+          v-for="(item, pIndex) in inspectorateList"
+          v-bind:key="pIndex"
+        >
+          <div class="title">{{ item.name }}</div>
+          <div class="list">
+            <div
+              class="sub-type"
+              v-for="(o, cIndex) in item.children"
+              v-bind:key="cIndex"
+            >
+              <a
+                :underline="false"
+                @click="handleSubTypeCheck(pIndex, cIndex)"
+                :class="pIndex == pIdx && cIndex == cIdx ? 'blue' : ''"
+                >{{ o.name }}</a
+              >
+              <div class="num">{{ o.num }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="right">
+      <div class="title">
+        {{ inspectorateList[pIdx].name
+        }}{{ inspectorateList[pIdx]["children"][cIdx].name }}
+      </div>
+
+      <div class="list">
+        <div class="item" v-for="(item, index) in cardList" v-bind:key="index" :style="{'height':isC ? '320px':'380px'}">
+          <div class="flag">{{ item.stateName }}</div>
+          <div class="line"></div>
+          <div style="margin-bottom: 16px">
+            <p class="bold">{{ item.roundName }}、{{ item.batchName }}</p>
+            <el-tooltip effect="dark" :content="item.name" placement="top-start"
+              ><p class="bold">{{ item.name }}</p></el-tooltip
+            >
+          </div>
+          <div class="info">
+            <span class="bold">督察时间：</span>
+            <p>{{ item.startDate }}~{{ item.endDate }}</p>
+          </div>
+          <div class="info" v-if="item.areaName">
+            <span class="bold" style="width: 76px">督察地区：</span>
+            <p>{{ item.areaName }}</p>
+          </div>
+          <div class="info">
+            <span class="bold" style="width: 76px">督察组长：</span>
+            <p>{{ item.leaderName.slice(0, -1) }}</p>
+          </div>
+          <div class="info">
+            <span class="bold" style="width: 90px">督察副组长：</span>
+            <el-tooltip
+              effect="dark"
+              :content="item.deputyName.slice(0, -1)"
+              placement="top-start"
+              ><p>{{ item.deputyName.slice(0, -1) }}</p></el-tooltip
+            >
+          </div>
+          <div class="info">
+            <span class="bold" style="width: 106px">督察总协调人：</span>
+            <p>{{ item.chiefName.slice(0, -1) }}</p>
+          </div>
+          <div class="info">
+            <span class="bold" style="width: 90px">督察组成员：</span>
+            <el-tooltip
+              effect="dark"
+              :content="item.memberName.slice(0, -1)"
+              placement="top-start"
+              ><p>{{ item.memberName.slice(0, -1) }}</p></el-tooltip
+            >
+          </div>
+          <div class="info" v-if="item.xc">
+            <span class="bold" style="width: 60px">下沉组：</span>
+            <el-tooltip effect="dark" :content="item.xc" placement="top-start"
+              ><p>{{ item.xc }}</p></el-tooltip
+            >
+          </div>
+          <div class="info">
+            <span class="bold">操作：</span>
+            <!-- state 未归档--0； 部分归档---‘1’；  已归档----‘2’；-->
+            <span
+              @click="handleEdit(item)"
+              class="btn blue-bg"
+              v-if="item.state == '0' || item.state == '2'"
+              >修改</span
+            ><span
+              @click="handleDelete(item)"
+              class="btn red-bg"
+              v-if="item.state == '0' || item.state == '2'"
+              >删除</span
+            ><span @click="handleManagement(item)" class="btn green-bg"
+              >管理</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <el-dialog
+      title="人员管理"
+      :visible.sync="manageOpen"
+      width="80%"
+      append-to-body
+    >
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">督察信息</h1>
+        <div class="examineInfo-box">
+          <div class="examine-top">
+            <div class="examine-item examine-item-sort">督察类型</div>
+            <div class="examine-item examine-item-turn">督察轮次批次</div>
+            <div class="examine-item examine-item-name">督察组名称</div>
+            <div class="examine-item examine-item-start">开始时间</div>
+            <div class="examine-item examine-item-end">结束时间</div>
+          </div>
+          <div class="examine-bottom">
+            <div class="examine-item examine-item-sort">
+              {{ examineData.superviseName }}
+            </div>
+            <div class="examine-item examine-item-turn">
+              {{ examineData.roundName }}{{ examineData.batchName }}
+            </div>
+            <div class="examine-item examine-item-name">
+              {{ examineData.name }}
+            </div>
+            <div class="examine-item examine-item-start">
+              {{ examineData.startDate }}
+            </div>
+            <div class="examine-item examine-item-end">
+              {{ examineData.endDate }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="inspectorate-box">
+        <el-button
+          class="pull-right"
+          size="mini"
+          type="success"
+          v-if="examineData.state == 0 || examineData.state == 1"
+          @click="handleAllPigeonhole(examineData)"
+          >一键归档</el-button
+        >
+        <el-button
+          class="pull-right"
+          size="mini"
+          type="success"
+          v-if="examineData.state == 2 || examineData.state == 1"
+          @click="handleAllRestore(examineData)"
+          >一键还原</el-button
+        >
+      </div>
+      <div class="examineInfo-table">
+        <el-table :data="personArry" style="width: 100%">
+          <el-table-column prop="name" label="姓名"></el-table-column>
+          <el-table-column prop="idCard" label="身份证"></el-table-column>
+          <el-table-column prop="telephone" label="手机号"></el-table-column>
+          <el-table-column prop="teamRoleName" label="角色"></el-table-column>
+          <el-table-column prop="stateName" label="当前状态"></el-table-column>
+          <el-table-column label="操作">
+            <template slot-scope="scope">
+              <el-button
+                size="mini"
+                v-if="scope.row.state == 0"
+                type="success"
+                @click="handlePigeonhole(scope.row)"
+                >归档</el-button
+              >
+              <el-button
+                size="mini"
+                v-if="scope.row.state == 2"
+                type="success"
+                @click="handleRestore(scope.row)"
+                >还原</el-button
+              >
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleExamineClose"
+      append-to-body
+    >
+      <div class="plane-top" v-if="dialogTitle == '新增'">
+        <label class="plane-top-label">请先选择新增督察信息：</label>
+        <el-radio-group v-model="examineType">
+          <el-radio label="3">督察轮次</el-radio>
+          <el-radio label="4">督察批次</el-radio>
+          <el-radio label="5">督察组</el-radio>
+        </el-radio-group>
+      </div>
+      <el-form
+        ref="roundForm"
+        key="roundForm"
+        :model="roundParams"
+        :rules="roundRules"
+        label-width="180px"
+        class="dialogForm"
+        v-if="examineType == 3"
+      >
+        <el-form-item label="督察级别：" prop="superviseOne">
+          <el-select
+            class="width220"
+            v-model="roundParams.superviseOne"
+            @change="handleRoundLevelChangeOne"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in examineArry"
+              :key="item.id"
+              :value="item.value"
+              :label="item.label"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="督察类型：" prop="superviseType">
+          <el-select
+            class="width220"
+            v-model="roundParams.superviseType"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in InspectorTypeArryOne"
+              :key="item.id"
+              :value="item.value"
+              :label="item.label"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="督察轮次号：" prop="name">
+          <el-input
+            class="width220"
+            v-model="roundParams.name"
+            type="number"
+            step="1"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="开始时间：" prop="startDate">
+          <el-date-picker
+            class="width220"
+            v-model="roundParams.startDate"
+            format="yyyy-MM-d"
+            value-format="yyyy-MM-dd"
+            type="date"
+            placeholder="选择日期"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item label="结束时间：" prop="endDate">
+          <el-date-picker
+            class="width220"
+            v-model="roundParams.endDate"
+            format="yyyy-MM-d"
+            value-format="yyyy-MM-dd"
+            type="date"
+            placeholder="选择日期"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item label="描述：">
+          <el-input
+            class="textarea-limt-padding"
+            maxlength="240"
+            show-word-limit
+            type="textarea"
+            rows="4"
+            v-model="roundParams.remarks"
+          ></el-input>
+        </el-form-item>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="handleRoundSubmit">保存</el-button>
+          <el-button type="primary" @click="handleExamineClose">关闭</el-button>
+        </div>
+      </el-form>
+      <el-form
+        ref="batchForm"
+        key="batchForm"
+        :model="batchParams"
+        :rules="batchRules"
+        label-width="180px"
+        class="dialogForm"
+        v-if="examineType == 4"
+      >
+        <el-form-item label="督察级别：" prop="superviseOne">
+          <el-select
+            class="width220"
+            v-model="batchParams.superviseOne"
+            @change="handleRoundLevelChangeTwo"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in examineArry"
+              :key="item.id"
+              :value="item.value"
+              :label="item.label"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="督察类型：" prop="superviseType">
+          <el-select
+            class="width220"
+            v-model="batchParams.superviseType"
+            @change="handleTypeChange"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in InspectorTypeArryTwo"
+              :key="item.id"
+              :value="item.value"
+              :label="item.label"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="督察轮次号：" prop="parentId">
+          <el-select
+            class="width220"
+            v-model="batchParams.parentId"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="item in roundArry"
+              :key="item.id"
+              :value="item.id"
+              :label="item.name"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="督察批次号：" prop="name">
+          <el-input
+            class="width220"
+            v-model="batchParams.name"
+            type="number"
+            step="1"
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="开始时间：" prop="startDate">
+          <el-date-picker
+            class="width220"
+            v-model="batchParams.startDate"
+            type="date"
+            format="yyyy-MM-d"
+            value-format="yyyy-MM-dd"
+            placeholder="选择日期"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item label="结束时间：" prop="endDate">
+          <el-date-picker
+            class="width220"
+            v-model="batchParams.endDate"
+            type="date"
+            format="yyyy-MM-d"
+            value-format="yyyy-MM-dd"
+            placeholder="选择日期"
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item label="工作方案：" prop="workPlan">
+          <upload
+            accept=".doc, .docx, .pdf"
+            ref="uploadFile"
+            :limit="1"
+            :fileId="batchParams.workPlan"
+            fromKey="workPlan"
+            @setUrlPath="setUrlPath"
+            @deleteServeFile="deleteServeFile"
+          ></upload>
+        </el-form-item>
+        <el-form-item label="描述：">
+          <el-input
+            class="textarea-limt-padding"
+            maxlength="240"
+            show-word-limit
+            type="textarea"
+            rows="4"
+            v-model="batchParams.remarks"
+          ></el-input>
+        </el-form-item>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="handleBatchSubmit">保存</el-button>
+          <el-button type="primary" @click="handleExamineClose">关闭</el-button>
+        </div>
+      </el-form>
+      <el-form
+        ref="inspectorForm"
+        key="inspectorForm"
+        :model="inspectorParams"
+        :rules="inspectorRules"
+        label-width="120px"
+        class="dialogForm twoLayoutForm"
+        v-if="examineType == 5"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="督察级别：" prop="superviseOne">
+              <el-select
+                v-model="inspectorParams.superviseOne"
+                @change="handleRoundLevelChange"
+                placeholder="请选择"
+              >
+                <el-option
+                  v-for="item in examineArry"
+                  :key="item.id"
+                  :value="item.value"
+                  :label="item.label"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="督察类型：" prop="superviseType">
+              <el-select
+                v-model="inspectorParams.superviseType"
+                @change="handleTypeChange"
+                placeholder="请选择"
+              >
+                <el-option
+                  v-for="item in InspectorTypeArryb"
+                  :key="item.id"
+                  :value="item.value"
+                  :label="item.label"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="督察轮次：" prop="roundId">
+              <el-select
+                v-model="inspectorParams.roundId"
+                @change="handleRoundChange"
+                placeholder="请选择"
+              >
+                <el-option
+                  v-for="item in roundArry"
+                  :key="item.id"
+                  :value="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="registerBoolean === true">
+            <el-form-item label="督察批次：" prop="batchId">
+              <el-select
+                v-model="inspectorParams.batchId"
+                @change="handleBatchChange('督察组批次', $event)"
+                placeholder="请选择"
+              >
+                <el-option
+                  v-for="item in batchArry"
+                  :key="item.id"
+                  :value="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="registerBoolean === false">
+            <el-form-item label="督察批次：" prop="batchId">
+              <el-select
+                v-model="inspectorParams.batchId"
+                @change="handleBatchChange('迎检组批次', $event)"
+                placeholder="请选择"
+              >
+                <el-option
+                  v-for="item in batchArry"
+                  :key="item.id"
+                  :value="item.id"
+                  :label="item.name"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="开始时间：">
+              <el-date-picker
+                v-model="inspectorParams.startDate"
+                type="date"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                placeholder="选择日期"
+                readonly
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="结束时间：">
+              <el-date-picker
+                v-model="inspectorParams.endDate"
+                type="date"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                placeholder="选择日期"
+                readonly
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item :label="inspectName + ':'" prop="name">
+              <el-input
+                maxlength="20"
+                show-word-limit
+                v-model="inspectorParams.name"
+                placeholder="请输入督察组名称"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <template v-if="registerBoolean === false">
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item
+                label="迎检组组长："
+                prop="leaderListCenter[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.leaderListCenter[0].personId"
+                  filterable
+                  placeholder="请选择组长"
+                >
+                  <el-option
+                    v-for="item in leaderPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="迎检组副组长："
+                prop="deputyLeaderListCenter[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.deputyLeaderListCenter[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择副组长"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item
+                label="市级配合人员："
+                prop="cityMemberList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.cityMemberList[0].personId"
+                  filterable
+                  placeholder="请选择市级配合人员"
+                  :multiple="true"
+                >
+                  <el-option
+                    v-for="item in cityMemberListArry"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="迎检组成员："
+                prop="memberListCenter[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.memberListCenter[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择成员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </template>
+        <template v-if="registerBoolean === true">
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="督察地区：">
+                <el-select
+                  v-model="inspectorParams.areaCode"
+                  filterable
+                  placeholder="请选择督察地区"
+                  @change="handleInspectorArea"
+                >
+                  <el-option
+                    v-for="item in areaArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="督察专员办：">
+                <el-input
+                  v-model="inspectorParams.inspectCenterName"
+                  readonly
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="督察组组长：" prop="leaderList[0].personId">
+                <el-select
+                  v-model="inspectorParams.leaderList[0].personId"
+                  filterable
+                  placeholder="请选择组长"
+                  key="leaderList"
+                >
+                  <el-option
+                    v-for="item in leaderPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="副组长："
+                prop="deputyLeaderList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.deputyLeaderList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择副组长"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="督察组总协调：" prop="chiefList[0].personId">
+                <el-select
+                  v-model="inspectorParams.chiefList[0].personId"
+                  filterable
+                  placeholder="请选择总协调人"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="督察组成员：" prop="memberList[0].personId">
+                <el-select
+                  v-model="inspectorParams.memberList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择成员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item
+                label="举报登记人员："
+                prop="registerList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.registerList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择举报登记人员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="举报审核人员："
+                prop="auditorList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.auditorList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择举报审核人员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item
+                label="举报办理人员："
+                prop="handlerList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.handlerList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择举报办理人员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item
+                label="资料登记人员："
+                prop="dataRegisterList[0].personId"
+              >
+                <el-select
+                  v-model="inspectorParams.dataRegisterList[0].personId"
+                  :multiple="true"
+                  filterable
+                  placeholder="请选择资料登记人员"
+                >
+                  <el-option
+                    v-for="item in memberPersonList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </template>
+        <!-- <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="成员：" prop="memberList[0].personId">
+              <el-select
+                v-model="inspectorParams.memberList[0].personId"
+                :multiple="true"
+                filterable
+                placeholder="请选择成员"
+              >
+                <el-option
+                  v-for="item in memberPersonList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>-->
+
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="描述：">
+              <el-input
+                class="textarea-limt-padding"
+                maxlength="240"
+                show-word-limit
+                type="textarea"
+                rows="4"
+                v-model="inspectorParams.remarks"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div v-if="registerBoolean === true">
+          <el-table
+            border
+            :data="inspectorParams.childList"
+            style="width: 100%"
+            :stripe="true"
+          >
+            <el-table-column label="名称" min-width="180px">
+              <template v-slot="scope">
+                <el-input
+                  maxlength="20"
+                  show-word-limit
+                  class="input-limit"
+                  v-model="inspectorParams.childList[scope.$index].name"
+                ></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column label="区域" min-width="180px">
+              <template v-slot="scope">
+                <el-select
+                  :multiple="true"
+                  v-model="inspectorParams.childList[scope.$index].areaCode"
+                  filterable
+                  placeholder="请选择"
+                >
+                  <el-option
+                    v-for="item in countyArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="类型" min-width="180px">
+              <template v-slot="scope">
+                <el-input
+                  v-model="inspectorParams.childList[scope.$index].type"
+                  maxlength="20"
+                  show-word-limit
+                ></el-input>
+                <!-- <el-select
+                v-model="inspectorParams.childList[scope.$index].state"
+                placeholder="请选择类型"
+              >
+                <el-option
+                  v-for="item in batchArry"
+                  :key="item.id"
+                  :value="item.id"
+                  :label="item.name"
+                ></el-option>
+                </el-select>-->
+              </template>
+            </el-table-column>
+            <el-table-column width="60px">
+              <template v-slot="scope">
+                <svg-icon
+                  @click="handleDeleteClick(scope.$index)"
+                  :iconClass="IconComputed(scope.$index)"
+                  class="el-input__icon"
+                  style="height: 32px; width: 32px"
+                ></svg-icon>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button type="primary" size="small" @click="handleChildClick"
+            >新增</el-button
+          >
+        </div>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="handleInspectorSubmit"
+            >保存</el-button
+          >
+          <el-button type="primary" @click="handleExamineClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  inspectorList,
+  inspectorRoundList,
+  inspectorRoundAmend,
+  teamInfoList,
+  teamInfoAmend,
+  archive,
+  roundSave,
+  inspectorSave,
+  inspectorInfo,
+  inspectorPersonInfo,
+  personList,
+  inspectorRoundDelete,
+  teamInfoDelete,
+  getCentralInfo,
+  getBatchTeamFlag,
+  getTeamList,
+} from "@/api/support/inspectorate";
+import { roleFindUser, findAllRoleUser } from "@/api/styem/role";
+import { dictListType, getSuperviseTypeInfo } from "@/api/styem/dict/type";
+import { getFileInfo } from "@/api/file";
+import { getSingleInfo } from "@/utils/styem";
+import { areaTreeNew } from "@/api/styem/dept";
+import { mapGetters } from "vuex";
+export default {
+  data() {
+    return {
+      isC: true,
+      pIdx: 0,
+      cIdx: 0,
+      cardList: [],
+      queryParams: {
+        name: undefined,
+        sex: undefined,
+      },
+      loading: true,
+      inspectorateList: undefined,
+      listMap: new Map(),
+      parentId: undefined,
+      manageOpen: false,
+      manageId: undefined,
+      examineData: {},
+      personArry: [],
+      dialogTitle: "新增",
+      open: false,
+      examineArry: [],
+      InspectorTypeArryOne: [],
+      InspectorTypeArryTwo: [],
+      InspectorTypeArry: [],
+      InspectorTypeArryb: [],
+      roundArry: [],
+      batchArry: [],
+      examineType: "3",
+      roundParams: {
+        id: undefined,
+        level: 3,
+        superviseOne: undefined,
+        superviseType: undefined,
+        name: undefined,
+        number: undefined,
+        startDate: undefined,
+        endDate: undefined,
+        remarks: undefined,
+      },
+      batchParams: {
+        id: undefined,
+        level: 4,
+        superviseOne: undefined,
+        superviseType: undefined,
+        parentId: undefined,
+        name: undefined,
+        startDate: undefined,
+        endDate: undefined,
+        workPlan: undefined,
+        remarks: undefined,
+      },
+      leaderPersonList: undefined,
+      memberPersonList: undefined,
+      inspectorParams: {
+        id: undefined,
+        level: 5,
+        state: undefined,
+        inspectCenterId: undefined,
+        inspectCenterName: undefined,
+        superviseOne: "C",
+        superviseType: undefined,
+        roundId: undefined,
+        batchId: undefined,
+        startDate: undefined,
+        endDate: undefined,
+        name: undefined,
+        areaCode: undefined,
+
+        leaderListCenter: [
+          { personId: undefined, teamRole: "1097988735452062010" },
+        ],
+        deputyLeaderListCenter: [
+          { personId: undefined, teamRole: "1097988735452062020" },
+        ],
+        memberListCenter: [
+          { personId: undefined, teamRole: "1097988735452062040" },
+        ],
+        cityMemberList: [
+          { personId: undefined, teamRole: "1097988735452062028" },
+        ],
+
+        leaderList: [{ personId: undefined, teamRole: "1097988735452062048" }],
+        deputyLeaderList: [
+          { personId: undefined, teamRole: "1097988735452062055" },
+        ],
+        chiefList: [{ personId: undefined, teamRole: "1097988735452062062" }],
+        memberList: [{ personId: undefined, teamRole: "1097988735452062069" }],
+        registerList: [
+          { personId: undefined, teamRole: "1097988735452062084" },
+        ],
+        auditorList: [{ personId: undefined, teamRole: "1097988735452062091" }],
+        handlerList: [{ personId: undefined, teamRole: "1097988735452062104" }],
+        dataRegisterList: [
+          { personId: undefined, teamRole: "1097988735452062118" },
+        ],
+
+        remarks: undefined,
+        childList: [],
+      },
+      normalizer(node) {
+        return {
+          label: node.name,
+        };
+      },
+      roundRules: {
+        superviseOne: [{ required: true, message: "请输入督察级别" }],
+        superviseType: [{ required: true, message: "请输入督察类型" }],
+        name: [{ required: true, message: "请输入督察轮次号" }],
+        startDate: [{ required: true, message: "请选择开始时间" }],
+        endDate: [{ required: true, message: "请输选择结束时间" }],
+      },
+      fileList: [],
+      batchRules: {
+        superviseOne: [{ required: true, message: "请输入督察级别" }],
+        superviseType: [{ required: true, message: "请输入督察类型" }],
+        parentId: [{ required: true, message: "请输入轮次号" }],
+        name: [{ required: true, message: "请输入督察批次号" }],
+        startDate: [{ required: true, message: "请选择开始时间" }],
+        endDate: [{ required: true, message: "请输选择结束时间" }],
+        workPlan: [{ required: true, message: "请添加工作方案" }],
+      },
+      inspectorRules: {
+        superviseOne: [{ required: true, message: "请输入督察级别" }],
+        superviseType: [{ required: true, message: "请输入督察类型" }],
+        roundId: [{ required: true, message: "请输入督察轮次" }],
+        batchId: [{ required: true, message: "请输入督察批次" }],
+        name: [{ required: true, message: "请输入督察组名称" }],
+        areaCode: [{ required: true, message: "请输入督察地区" }],
+        // "leaderList[0].personId": [{ required: true, message: "请输入组长" }],
+        // "deputyLeaderList[0].personId": [
+        //   { required: true, message: "请输入副组长" }
+        // ],
+        // "chiefList[0].personId": [
+        //   { required: true, message: "请输入总协调人" }
+        // ],
+        // "memberList[0].personId": [{ required: true, message: "请输入成员" }],
+        // "registerList[0].personId": [
+        //   { required: true, message: "请输入举报登记人员" }
+        // ],
+        // "auditorList[0].personId": [
+        //   { required: true, message: "请输入举报审核人员" }
+        // ],
+        // "handlerList[0].personId": [
+        //   { required: true, message: "请输入举报办理人员" }
+        // ],
+        // "dataRegisterList[0].personId": [
+        //   { required: true, message: "请输入资料登记人员" }
+        // ]
+      },
+      registerBoolean: false,
+      inspectName: "迎检组名称",
+      manageParentId: undefined,
+      countyArry: [],
+    };
+  },
+  created() {
+    this.getDictLevel();
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["areaArry"]),
+  },
+  methods: {
+    async getDictLevel() {
+      const reponse = await dictListType({ type: "inspect_type", next: "1" });
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.examineArry = menu;
+      this.handleRoundLevelChangeb("C");
+    },
+    handleSubTypeCheck: function (i, o) {
+      if(i == 0){
+        this.isC = true;
+      }else{
+        this.isC = false;
+      }
+      this.pIdx = i;
+      this.cIdx = o;
+      this.getCardData();
+    },
+    async getList() {
+      this.loading = true;
+      const reponse = await inspectorList();
+      let promiseArr = [];
+      reponse.data.forEach((item) => {
+        const promisHttp = getSuperviseTypeInfo({
+          code: item.value,
+        }).then((res) => {
+          item.children = res.data;
+        });
+        promiseArr.push(promisHttp);
+      });
+      Promise.all(promiseArr).then(() => {
+        this.inspectorateList = reponse.data;
+        this.loading = false;
+        this.getCardData();
+      });
+    },
+    getCardData: function () {
+      getTeamList({
+        superviseType:
+          this.inspectorateList[this.pIdx].children[this.cIdx].code,
+      }).then((res) => {
+        res.data &&
+          res.data.forEach((item) => {
+            let arr = [],
+              str = "";
+            item.childList &&
+              item.childList.forEach((i) => {
+                arr.push(i.name);
+              });
+            str = arr.join("，");
+            item.xc = str;
+          });
+
+        this.cardList = res.data;
+      });
+    },
+    async getLeaderPerson() {
+      const reponse = await personList({ leaderAlternative: 1 });
+      this.leaderPersonList = reponse.data;
+    },
+    async getCityPerson() {
+      const reponse = await findAllRoleUser({ roleId: "924131517326696548" });
+      const cityPersonArry = [];
+      for (const item in reponse.data) {
+        const subject = reponse.data[item];
+        const temp = {
+          officeName: subject.officeName,
+          name: subject.name + "(" + subject.officeName + ")",
+          id: subject.id,
+        };
+        cityPersonArry.push(temp);
+      }
+      this.cityMemberListArry = cityPersonArry;
+    },
+    async getMemberPerson() {
+      const reponse = await personList({ memberAlternative: 1 });
+      this.memberPersonList = reponse.data;
+    },
+    handleNewly() {
+      this.open = true;
+      this.dialogTitle = "新增";
+      this.resetFieldsTap("roundForm");
+      this.resetFieldsTap("batchForm");
+      this.resetFieldsTap("inspectorForm");
+    },
+    async handleInspectorArea(areaCode) {
+      this.inspectorParams.childList = [];
+      this.inspectorParams.inspectCenterId = undefined;
+      this.inspectorParams.inspectCenterName = undefined;
+      const reponse = await getCentralInfo({ areaCode });
+      this.inspectorParams.inspectCenterId = reponse.data.officeId;
+      this.inspectorParams.inspectCenterName = reponse.data.officeName;
+      this.getSinkCounty(areaCode);
+    },
+    async getSinkCounty(code) {
+      this.countyArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    handleRoundLevelChangeOne(e) {
+      let InspectorTypeArry = null;
+      for (const item in this.examineArry) {
+        const subject = this.examineArry[item];
+        if (subject.value == e) {
+          InspectorTypeArry = subject.children;
+        }
+      }
+      this.InspectorTypeArryOne = InspectorTypeArry;
+    },
+    handleRoundLevelChangeTwo(e) {
+      let InspectorTypeArry = null;
+      for (const item in this.examineArry) {
+        const subject = this.examineArry[item];
+        if (subject.value == e) {
+          InspectorTypeArry = subject.children;
+        }
+      }
+      this.InspectorTypeArryTwo = InspectorTypeArry;
+    },
+    handleRoundLevelChange(e) {
+      this.inspectorParams.superviseType = undefined;
+      this.inspectorParams.roundId = undefined;
+      this.inspectorParams.batchId = undefined;
+      this.roundArry = [];
+      this.batchArry = [];
+      this.inspectorParams.startDate = undefined;
+      this.inspectorParams.endDate = undefined;
+      this.inspectorParams.name = undefined;
+      this.inspectorParams.areaCode = undefined;
+      this.inspectorParams.remarks = undefined;
+      this.inspectorParams.childList = [];
+      this.inspectorParams.inspectCenterName = undefined;
+      if (e === "R") {
+        this.inspectName = "督察组名称";
+        this.registerBoolean = true;
+      } else {
+        this.inspectName = "迎检组名称";
+        this.registerBoolean = false;
+      }
+      let InspectorTypeArry = null;
+      for (const item in this.examineArry) {
+        const subject = this.examineArry[item];
+        if (subject.value == e) {
+          InspectorTypeArry = subject.children;
+        }
+      }
+      this.InspectorTypeArryb = InspectorTypeArry;
+    },
+
+    handleRoundLevelChangeb(e) {
+      if (e === "R") {
+        this.inspectName = "督察组名称";
+        this.registerBoolean = true;
+      } else {
+        this.inspectName = "迎检组名称";
+        this.registerBoolean = false;
+      }
+      let InspectorTypeArryb = null;
+      for (const item in this.examineArry) {
+        const subject = this.examineArry[item];
+        if (subject.value == e) {
+          InspectorTypeArryb = subject.children;
+        }
+      }
+      this.InspectorTypeArryb = InspectorTypeArryb;
+    },
+    async handleTypeChange(superviseType) {
+      this.inspectorParams.roundId = undefined;
+      this.inspectorParams.batchId = undefined;
+      this.roundArry = [];
+      this.batchArry = [];
+      this.inspectorParams.startDate = undefined;
+      this.inspectorParams.endDate = undefined;
+      this.inspectorParams.name = undefined;
+      this.inspectorParams.areaCode = undefined;
+      this.inspectorParams.remarks = undefined;
+      this.inspectorParams.childList = [];
+      this.inspectorParams.inspectCenterName = undefined;
+      const reponse = await inspectorRoundList({ superviseType, level: 3 });
+      this.roundArry = reponse.data;
+    },
+    async handleTypeChangeb(superviseType) {
+      const reponse = await inspectorRoundList({ superviseType, level: 3 });
+      this.roundArry = reponse.data;
+    },
+    async handleRoundChange(parentId) {
+      this.inspectorParams.batchId = undefined;
+      this.batchArry = [];
+      this.inspectorParams.startDate = undefined;
+      this.inspectorParams.endDate = undefined;
+      this.inspectorParams.name = undefined;
+      this.inspectorParams.areaCode = undefined;
+      this.inspectorParams.remarks = undefined;
+      this.inspectorParams.childList = [];
+      this.inspectorParams.inspectCenterName = undefined;
+      const reponse = await inspectorRoundList({ parentId, level: 4 });
+      this.batchArry = reponse.data;
+    },
+    async handleRoundChangeb(parentId) {
+      const reponse = await inspectorRoundList({ parentId, level: 4 });
+      this.batchArry = reponse.data;
+    },
+    async handleBatchChange(name, id) {
+      this.inspectorParams.startDate = undefined;
+      this.inspectorParams.endDate = undefined;
+      this.inspectorParams.name = undefined;
+      this.inspectorParams.areaCode = undefined;
+      this.inspectorParams.remarks = undefined;
+      this.inspectorParams.childList = [];
+      this.inspectorParams.inspectCenterName = undefined;
+      if (name === "迎检组批次") {
+        const reponse = await getBatchTeamFlag({ batchId: id });
+        const subject = reponse.data;
+        if (subject == false) {
+          this.$message.error(`当前批次下存在迎检组，请选择其他批次`);
+          this.inspectorParams.batchId = undefined;
+        } else {
+          this.getInspectorRoundAmend(id);
+        }
+      } else {
+        this.getInspectorRoundAmend(id);
+      }
+    },
+    async getInspectorRoundAmend(id) {
+      const reponse = await inspectorRoundAmend({ id });
+      const subject = reponse.data;
+      this.inspectorParams.startDate = subject.startDate;
+      this.inspectorParams.endDate = subject.endDate;
+    },
+    handleChildClick() {
+      this.inspectorParams.childList.push({
+        name: "",
+        areaCode: "",
+        type: "",
+        delFlag: "0",
+      });
+    },
+    handleDeleteClick(index) {
+      if (!this.inspectorParams.id) {
+        this.inspectorParams.childList.splice(index, 1);
+      } else {
+        if (this.inspectorParams.childList[index].delFlag == 1) {
+          this.inspectorParams.childList[index].delFlag = 0;
+        } else {
+          this.inspectorParams.childList[index].delFlag = 1;
+        }
+        this.IconComputed(index);
+      }
+    },
+    IconComputed(index) {
+      return this.inspectorParams.childList[index].delFlag == 0
+        ? "remove"
+        : "repeal";
+    },
+    async handleEdit(data) {
+      const { id, level } = data;
+      this.open = true;
+      this.examineType = level;
+      this.dialogTitle = "修改";
+      if (level === "3") {
+        this.parentId = data.superviseType;
+        const reponse = await inspectorRoundAmend({ id });
+        const subject = reponse.data;
+        this.roundParams.id = subject.id;
+        this.roundParams.superviseOne = subject.superviseOne;
+        this.roundParams.superviseType = subject.superviseType;
+        this.roundParams.name = subject.number;
+        this.roundParams.startDate = subject.startDate;
+        this.roundParams.endDate = subject.endDate;
+        this.roundParams.remarks = subject.remarks;
+        this.handleRoundLevelChangeOne(subject.superviseOne);
+        return;
+      } else if (level === "4") {
+        this.parentId = data.parentId;
+        const reponse = await inspectorRoundAmend({ id });
+        const subject = reponse.data;
+        this.batchParams.id = subject.id;
+        this.batchParams.superviseOne = subject.superviseOne;
+        this.batchParams.superviseType = subject.superviseType;
+        this.batchParams.parentId = subject.parentId;
+        this.batchParams.name = subject.number;
+        this.batchParams.startDate = subject.startDate;
+        this.batchParams.endDate = subject.endDate;
+        this.batchParams.workPlan = subject.workPlan;
+        this.$nextTick(() => {
+          this.$refs.uploadFile.getFileMessageInfo();
+        });
+        this.batchParams.remarks = subject.remarks;
+        this.handleRoundLevelChangeTwo(subject.superviseOne);
+        this.handleTypeChangeb(subject.superviseType);
+        return;
+      } else if (level === "5") {
+        this.parentId = data.batchId;
+        const reponse = await teamInfoAmend({ id });
+        const subject = reponse.data;
+        this.inspectorParams.state = subject.state;
+        this.inspectorParams.id = subject.id;
+        this.inspectorParams.superviseOne = subject.superviseOne;
+        this.inspectorParams.superviseType = subject.superviseType;
+        this.inspectorParams.roundId = subject.roundId;
+        this.inspectorParams.batchId = subject.batchId;
+        this.inspectorParams.startDate = subject.startDate;
+        this.inspectorParams.endDate = subject.endDate;
+        this.inspectorParams.name = subject.name;
+        this.inspectorParams.areaCode = subject.areaCode;
+        if (subject.superviseOne == "R") {
+          this.inspectName = "督察组名称";
+          this.registerBoolean = true;
+          this.inspectorParams.inspectCenterName = subject.inspectCenterName;
+          this.inspectorParams.leaderList = this.teamInfoLeaderChange(
+            subject.leaderList
+          );
+          this.inspectorParams.deputyLeaderList = this.teamInfoParamsChange(
+            subject.deputyLeaderList
+          );
+          this.inspectorParams.memberList = this.teamInfoParamsChange(
+            subject.memberList
+          );
+          this.inspectorParams.chiefList = this.teamInfoLeaderChange(
+            subject.chiefList
+          );
+          this.inspectorParams.registerList = this.teamInfoParamsChange(
+            subject.registerList
+          );
+          this.inspectorParams.auditorList = this.teamInfoParamsChange(
+            subject.auditorList
+          );
+          this.inspectorParams.handlerList = this.teamInfoParamsChange(
+            subject.handlerList
+          );
+          this.inspectorParams.dataRegisterList = this.teamInfoParamsChange(
+            subject.dataRegisterList
+          );
+          this.handleInspectorArea(subject.areaCode);
+        } else {
+          this.inspectName = "迎检组名称";
+          this.inspectorParams.leaderListCenter = this.teamInfoLeaderChange(
+            subject.leaderListCenter
+          );
+          this.inspectorParams.deputyLeaderListCenter =
+            this.teamInfoParamsChange(subject.deputyLeaderListCenter);
+          this.inspectorParams.memberListCenter = this.teamInfoParamsChange(
+            subject.memberListCenter
+          );
+          this.inspectorParams.cityMemberList = this.teamInfoParamsChange(
+            subject.cityMemberList
+          );
+          this.registerBoolean = false;
+        }
+        this.inspectorParams.remarks = subject.remarks;
+        if (subject.childList) {
+          subject.childList.map((item) => {
+            item["areaCode"] = item["areaCode"].split(",");
+          });
+          this.inspectorParams.childList = subject.childList;
+        } else {
+          this.inspectorParams.childList = [];
+        }
+
+        console.log(subject.childList);
+        this.handleRoundLevelChangeb(subject.superviseOne);
+        this.handleTypeChangeb(subject.superviseType);
+        this.handleRoundChangeb(subject.roundId);
+
+        return;
+      }
+    },
+    teamInfoLeaderChange(data) {
+      const res = [
+        {
+          personId: "",
+          teamRole: "",
+        },
+      ];
+      const { personId, teamRole, state } = data[0];
+      res[0].personId = personId;
+      res[0].teamRole = teamRole;
+      res[0].state = state;
+      res.push(data[0]);
+      return res;
+    },
+    teamInfoParamsChange(data) {
+      const res = [
+        {
+          personId: [],
+          teamRole: "",
+        },
+      ];
+      data.forEach((item) => {
+        res[0].personId.push(item.personId);
+        res[0].teamRole = item.teamRole;
+        res[0].state = item.state;
+        res.push(item);
+      });
+      return res;
+    },
+    async handleAdd(data) {
+      this.open = true;
+      const level = data.level;
+      this.examineType = level;
+      if (level === "3") {
+        this.resetFieldsTap("roundForm");
+        this.dialogTitle = "督察轮次新增";
+        this.parentId = data.superviseType;
+        const { superviseOne, superviseType } = data;
+        this.roundParams.id = undefined;
+        this.roundParams.superviseOne = superviseOne;
+        this.roundParams.superviseType = superviseType;
+        this.handleRoundLevelChangeOne(superviseOne);
+      } else if (level === "4") {
+        this.resetFieldsTap("batchForm");
+        this.fileList = [];
+        this.dialogTitle = "督察批次新增";
+        this.parentId = data.parentId;
+        const { superviseOne, superviseType, parentId } = data;
+        this.batchParams.id = undefined;
+        this.batchParams.superviseOne = superviseOne;
+        this.batchParams.superviseType = superviseType;
+        this.batchParams.parentId = parentId;
+        this.handleRoundLevelChangeTwo(superviseOne);
+        this.handleTypeChangeb(superviseType);
+      } else if (level === "5") {
+        this.resetFieldsTap("inspectorForm");
+        this.dialogTitle = "督察组新增";
+        this.parentId = data.batchId;
+        const { id } = data;
+        const reponse = await teamInfoAmend({ id });
+        const subject = reponse.data;
+        this.inspectorParams.id = undefined;
+        this.inspectorParams.superviseOne = subject.superviseOne;
+        if (subject.superviseOne === "R") {
+          this.registerBoolean = true;
+          this.inspectName = "督察组名称";
+          this.handleBatchChange("督察组批次", subject.batchId);
+        } else {
+          this.inspectName = "迎检组名称";
+          this.registerBoolean = false;
+          this.handleBatchChange("迎检组批次", subject.batchId);
+        }
+        this.inspectorParams.superviseType = subject.superviseType;
+        this.inspectorParams.roundId = subject.roundId;
+        this.inspectorParams.batchId = subject.batchId;
+        this.handleRoundLevelChangeb(subject.superviseOne);
+        this.handleTypeChangeb(subject.superviseType);
+        this.handleRoundChangeb(subject.roundId);
+      }
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { level, id } = data;
+        let parentId;
+        let state;
+        if (level === "3") {
+          parentId = data.superviseType;
+          const reponse = await inspectorRoundDelete({ id, level });
+          state = reponse.data.state;
+        } else if (level === "4") {
+          parentId = data.parentId;
+          const reponse = await inspectorRoundDelete({ id, level });
+          state = reponse.data.state;
+        } else {
+          parentId = data.batchId;
+          const reponse = await teamInfoDelete({ id, level });
+          state = reponse.data.state;
+        }
+        if (state === "1") {
+          this.$message({
+            message: "删除成功",
+            type: "success",
+          });
+          this.getCardData();
+        } else {
+          this.$message({
+            message: "当前目录下包含数据，无法删除",
+            type: "warning",
+          });
+        }
+      });
+    },
+    updatedList(parentId) {
+      const { tree, treeNode, resolve } = this.listMap.get(parentId); //根据pid取出对应的节点数据
+      this.$set(this.$refs.table.store.states.lazyTreeNodeMap, parentId, []);
+      this.load(tree, treeNode, resolve);
+    },
+    handleManagement(data) {
+      const { id, batchId } = data;
+      this.manageParentId = batchId;
+      this.manageOpen = true;
+      this.manageId = id;
+      this.handleinspectorInfo(id);
+      this.getPerson(id);
+    },
+    async handleinspectorInfo(id) {
+      const examineReponse = await inspectorInfo({ id });
+      this.examineData = examineReponse.data;
+    },
+    async getPerson(id) {
+      const personReponse = await inspectorPersonInfo({ teamId: id });
+      this.personArry = personReponse.data;
+    },
+    handleAllPigeonhole(data) {
+      this.$confirm("是否要一键归档", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "归档",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { id: groupId } = data;
+        const reponse = await archive({ groupId, state: 2 });
+        this.handleinspectorInfo(this.manageId);
+        this.getPerson(this.manageId);
+        this.updatedList(this.manageParentId);
+      });
+    },
+    handleAllRestore(data) {
+      this.$confirm("是否要一键还原", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "还原",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { id: groupId } = data;
+        const reponse = await archive({ groupId, state: 0 });
+        this.handleinspectorInfo(this.manageId);
+        this.getPerson(this.manageId);
+        this.updatedList(this.manageParentId);
+      });
+    },
+    handlePigeonhole(data) {
+      this.$confirm("是否要归档", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "归档",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { id, state } = data;
+        const reponse = await archive({ id, state: 2 });
+        this.handleinspectorInfo(this.manageId);
+        this.getPerson(this.manageId);
+        this.updatedList(this.manageParentId);
+      });
+    },
+    handleRestore(data) {
+      this.$confirm("是否要还原", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "还原",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { id, state } = data;
+        const reponse = await archive({ id, state: 0 });
+        this.handleinspectorInfo(this.manageId);
+        this.getPerson(this.manageId);
+        this.updatedList(this.manageParentId);
+      });
+    },
+    handleExamineClose() {
+      this.handleRoundClose();
+      this.handleBatchClose();
+      this.handleInspectorClose();
+      this.registerBoolean = false;
+      this.open = false;
+      if (this.$refs.uploadFile) {
+        this.$refs.uploadFile.handleClear();
+      }
+    },
+    async handleRoundSubmit() {
+      this.$refs.roundForm.validate(async (valid) => {
+        if (valid) {
+          this.parentId = this.roundParams.superviseType;
+          const reponse = await roundSave(this.roundParams);
+          this.handleExamineClose();
+          if (this.listMap.has(this.parentId)) {
+            this.updatedList(this.parentId);
+          }
+        }
+      });
+    },
+    handleRoundClose() {
+      this.roundParams.id = undefined;
+      this.roundParams.superviseOne = undefined;
+      this.roundParams.superviseType = undefined;
+      this.roundParams.name = undefined;
+      this.roundParams.startDate = undefined;
+      this.roundParams.endDate = undefined;
+      this.roundParams.remarks = undefined;
+      this.roundParams.remarks = undefined;
+    },
+    handleBatchSubmit() {
+      this.$refs.batchForm.validate(async (valid) => {
+        if (valid) {
+          this.parentId = this.batchParams.parentId;
+          const reponse = await roundSave(this.batchParams);
+          this.handleExamineClose();
+          if (this.listMap.has(this.parentId)) {
+            this.updatedList(this.parentId);
+          }
+        }
+      });
+    },
+    handleBatchClose() {
+      this.batchParams.id = undefined;
+      this.batchParams.superviseOne = undefined;
+      this.batchParams.superviseType = undefined;
+      this.batchParams.parentId = undefined;
+      this.batchParams.name = undefined;
+      this.batchParams.startDate = undefined;
+      this.batchParams.endDate = undefined;
+      this.batchParams.workPlan = undefined;
+      this.batchParams.remarks = undefined;
+      this.fileList = [];
+    },
+    handleInspectorSubmit() {
+      console.log(this.inspectorParams.childList);
+      this.$refs.inspectorForm.validate(async (valid) => {
+        if (valid) {
+          if (this.inspectorParams.superviseOne === "R") {
+            if (this.inspectorParams.leaderList[0].personId == undefined) {
+              this.$message.warning("请选择组长");
+              return;
+            }
+            if (this.inspectorParams.deputyLeaderList[0].personId.length <= 0) {
+              this.$message.warning("请选择副组长");
+              return;
+            }
+            if (this.inspectorParams.memberList[0].personId.length <= 0) {
+              this.$message.warning("请选择成员");
+              return;
+            }
+            if (this.inspectorParams.areaCode == undefined) {
+              this.$message.warning("请选择督察地区");
+              return;
+            }
+            if (this.inspectorParams.chiefList[0].personId == undefined) {
+              this.$message.warning("请选择总协调人");
+              return;
+            }
+            if (this.inspectorParams.registerList[0].personId.length <= 0) {
+              this.$message.warning("请选择举报登记人员");
+              return;
+            }
+            if (this.inspectorParams.auditorList[0].personId.length <= 0) {
+              this.$message.warning("请选择举报审核人员");
+              return;
+            }
+            if (this.inspectorParams.handlerList[0].personId.length <= 0) {
+              this.$message.warning("请选择举报办理人员");
+              return;
+            }
+            if (this.inspectorParams.dataRegisterList[0].personId.length <= 0) {
+              this.$message.warning("请选择资料登记人员");
+              return;
+            }
+          } else {
+            if (
+              this.inspectorParams.leaderListCenter[0].personId == undefined
+            ) {
+              this.$message.warning("请选择组长");
+              return;
+            }
+            if (
+              this.inspectorParams.deputyLeaderListCenter[0].personId.length <=
+              0
+            ) {
+              this.$message.warning("请选择副组长");
+              return;
+            }
+            if (this.inspectorParams.memberListCenter[0].personId.length <= 0) {
+              this.$message.warning("请选择成员");
+              return;
+            }
+            if (this.inspectorParams.cityMemberList[0].personId.length <= 0) {
+              this.$message.warning("请选择市级配合人员");
+              return;
+            }
+          }
+          if (this.dialogTitle == "新增" || this.dialogTitle == "督察组新增") {
+            if (this.inspectorParams.superviseOne === "R") {
+              this.inspectorParams.deputyLeaderList =
+                this.inspectorParamsChange(
+                  this.inspectorParams.deputyLeaderList
+                );
+              this.inspectorParams.memberList = this.inspectorParamsChange(
+                this.inspectorParams.memberList
+              );
+              this.inspectorParams.registerList = this.inspectorParamsChange(
+                this.inspectorParams.registerList
+              );
+              this.inspectorParams.auditorList = this.inspectorParamsChange(
+                this.inspectorParams.auditorList
+              );
+              this.inspectorParams.handlerList = this.inspectorParamsChange(
+                this.inspectorParams.handlerList
+              );
+              this.inspectorParams.dataRegisterList =
+                this.inspectorParamsChange(
+                  this.inspectorParams.dataRegisterList
+                );
+              this.inspectorParams.leaderListCenter = undefined;
+              this.inspectorParams.deputyLeaderListCenter = undefined;
+              this.inspectorParams.memberListCenter = undefined;
+              this.inspectorParams.cityMemberList = undefined;
+            } else {
+              this.inspectorParams.deputyLeaderListCenter =
+                this.inspectorParamsChange(
+                  this.inspectorParams.deputyLeaderListCenter
+                );
+              this.inspectorParams.memberListCenter =
+                this.inspectorParamsChange(
+                  this.inspectorParams.memberListCenter
+                );
+              this.inspectorParams.cityMemberList = this.inspectorParamsChange(
+                this.inspectorParams.cityMemberList
+              );
+
+              this.inspectorParams.leaderList = undefined;
+              this.inspectorParams.deputyLeaderList = undefined;
+              this.inspectorParams.chiefList = undefined;
+              this.inspectorParams.memberList = undefined;
+              this.inspectorParams.registerList = undefined;
+              this.inspectorParams.auditorList = undefined;
+              this.inspectorParams.handlerList = undefined;
+              this.inspectorParams.dataRegisterList = undefined;
+            }
+          } else {
+            if (this.inspectorParams.superviseOne === "R") {
+              this.inspectorParams.leaderList = this.inspectorAmendLeaderChange(
+                this.inspectorParams.leaderList,
+                "1097988735452062048"
+              );
+              this.inspectorParams.deputyLeaderList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.deputyLeaderList,
+                  "1097988735452062055"
+                );
+              this.inspectorParams.chiefList = this.inspectorAmendLeaderChange(
+                this.inspectorParams.chiefList,
+                "1097988735452062062"
+              );
+              this.inspectorParams.memberList = this.inspectorAmendParamsChange(
+                this.inspectorParams.memberList,
+                "1097988735452062069"
+              );
+              this.inspectorParams.registerList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.registerList,
+                  "1097988735452062084"
+                );
+              this.inspectorParams.auditorList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.auditorList,
+                  "1097988735452062091"
+                );
+              this.inspectorParams.handlerList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.handlerList,
+                  "1097988735452062104"
+                );
+              this.inspectorParams.dataRegisterList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.dataRegisterList,
+                  "1097988735452062118"
+                );
+              this.inspectorParams.leaderListCenter = undefined;
+              this.inspectorParams.deputyLeaderListCenter = undefined;
+              this.inspectorParams.memberListCenter = undefined;
+              this.inspectorParams.cityMemberList = undefined;
+            } else {
+              this.inspectorParams.leaderListCenter =
+                this.inspectorAmendLeaderChange(
+                  this.inspectorParams.leaderListCenter,
+                  "1097988735452062010"
+                );
+              this.inspectorParams.deputyLeaderListCenter =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.deputyLeaderListCenter,
+                  "1097988735452062020"
+                );
+              this.inspectorParams.memberListCenter =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.memberListCenter,
+                  "1097988735452062040"
+                );
+              this.inspectorParams.cityMemberList =
+                this.inspectorAmendParamsChange(
+                  this.inspectorParams.cityMemberList,
+                  "1097988735452062028"
+                );
+
+              this.inspectorParams.leaderList = undefined;
+              this.inspectorParams.deputyLeaderList = undefined;
+              this.inspectorParams.memberList = undefined;
+              this.inspectorParams.chiefList = undefined;
+              this.inspectorParams.registerList = undefined;
+              this.inspectorParams.auditorList = undefined;
+              this.inspectorParams.handlerList = undefined;
+              this.inspectorParams.dataRegisterList = undefined;
+            }
+          }
+          this.parentId = this.inspectorParams.batchId;
+          const childList = this.inspectorParams.childList;
+          if (childList.length > 0) {
+            const childListArry = [];
+            for (const item in childList) {
+              const subject = childList[item];
+              subject.areaCode = subject.areaCode.join(",");
+              childListArry.push(subject);
+            }
+            this.inspectorParams.childList = childListArry;
+          }
+          console.log(this.inspectorParams.childList);
+          const reponse = await inspectorSave(this.inspectorParams);
+          this.handleExamineClose();
+          if (this.listMap.has(this.parentId)) {
+            this.updatedList(this.parentId);
+          }
+        }
+      });
+    },
+    inspectorParamsChange(params) {
+      const res = [];
+      params[0].personId.forEach((item) => {
+        res.push({
+          personId: item,
+          teamRole: params[0].teamRole,
+        });
+      });
+      return res;
+    },
+    inspectorAmendLeaderChange(params, teamRole) {
+      const basic = params[0].personId;
+      const state = params[0].state;
+      const other = params.slice(1, params.length);
+      const arr = [];
+      const subject = other[0];
+      if (basic != subject.personId) {
+        arr.push({
+          delFlag: "1",
+          personId: subject.personId,
+          id: subject.id,
+          teamRole,
+          state,
+        });
+        arr.push({
+          delFlag: "0",
+          personId: basic,
+          teamRole,
+          state,
+        });
+      } else {
+        arr.push({
+          delFlag: "0",
+          personId: subject.personId,
+          id: subject.id,
+          teamRole,
+          state,
+        });
+      }
+      return arr;
+    },
+    inspectorAmendParamsChange(params, teamRole) {
+      const state = params[0].state;
+      const basic = params[0].personId;
+      const other = params.slice(1, params.length);
+      const arr = [];
+      const obja = {};
+      for (const num of basic) {
+        obja[`${num}`] = num;
+      }
+      for (let item of other) {
+        if (!obja[item.personId]) {
+          arr.push({
+            delFlag: "1",
+            personId: item.personId,
+            id: item.id,
+            teamRole,
+            state,
+          });
+        } else {
+          arr.push({
+            delFlag: "0",
+            personId: item.personId,
+            id: item.id,
+            teamRole,
+            state,
+          });
+        }
+      }
+      const arrb = [];
+      const obj = {};
+      for (const item of other) {
+        obj[`${item.personId}`] = item;
+      }
+      for (let num of basic) {
+        if (!obj[num]) {
+          arrb.push({
+            delFlag: "0",
+            personId: num,
+            teamRole,
+            state,
+          });
+        }
+      }
+      return [...arr, ...arrb];
+    },
+    handleInspectorClose() {
+      this.inspectorParams.id = undefined;
+      this.inspectorParams.superviseOne = undefined;
+      this.inspectorParams.superviseType = undefined;
+      this.inspectorParams.roundId = undefined;
+      this.inspectorParams.batchId = undefined;
+      this.inspectorParams.startDate = undefined;
+      this.inspectorParams.endDate = undefined;
+      this.inspectorParams.name = undefined;
+      this.inspectorParams.areaCode = undefined;
+      this.inspectorParams.inspectCenterName = undefined;
+      this.inspectorParams.leaderList = [
+        { personId: undefined, teamRole: "1097988735452062048" },
+      ];
+      this.inspectorParams.leaderListCenter = [
+        { personId: undefined, teamRole: "1097988735452062010 " },
+      ];
+      this.inspectorParams.deputyLeaderListCenter = [
+        { personId: undefined, teamRole: "1097988735452062020" },
+      ];
+      this.inspectorParams.cityMemberList = [
+        { personId: undefined, teamRole: "1097988735452062028" },
+      ];
+      this.inspectorParams.memberListCenter = [
+        { personId: undefined, teamRole: "1097988735452062040" },
+      ];
+
+      this.inspectorParams.deputyLeaderList = [
+        { personId: undefined, teamRole: "1097988735452062055" },
+      ];
+      this.inspectorParams.chiefList = [
+        { personId: undefined, teamRole: "1097988735452062062" },
+      ];
+      this.inspectorParams.memberList = [
+        { personId: undefined, teamRole: "1097988735452062069" },
+      ];
+      this.inspectorParams.registerList = [
+        { personId: undefined, teamRole: "1097988735452062084" },
+      ];
+      this.inspectorParams.auditorList = [
+        { personId: undefined, teamRole: "1097988735452062091" },
+      ];
+      this.inspectorParams.handlerList = [
+        { personId: undefined, teamRole: "1097988735452062104" },
+      ];
+      this.inspectorParams.dataRegisterList = [
+        { personId: undefined, teamRole: "1097988735452062118" },
+      ];
+      this.inspectorParams.remarks = undefined;
+      this.inspectorParams.childList = [];
+    },
+    setUrlPath(file) {
+      this.batchParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.batchParams[file.fromKey] = undefined;
+    },
+    handleDownLoadDoc(fileId) {
+      getSingleInfo(fileId);
+    },
+    handleformClear(refName) {
+      this.resetFieldsTap(refName);
+    },
+  },
+  activated() {
+    this.getLeaderPerson();
+    this.getMemberPerson();
+    this.getCityPerson();
+  },
+};
+</script>
+<style lang="scss" scoped>
+.btn {
+  height: 24px;
+  padding: 0 10px;
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-right: 8px;
+  line-height: 24px;
+  cursor: pointer;
+}
+.blue-bg {
+  background: #409eff;
+}
+.red-bg {
+  background: #f56c6c;
+}
+.green-bg {
+  background: #67c23a;
+}
+
+.blue {
+  color: #409eff !important;
+}
+.bold {
+  font-weight: bold;
+}
+.information-inner {
+  padding: 10px;
+  display: flex;
+  min-height: 100%;
+  justify-content: space-between;
+  .left {
+    width: 240px;
+    min-height: 100%;
+    background: white;
+    padding: 30px 10px;
+    color: #303133;
+    .title {
+      border-bottom: 1px #c0c4cc solid;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 40px;
+      height: 40px;
+    }
+    .sub-type {
+      border-bottom: 1px #c0c4cc solid;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 40px;
+      a {
+        color: #606266;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      a:hover {
+        color: #409eff;
+      }
+      .num {
+        width: 20px;
+        height: 20px;
+        background: #f5bb10;
+        color: white;
+        line-height: 20px;
+        text-align: center;
+      }
+    }
+  }
+  .right {
+    width: calc(100% - 250px);
+    background: white;
+    padding: 20px;
+    color: #303133;
+    .title {
+      background: #f0f2f5;
+      height: 40px;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      line-height: 40px;
+      margin-bottom: 20px;
+    }
+    .list {
+      padding-left: 1%;
+      .item {
+        float: left;
+        margin-right: 2.5%;
+        margin-bottom: 20px;
+        width: 30.5%;
+        border: 1px solid #409eff;
+        position: relative;
+        padding: 20px 24px 0;
+        font-size: 15px;
+
+        p {
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .flag {
+          width: 68px;
+          height: 24px;
+          background: #f56c6c;
+          color: white;
+          position: absolute;
+          right: -12px;
+          top: 10px;
+          text-align: center;
+          line-height: 24px;
+          font-size: 12px;
+          font-weight: bold;
+        }
+        .line {
+          width: 3px;
+          height: 26px;
+          background: #409eff;
+          position: absolute;
+          left: 16px;
+          top: 20px;
+        }
+        .info {
+          margin-bottom: 16px;
+          display: flex;
+          p {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+    }
+  }
+}
+.pull-right {
+  float: right;
+}
+.plane-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  .plane-top-label {
+    width: 26%;
+    text-align: right;
+    font-weight: normal;
+    padding-right: 12px;
+    height: 34px;
+    line-height: 34px;
+  }
+  .el-radio-group {
+    width: 50%;
+    display: flex;
+    align-items: center;
+  }
+}
+.inspectorate-box {
+  margin: 20px 0;
+  overflow: hidden;
+  .pull-right {
+    margin-left: 10px;
+  }
+}
+// /deep/.el-icon-loading:before{
+//   content: "";
+// }
+</style>

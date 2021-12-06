@@ -1,0 +1,357 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">通知公告</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="简报标题：">
+                <el-input v-model="queryParams.title" placeholder="请输入简报标题"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="上报日期：">
+                <el-date-picker
+                  v-model="issueDate"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="issueDateChange"
+                ></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary">新增</el-button>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="简报标题" min-width="200px">
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">
+              {{
+              scope.row.title
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="上报日期" width="160px"></el-table-column>
+        <el-table-column label="简报预览" width="400px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="handlePreviewClick(scope.row.attachmentId)"
+            >{{ scope.row.attachmentName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template v-slot="scope">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="标题：" prop="title">
+              <el-input
+                maxlength="120"
+                show-word-limit
+                class="input-limit"
+                v-model="dialogParams.title"
+                placeholder="请输入资料名称"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="上传简报：" prop="attachmentId">
+              <upload
+                accept=".doc, .docx, .pdf"
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="上报日期：" prop="reportDate">
+              <el-date-picker
+                v-model="dialogParams.reportDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="选择日期"
+                class="width220"
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+
+    <el-dialog
+      title="查看"
+      :visible.sync="check"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+    >
+      <div class="dialogCheck">
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <label class="check-label">标题：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <div class="check-group">
+              <label class="check-label">上传简报：</label>
+              <span
+                class="check-text accounChunk"
+                @click="handleDownloadClick(dialogParams.attachmentId)"
+              >{{ dialogParams.attachmentName }}</span>
+            </div>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <label class="check-label">上传日期：</label>
+            <span class="check-text">{{ dialogParams.reportDate }}</span>
+          </el-col>
+        </el-row>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  noticeList,
+  noticeDelete,
+  noticeSave,
+  noticeSee
+} from "@/api/support/notification";
+import { getSingleInfo, filePreview } from "@/utils/styem";
+export default {
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        title: undefined,
+        beginReportDate: undefined,
+        endReportDate: undefined
+      },
+      issueDate: undefined,
+      List: [],
+      total: 0,
+      loading: true,
+      dialogTitle: "新增",
+      open: false,
+      dialogParams: {
+        id: undefined,
+        bigType: 1,
+        smallType: 1,
+        title: undefined,
+        attachmentId: undefined,
+        reportDate: undefined,
+        attachmentName: undefined,
+        fileId: undefined
+      },
+      dialogRules: {
+        title: [{ required: true, message: "请输入简报标题" }],
+        attachmentId: [{ required: true, message: "请上传简报" }],
+        reportDate: [{ required: true, message: "请选择上报日期" }]
+      },
+      check: false,
+    };
+  },
+  created() {
+    this.getList();
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await noticeList(this.queryParams);
+      reponse.data.list &&
+        reponse.data.list.map(item => {
+          item["reportDate"] = item.reportDate.split(" ")[0];
+        });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    handleNewly() {
+      this.open = true;
+      this.dialogTitle = "新增";
+      this.handleformClear("dialogForm");
+      this.dialogParams.id = undefined;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleDialogClose() {
+      this.open = false;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.title = undefined;
+      this.queryParams.beginReportDate = undefined;
+      this.queryParams.endReportDate = undefined;
+      this.issueDate = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await noticeSave(this.dialogParams);
+          this.$message({
+            message: "保存成功",
+            type: "success"
+          });
+          loading.close();
+          this.getList();
+          this.handleDialogClose();
+        }
+      });
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+      this.handleCheckClear();
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    async handleSee({ id }) {
+      this.check = true;
+      this.getDialogInfo(id);
+    },
+    async handleEdit({ id }) {
+      this.dialogTitle = "修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await noticeSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.title = subject.title;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.dialogParams.attachmentName = subject.attachmentName;
+      this.dialogParams.reportDate = subject.reportDate;
+      this.dialogParams.fileId = subject.fileId;
+      if (this.dialogTitle == "修改") {
+        this.$nextTick(() => {
+          this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+        });
+      }
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await noticeDelete({ id });
+        this.getList();
+      });
+    },
+    handleformClear(forName) {
+      this.resetFieldsTap(forName);
+    },
+    handleCheckClear() {
+      this.dialogParams.id = undefined;
+      this.dialogParams.title = undefined;
+      this.dialogParams.attachmentId = undefined;
+      this.dialogParams.attachmentName = undefined;
+      this.dialogParams.reportDate = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginReportDate = undefined;
+        this.queryParams.endReportDate = undefined;
+      } else {
+        this.queryParams.beginReportDate = picker[0];
+        this.queryParams.endReportDate = picker[1];
+      }
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleDownloadClick(fileId) {
+      getSingleInfo(fileId);
+    },
+    handlePreviewClick(fileId) {
+      filePreview(fileId);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.check-group {
+  display: flex;
+  align-items: center;
+}
+</style>

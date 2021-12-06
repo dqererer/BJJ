@@ -1,0 +1,20 @@
+//督查进驻
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+
+// 个别谈话
+const severalList = params => getAction(path + `/center/tinspect/talk/tInspectTalk/list`, params);
+const severalSave = params => postForm(path + `/center/tinspect/talk/tInspectTalk/savePlan`, params);
+const severalInfoSave = params => postForm(path + `/center/tinspect/talk/tInspectTalk/saveInfo`, params);
+const severalSee = params => getAction(path + `/center/tinspect/talk/tInspectTalk/getInfoById`, params);
+const severalDelete = params => postAction(path + `/center/tinspect/talk/tInspectTalk/ldelete`, params);
+const severalPersonList = params => getAction(path + `/center/tcommon/member/tCommonMember/findTeamMemberList`, params);
+
+export {
+  severalList,
+  severalSave,
+  severalInfoSave,
+  severalSee,
+  severalDelete,
+  severalPersonList
+}

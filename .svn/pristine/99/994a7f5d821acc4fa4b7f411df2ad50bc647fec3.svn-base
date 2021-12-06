@@ -1,0 +1,254 @@
+<template>
+  <div class="people">
+    <div class="content">
+      <div class="bg header">
+        <div class="title">督察人员业绩报告</div>
+        <div class="info">
+          <div class="basic">
+            <span class="name">{{ peopleInfo.name }}</span>
+            <span>{{ peopleInfo.birthday }}</span>
+            <span>{{ peopleInfo.sex }}</span>
+            <span>{{ peopleInfo.telephone }}</span>
+          </div>
+          <div class="detail">
+            <span>{{ peopleInfo.areaName }}</span>
+            <span>{{ peopleInfo.unit }}</span>
+            <span>{{ peopleInfo.position }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="bg statistics">
+        <div class="box-card">
+          <i class="el-icon-s-cooperation"></i>
+          <div class="data">
+            <p>参与督察次数</p>
+            <p>
+              <span class="num">{{ rolemap.total }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div class="box-card green">
+          <i class="el-icon-s-management"></i>
+          <div class="data">
+            <p>督察组长次数</p>
+            <p>
+              <span class="num">{{ rolemap.leader }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div class="box-card">
+          <i class="el-icon-s-check"></i>
+          <div class="data">
+            <p>副组长次数</p>
+            <p>
+              <span class="num">{{ rolemap.deputy }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div class="box-card">
+          <i class="el-icon-s-help"></i>
+          <div class="data">
+            <p>总协调人次数</p>
+            <p>
+              <span class="num">{{ rolemap.chief }}</span
+              >次
+            </p>
+          </div>
+        </div>
+        <div class="box-card">
+          <i class="el-icon-s-custom"></i>
+          <div class="data">
+            <p>普通成员次数</p>
+            <p>
+              <span class="num">{{ rolemap.member }}</span
+              >次
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="bg box">
+        <div class="title">参与督察分布情况</div>
+        <div id="bar"></div>
+      </div>
+      <div class="bg box">
+        <div class="title">每次督察填写信息情况统计</div>
+        <div class="table"></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import * as echarts from "echarts";
+import { getMemberInfo } from "@/api/support/search";
+require("echarts/theme/macarons"); //引入主题
+
+export default {
+  data() {
+    return {
+      id: "",
+      barCharts: null,
+      xData: [],
+      yData: [],
+      peopleInfo: {},
+      rolemap: {},
+    };
+  },
+  computed: {},
+
+  created() {
+    this.id = this.$route.query.id;
+    this.getMemberInfo();
+  },
+  methods: {
+    drawBar() {
+      this.barCharts = echarts.init(document.getElementById("bar"), "macarons");
+      this.barCharts.clear();
+      this.barCharts.setOption({
+        color: ['#409eff'],
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: this.xData,
+        },
+        yAxis: {
+          type: "value",
+        },
+        series: [
+          {
+            data: this.yData,
+            type: "bar",
+          },
+        ],
+      });
+    },
+    getMemberInfo: function () {
+      getMemberInfo({
+        id: this.id,
+      }).then((res) => {
+        this.peopleInfo = res.data.memberInfo;
+        this.rolemap = res.data.roleMap;
+        res.data.areaList.forEach((item) => {
+          this.xData.push(item.name);
+          this.yData.push(item.num);
+        });
+        this.$nextTick(() => {
+          this.drawBar();
+        });
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.people {
+  background: #f7f7f7;
+  min-height: 100%;
+  min-width: 100%;
+  overflow: auto;
+  .content {
+    padding: 20px 0;
+    width: 1400px;
+    margin: 0 auto;
+    .header {
+      height: 120px;
+      display: flex;
+      .title {
+        width: 270px;
+        border-right: 1px solid #9fa0a2;
+        text-align: center;
+        line-height: 100px;
+        font-size: 24px;
+        font-weight: bold;
+        color: #303133;
+        height: 100px;
+      }
+      .info {
+        span {
+          color: #3a3b3c;
+          margin-right: 70px;
+          line-height: 50px;
+          font-size: 16px;
+        }
+        padding: 0 40px;
+        .basic {
+          height: 50px;
+          border-bottom: 1px solid #9fa0a2;
+          .name {
+            font-size: 20px;
+            font-weight: bold;
+          }
+        }
+        .detail {
+          height: 50px;
+          span {
+            margin-right: 30px;
+          }
+        }
+      }
+    }
+    .statistics {
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-evenly;
+      height: 140px;
+      align-items: center;
+      .box-card {
+        width: 240px;
+        height: 100px;
+        background: #409eff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        i {
+          font-size: 50px;
+          margin-right: 10px;
+        }
+        .num {
+          font-size: 26px;
+          color: red;
+        }
+      }
+    }
+    .box {
+      .title {
+        color: #303133;
+        font-size: 20px;
+        font-weight: bold;
+        padding-left: 40px;
+        height: 60px;
+        line-height: 60px;
+      }
+    }
+  }
+  .bg {
+    background: white;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+
+  p {
+    margin: 0;
+  }
+  .green {
+    background: #67c23a !important;
+  }
+  #bar{
+    width: 100%;
+    height: 400px;
+  }
+}
+</style>
+
+

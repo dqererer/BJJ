@@ -1,0 +1,51 @@
+<template>
+  <div class="examineInfo">
+    <h1 class="examineInfo-title">督察信息</h1>
+    <div class="examineInfo-box">
+      <div class="examine-top">
+        <div class="examine-item examine-item-sort">督察类型</div>
+        <div class="examine-item examine-item-turn">督察轮次批次</div>
+        <div class="examine-item examine-item-name">督察组名称</div>
+        <div class="examine-item examine-item-start">开始时间</div>
+        <div class="examine-item examine-item-end">结束时间</div>
+      </div>
+      <div class="examine-bottom">
+        <div class="examine-item examine-item-sort">
+          {{ dcInfoObject.superviseName }}
+        </div>
+        <div class="examine-item examine-item-turn">
+          {{ dcInfoObject.roundName }}{{ dcInfoObject.batchName }}
+        </div>
+        <div class="examine-item examine-item-name">
+          {{ dcInfoObject.name }}
+        </div>
+        <div class="examine-item examine-item-start">
+          {{ dcInfoObject.startDate }}
+        </div>
+        <div class="examine-item examine-item-end">
+          {{ dcInfoObject.endDate }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  data: function () {
+    return {
+      dcInfoObject: {},
+    };
+  },
+  props: {
+    dcInfo: {
+      type: String,
+    },
+  },
+  created: function () {
+    this.dcInfoObject = JSON.parse(this.dcInfo);
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

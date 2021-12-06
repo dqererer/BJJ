@@ -1,0 +1,15 @@
+<template>
+  <div>
+    督查转段会
+  </div>
+</template>
+
+<script>
+  export default {
+    
+  }
+</script>
+
+<style lang="scss" scoped>
+
+</style>

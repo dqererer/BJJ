@@ -1,0 +1,78 @@
+<template>
+  <header>
+    <el-header>
+      <div class="header-logo">
+        <span class="title">huazxEBP</span>
+      </div>
+      <top-nav id="topmenu-container" class="topmenu-container" />
+      <div class="option-area">
+        <el-button icon="el-icon-back" size="mini" @click="goback"
+          >返回</el-button
+        >
+        <el-dropdown trigger="click">
+          <div class="avatar-wrapper">
+            <img src="../../assets/images/user-icon.png" class="user-avatar" />
+            <span class="manage-name">{{ userInfo.name }}</span>
+            <i class="el-icon-caret-bottom" />
+          </div>
+          <el-dropdown-menu @click.native="logout">
+            <el-dropdown-item>注销登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </div>
+    </el-header>
+  </header>
+</template>
+
+<script>
+const avatar = require("@/assets/images/user-icon.png");
+import { mapGetters } from "vuex";
+import TopNav from "@/components/TopNav";
+import { getItem} from '../../utils/storage';
+
+export default {
+  components: {
+    TopNav,
+  },
+  computed: {
+    ...mapGetters(["userInfo"]),
+  },
+  methods: {
+    async logout() {
+      this.$confirm("确定注销并退出系统吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }).then(() => {
+        console.log('before---dispatchLogOut')
+        this.$store.dispatch("LogOut").then(() => {
+          console.log('LogOut---resolve')
+          location.reload();
+        }).catch((err)=>{
+          console.log('LogOut----',err)
+        });
+      })
+    },
+    goback() {
+      let path = getItem('backPath')
+      this.$router.push({ path: "/" + path });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.option-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  // width: 230px;
+  .el-button {
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 14px;
+    background-color: transparent;
+  }
+}
+</style>

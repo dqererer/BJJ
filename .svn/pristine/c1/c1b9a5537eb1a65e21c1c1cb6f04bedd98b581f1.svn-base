@@ -1,0 +1,84 @@
+<template>
+  <div class="information-inner information-styem" ref="informationInner">
+    <el-tabs v-model="activeName" type="card" @tab-click="tabClick" ref="tabs" class="information-styem-tab">
+      <el-tab-pane label="机构列表" name="list">
+        <institution-manage-list
+          ref="dataList"
+          :officeListData="officeListData"
+          @handleSeeAmend="handleSeeAmend"
+          @backHandle="backHandle"
+        ></institution-manage-list>
+      </el-tab-pane>
+      <el-tab-pane
+        :label="tabState == 'add' ? '机构添加' : '机构修改'"
+        name="add"
+      >
+        <institution-manage-amend
+          :officeListData="officeListData"
+          @backHandle="backHandle"
+        ></institution-manage-amend>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script>
+import institutionManageList from "./institutionManageList";
+import institutionManageAmend from "./institutionManageAmend";
+import { officeList } from "@/api/styem/dept";
+import bus from "@/utils/vueBus";
+
+export default {
+  components: {
+    institutionManageList,
+    institutionManageAmend,
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+      officeListData: [],
+    };
+  },
+  created() {
+    this.getOfficeList();
+  },
+  methods: {
+    async getOfficeList() {
+      const reponse = await officeList();
+      const menu = this.handleTree(reponse.data, "id", "parentId", "children", "0");
+      this.officeListData = menu;
+    },
+    tabClick(tab) {
+      if (tab.name === "list") {
+        this.tabState = "add";
+        this.tabControlShow(1);
+      } else if (tab.name === "add") {
+        bus.$emit("outComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      const tabState = stateObj.tabState;
+      const name = stateObj.name;
+      if (tabState == "amend" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }else if (tabState == "add" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      }
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      this.tabState = "add";
+      this.tabControlShow(1);
+      if (name == "update") {
+        this.getOfficeList();
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

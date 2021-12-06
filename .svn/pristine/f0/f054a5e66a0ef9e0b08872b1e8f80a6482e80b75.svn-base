@@ -1,0 +1,565 @@
+<template>
+  <div class="progrem">
+    <div class="wrap">
+      <div class="card left">
+        <div class="title">任务来源信息</div>
+        <section style="padding-top: 10px">
+          <p>督察级别：</p>
+          <input type="text" v-model="plan.levelTypeName" disabled />
+          <p>督察类型：</p>
+          <input type="text" disabled v-model="plan.superviseTypeName" />
+          <p>督察轮次：</p>
+          <input type="text" disabled v-model="plan.roundName" />
+          <p>督察批次：</p>
+          <input type="text" disabled v-model="plan.batchName" />
+          <p>方案名称：</p>
+          <input type="text" disabled v-model="plan.planName" />
+          <p>督察地区：</p>
+          <input v-model="plan.cityName" disabled />
+        </section>
+      </div>
+      <div class="card center">
+        <div class="title">整改任务信息</div>
+        <section style="padding-top: 10px">
+          <el-row>
+            <el-col :span="12">
+              <p>任务分类：</p>
+              <input v-model="taskMain.rectifyClass" disabled class="long" />
+            </el-col>
+            <el-col :span="12">
+              <p>任务标题：</p>
+              <input v-model="taskMain.rectifyTitle" disabled class="long" />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <p>整改任务内容：</p>
+              <textarea
+                v-model="taskMain.rectifyContent"
+                disabled
+                class="longer"
+              ></textarea>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <p>整改目标：</p>
+              <textarea
+                v-model="taskMain.rectifyTarget"
+                disabled
+                class="longer"
+              >
+              </textarea>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <p>任务类型：</p>
+              <div class="pollute-box">
+                <div
+                  class="pollute-item"
+                  v-for="(item, index) in pollutantArryTwo"
+                  :key="index"
+                >
+                  <span class="pollute-item-text">{{ item.label }}：</span>
+
+                  <el-checkbox-group
+                    v-model="taskMain.taskTypeTwo"
+                    v-for="(itemb, indexb) in item.children"
+                    :key="indexb"
+                    size="small"
+                    disabled
+                  >
+                    <el-checkbox-button :label="itemb.value">{{
+                      itemb.label
+                    }}</el-checkbox-button>
+                  </el-checkbox-group>
+                  <el-input
+                    v-model.trim="taskMain[sortNameArry[index]]"
+                    size="small"
+                    disabled
+                    v-show="
+                      handleCheckShow(
+                        item.children[item.children.length - 1].value
+                      )
+                    "
+                    placeholder=""
+                  ></el-input>
+                </div>
+              </div>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <p>配合单位：</p>
+              <input
+                type="text"
+                v-model="taskMain.leadUnitName"
+                disabled
+                class="long"
+              />
+            </el-col>
+            <el-col :span="12">
+              <p>监管单位：</p>
+              <input
+                type="text"
+                v-model="taskMain.supervisionUnitName"
+                disabled
+                class="long"
+              />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <p>责任单位：</p>
+              <input
+                type="text"
+                v-model="taskMain.responsibleUnitName"
+                disabled
+                class="long"
+              />
+            </el-col>
+            <el-col :span="12">
+              <p>重点任务：</p>
+              <input
+                type="text"
+                v-model="taskMain.isKeyTaskName"
+                disabled
+                class="long"
+              />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="12">
+              <p>完成时限：</p>
+              <input
+                type="text"
+                v-model="taskMain.deadline"
+                disabled
+                class="long"
+              />
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <p>任务所在地：</p>
+              <input
+                type="text"
+                v-model="taskMain.address"
+                disabled
+                class="long"
+              />
+            </el-col>
+          </el-row>
+        </section>
+      </div>
+      <div class="right">
+        <div class="card top">
+          <p>完成情况：</p>
+          <input
+            type="text"
+            v-model="taskMain.finishSituationName"
+            disabled
+            class="long"
+          />
+        </div>
+        <div class="card middle">
+          <div class="title">整改措施</div>
+          <section style="padding-top: 10px">
+            <el-tabs
+              v-model="editableTabsValue"
+              type="card"
+              @tab-click="toggleTab"
+            >
+              <el-tab-pane
+                :key="item.id"
+                v-for="item in measureDTOList"
+                :label="item.title.substr(0, 5)"
+                :name="item.name"
+              >
+                <el-row>
+                  <el-col :span="24">
+                    <p>措施标题</p>
+                    <el-input v-model.trim="item.title" size="small" disabled>
+                    </el-input>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="24">
+                  <el-col :span="24">
+                    <p>措施内容：</p>
+                    <el-input
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入措施内容"
+                      v-model.trim="item.measure"
+                      disabled
+                    >
+                    </el-input>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="24">
+                  <el-col :span="24">
+                    <p>完成情况：</p>
+                    <el-input
+                      type="textarea"
+                      v-model="item.finishStateName"
+                      disabled
+                    >
+                    </el-input>
+                  </el-col>
+                </el-row>
+              </el-tab-pane>
+            </el-tabs>
+          </section>
+        </div>
+        <div
+          class="card bottom"
+          v-if="
+            measureDTOList[tabIndex] && measureDTOList[tabIndex].progressDTOList
+          "
+        >
+          <div class="title">措施-推进情况</div>
+          <section style="padding-top: 10px; display: flex">
+            <div class="steps">
+              <Step
+                :list="measureDTOList[tabIndex].progressDTOList"
+                @toggleStep="toggleStep"
+              >
+              </Step>
+            </div>
+            <div
+              class="content"
+              v-if="measureDTOList[tabIndex]['progressDTOList'].length"
+            >
+              <p>进展情况：</p>
+              <el-input
+                type="textarea"
+                :rows="2"
+                placeholder="请输入整改任务内容"
+                v-model.trim="
+                  measureDTOList[tabIndex]['progressDTOList'][proIndex].progress
+                "
+                @change="handleContentChange"
+                disabled
+              >
+              </el-input>
+              <p>存在问题：</p>
+              <el-input
+                type="textarea"
+                :rows="2"
+                placeholder="请输入整改目标"
+                @change="handleContentChange"
+                v-model.trim="
+                  measureDTOList[tabIndex]['progressDTOList'][proIndex].problem
+                "
+                disabled
+              >
+              </el-input>
+              <p>下一步计划：</p>
+              <el-input
+                type="textarea"
+                @change="handleContentChange"
+                :rows="2"
+                placeholder="请输入整改目标"
+                v-model.trim="
+                  measureDTOList[tabIndex]['progressDTOList'][proIndex].nextPlan
+                "
+                disabled
+              >
+              </el-input>
+              <p>证明材料：</p>
+              <upload
+                uneditable
+                ref="uploadFile"
+                :limit="1"
+                :fileId="
+                  measureDTOList[tabIndex]['progressDTOList'][proIndex].file
+                "
+                fromKey="file"
+                @setUrlPath="
+                  (file) => {
+                    setUrlPath(file);
+                  }
+                "
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+              <p>完成情况：</p>
+              <el-input
+                type="textarea"
+                :rows="2"
+                placeholder="请输入整改目标"
+                @change="handleContentChange"
+                v-model.trim="
+                  measureDTOList[tabIndex]['progressDTOList'][proIndex]
+                    .finishStateName
+                "
+                disabled
+              >
+              </el-input>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import {
+  getTaskDetail,
+  getAllChangeProgramList,
+  getProgressList,
+} from "@/api/change/dispatch";
+import Step from "@/components/Step";
+import { dictListType } from "@/api/styem/dict/type";
+export default {
+  data() {
+    return {
+      id: "",
+      plan: {},
+      taskMain: {},
+      measureDTOList: [],
+      sortNameArry: [
+        "otherWater",
+        "otherAir",
+        "otherSoil",
+        "otherOcean",
+        "otherEcology",
+        "otherRadiation",
+        "otherNoise",
+        "other",
+      ],
+      pollutantArryTwo: [],
+      tabIndex: 0,
+      proIndex: 0,
+    };
+  },
+
+  computed: {
+    handleCheckShow() {
+      return function (value) {
+        return this.taskMain.taskTypeTwo.indexOf(value) > -1 ? true : false;
+      };
+    },
+  },
+  components: {
+    Step,
+  },
+  created() {
+    this.id = this.$route.query.id;
+    this.getVerfitySituationArry();
+    this.getTaskDetail();
+    this.getDictPollutantTwo();
+  },
+
+  methods: {
+    toggleTab: function (tab) {
+      this.proIndex = 0;
+      this.tabIndex = tab.index;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+      this.getProgressList(this.measureDTOList[tab.index].id, tab.index);
+    },
+    toggleStep: function (idx) {
+      this.proIndex = idx;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    getTaskDetail: function () {
+      getTaskDetail({
+        id: this.id,
+      }).then((res) => {
+        // if (["levelType"].includes(key)) {
+        //   this.$set(this.dialogParams, key, info[key].toString());
+        // }
+        this.plan = res.data.plan;
+        this.taskMain = res.data.taskMain;
+        let str1 = this.taskMain.taskTypeOne.split(",");
+        let str2 = this.taskMain.taskTypeTwo.split(",");
+        let address =
+          this.taskMain.taskCityName +
+          "," +
+          this.taskMain.taskCountyName +
+          "," +
+          this.taskMain.taskAddress;
+        this.$set(this.taskMain, "taskTypeOne", str1);
+        this.$set(this.taskMain, "taskTypeTwo", str2);
+
+        this.$set(this.taskMain, "address", address);
+        this.measureDTOList = res.data.taskMeasure;
+        this.$nextTick(() => {
+          this.getProgressList(this.measureDTOList[0].id, 0);
+        });
+
+        console.log("!!!!", this.taskMain);
+      });
+    },
+    getProgressList: function (id, index) {
+      //请求详情
+      getProgressList({
+        measureId: id,
+      }).then((res) => {
+        if (res.code == "200") {
+          let arr = res.data || [];
+          arr.forEach((item) => {
+            if (!item.progress) {
+              item.progress = "";
+            }
+            if (!item.problem) {
+              item.problem = "";
+            }
+            if (!item.nextPlan) {
+              item.nextPlan = "";
+            }
+            if (!item.finishState) {
+              item.finishState = "";
+            }
+          });
+          if (!this.measureDTOList[index].progressDTOList) {
+            this.$set(this.measureDTOList[index], "progressDTOList", arr);
+            this.proIndex = arr.length - 1;
+          }
+          this.$forceUpdate();
+          this.$nextTick(() => {
+            this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+          });
+        }
+      });
+    },
+    getVerfitySituationArry: function () {
+      dictListType({
+        type: "zg_execution",
+      })
+        .then((res) => {
+          this.verfitySituationArry = res.data;
+        })
+        .catch();
+    },
+    async getDictPollutantTwo() {
+      const reponse = await dictListType({
+        type: "clue_pollution_type",
+        next: 1,
+      });
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.pollutantArryTwo = menu;
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.progrem {
+  .dialogFormFooter {
+    padding-top: 30px;
+    margin-top: 30px;
+    border-top: 1px solid #8d9096;
+    display: flex;
+    justify-content: center;
+  }
+  input {
+    width: 136px;
+    height: 32px;
+  }
+  .long {
+    width: 90%;
+  }
+  .longer {
+    width: 95%;
+    height: 64px;
+  }
+  .card {
+    border-radius: 4px;
+    border: 1px solid #ebeef5;
+    background-color: #fff;
+    overflow: hidden;
+    color: #303133;
+    transition: 0.3s;
+    box-shadow: 0 2px 12px 0 #8d9096;
+    padding: 10px 20px 20px;
+    .title {
+      height: 20px;
+      border-left: 3px solid #2196f3;
+      padding-left: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+  .wrap {
+    min-height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 20px;
+
+    .left {
+      width: 14%;
+      min-height: 100%;
+    }
+    .center {
+      width: 59%;
+      min-height: 100%;
+    }
+    .right {
+      width: 25%;
+      .top {
+        margin-bottom: 10px;
+        /deep/ .el-radio-button {
+          margin-right: 10px;
+          margin-bottom: 10px;
+        }
+        /deep/ .el-radio-button__inner {
+          border: 1px solid #dcdfe6 !important;
+          box-shadow: none !important;
+        }
+      }
+      .middle {
+        margin-bottom: 10px;
+      }
+      .bottom {
+        height: 666px;
+        .steps {
+          height: 518px;
+          padding: 20px 0;
+          margin-right: 20px;
+          overflow: auto;
+        }
+        .content {
+          flex: 1;
+        }
+      }
+    }
+  }
+  .pollute-box {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    vertical-align: bottom;
+    font-size: 14px;
+    .pollute-item {
+      display: flex;
+      align-items: center;
+      .pollute-item-text {
+        font-size: 14px;
+        text-align: right;
+        margin-right: 0px;
+        width: 70px;
+      }
+      /deep/ .el-input {
+        width: 120px;
+      }
+    }
+  }
+}
+/deep/ .el-checkbox-button.is-disabled.is-checked .el-checkbox-button__inner {
+  color: #c0c4cc;
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+  -webkit-box-shadow: -1px 0 0 0 #e4e7ed;
+  box-shadow: -1px 0 0 0 #e4e7ed;
+}
+</style>
+
+

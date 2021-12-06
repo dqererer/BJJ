@@ -1,0 +1,492 @@
+.information-inner {
+  // margin: 12px;
+  &.information-styem{
+    margin:10px;
+    .information-styme-row{
+      margin: 0px!important;
+    }
+    .information-styme-col{
+      background-color: #fff;
+      padding-top: 10px;
+    }
+    .information-styem-tab{
+      padding:10px;
+      background-color: #fff;
+    }
+  }
+  .el-tabs__header {
+    margin: 0px;
+  }
+
+  .el-tabs__content {
+    overflow: inherit;
+  }
+
+  .tab-list-content {
+    padding: 20px 0;
+  }
+
+  .box-body {
+    background-color: #f2fbf6;
+    padding: 20px 10px 10px 10px;
+    margin-bottom: 20px;
+
+    .pull-right {
+      .el-form-item__content {
+        float: right;
+      }
+    }
+
+    .marginLeft0 {
+      .el-form-item__content {
+        margin-left: 0px !important;
+      }
+    }
+
+    .el-form {
+      padding: 0px;
+
+      .el-row {
+        margin-bottom: 10px;
+
+        .el-form-item {
+          margin: 0px;
+
+          .el-form-item__label {
+            font-weight: normal;
+            padding: 0px;
+            height: 34px;
+            line-height: 34px;
+          }
+
+          .el-date-editor.el-input {
+            width: 100%;
+          }
+
+          .el-form-item__content {
+            line-height: initial;
+            display: flex;
+
+            .el-select {
+              width: 100%;
+            }
+
+            .el-date-editor {
+              .el-input__icon {
+                line-height: 28px;
+              }
+
+              .el-range-separator {
+                line-height: 28px;
+                padding: 0 18px 0 6px;
+              }
+            }
+          }
+
+          .el-input__inner {
+            height: 34px;
+            line-height: 34px;
+          }
+
+          .el-button {
+            padding: 9px 20px;
+          }
+        }
+      }
+    }
+  }
+
+
+
+  .el-input__icon {
+    line-height: 34px;
+  }
+
+  .btn-margin-no .el-form-item__content {
+    margin: 0px !important;
+    float: right;
+  }
+
+}
+
+.amend-content {
+  padding: 20px 0px;
+
+  .el-form {
+
+    .el-form-item__content {
+      line-height: 34px;
+    }
+
+    .el-row {
+      margin: 0 0 16px 0 !important;
+    }
+
+    .el-form-item {
+      margin: 0px;
+    }
+
+    .el-form-item__label {
+      padding: 0px;
+      font-weight: normal;
+      font-size: 12px;
+      height: 40px;
+      line-height: 40px;
+    }
+
+    .el-select {
+      width: 100%;
+    }
+
+    .el-input__inner {
+      height: 34px;
+      line-height: 34px;
+    }
+
+    //文件上传
+    .list-add-group {
+      display: flex;
+      align-items: center;
+
+      .list-add-label {
+        width: 100px;
+        text-align: right;
+        vertical-align: middle;
+        float: left;
+        font-size: 12px;
+        color: #606266;
+        line-height: 40px;
+        box-sizing: border-box;
+        font-weight: normal;
+        align-self: start;
+      }
+    }
+
+    .el-radio-group {
+      line-height: 40px;
+      height: 40px;
+    }
+
+    .el-checkbox-group {
+      line-height: 40px;
+    }
+
+    //保存按钮
+    .tab-list-state {
+      .el-form-item__content {
+        margin: 0px !important;
+        text-align: center;
+      }
+
+      .el-button {
+        padding: 9px 20px;
+      }
+    }
+  }
+}
+
+.manageHidden {
+  display: none;
+}
+
+.el-table {
+  th {
+    background-color: #ebf2f6 !important;
+    padding: 10px 0;
+    text-align: center;
+    font-weight: normal;
+    color: #606266;
+    &>.cell {
+      text-align: center;
+    }
+  }
+
+  td {
+    padding: 6px 0;
+  }
+
+  .cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+
+    p {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .linStyleLeft {
+      text-align: left;
+    }
+
+    .linStyle {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+  }
+}
+
+.table-lower {
+
+  .el-table__body-wrapper {
+    tr {
+      td:first-child {
+        .cell {
+          text-align: left !important;
+        }
+      }
+    }
+
+    .el-table_1_column_1 {
+      .cell {
+        text-align: left !important;
+      }
+    }
+  }
+
+}
+.information-tab{
+  width: 100%;
+  background-color: #fff;
+  margin-bottom: 12px;
+  .information-title{
+    margin: 0px;
+    width: 130px;
+    text-align: center;
+  }
+}
+.information-title {
+  margin: 0px;
+  font-size: 16px;
+  font-weight: normal;
+  display: inline-block;
+  padding: 10px 16px 10px 16px;
+  cursor: pointer;
+  background-color: #fff;
+  width: 100%;
+  margin-bottom: 12px;
+
+  &.active {
+    border-bottom: 1px solid #cccccc;
+  }
+}
+
+.information-change {
+  .tab-list-content {
+    padding: 12px;
+    margin:0 12px;
+    overflow: hidden;
+    background-color: #fff;
+  }
+}
+
+.inspectorate-tag {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.top-right-btn {
+  position: relative;
+  float: right;
+}
+
+.mb8 {
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+  margin-bottom: 20px;
+}
+
+.info-item-interval {
+  display: inline-block;
+  margin: 0 6px;
+}
+
+.examineInfo {
+  .examineInfo-title {
+    height: 48px;
+    line-height: 48px;
+    font-size: 18px;
+    text-align: center;
+    background-color: #ebf2f6;
+    margin: 0 0 6px 0;
+  }
+
+  .examineInfo-box {
+    width: 100%;
+
+    .examine-top {
+      display: flex;
+
+      .examine-item {
+        background-color: #ebf2f6;
+        border-right: 1px solid #999;
+      }
+    }
+
+    .examine-bottom {
+      display: flex;
+    }
+
+    .examine-item {
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+    }
+
+    .examine-item-sort {
+      width: 20%;
+    }
+
+    .examine-item-turn {
+      width: 20%;
+    }
+
+    .examine-item-name {
+      width: 30%;
+    }
+
+    .examine-item-start {
+      width: 20%;
+    }
+
+    .examine-item-end {
+      width: 20%;
+    }
+  }
+}
+
+.el-dialog__body {
+  .examineInfo {
+    margin-top: 30px;
+
+    &:first-child {
+      margin-top: 0px;
+    }
+  }
+
+}
+
+.manage-info {
+  .info-item {
+    display: flex;
+    font-size: 14px;
+    align-items: center;
+    border-bottom: 1px solid #d7d7d7;
+    padding-bottom: 8px;
+    padding-top: 8px;
+
+    .info-item-quare {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .info-item-title {
+      width: 112px;
+      text-align: right;
+    }
+
+    .info-item-content {
+      flex: 1;
+      line-height: 24px;
+      overflow: hidden;
+    }
+  }
+}
+
+.mt22 {
+  margin-top: 22px;
+}
+
+
+// 模板信息
+.turn-dialog-top {
+  position: relative;
+
+  .turn-dialog-title {
+    text-align: center;
+    margin: 0;
+    font-weight: normal;
+    margin-bottom: 10px;
+  }
+
+  .dialog-top-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+}
+
+.print-box-top {
+  border-bottom: 2px solid #000;
+}
+
+.turn-dialog-box {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2px solid #000;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.turn-dialog-content {
+  .turn-dialog-item {
+    font-size: 18px;
+    text-indent: 2em;
+    font-family: "仿宋";
+    line-height: 24px;
+
+    .dialog-item-fill {
+      width: 40px;
+      display: inline-block;
+      border-bottom: 1px solid #000;
+      text-align: left;
+      text-indent: 0em;
+      padding-left: 10px;
+    }
+  }
+
+  .turn-dialog-itemno {
+    text-indent: 0em;
+  }
+
+  .turn-dialog-year {
+    text-align: right;
+    margin-right: 24px;
+    font-size: 18px;
+    font-family: "仿宋";
+
+    .dialog-year-empty {
+      font-weight: normal;
+      display: inline-block;
+      margin-left: 20px;
+    }
+  }
+}
+
+.datetimerange-box {
+  .el-input__icon {
+    line-height: 28px !important;
+  }
+
+  .el-range-separator {
+    line-height: 24px !important;
+  }
+}
+
+.button-authority-style {
+  display: inline-block;
+}
+.import-red{
+  font-style: normal;
+  color:red;
+  display: inline-block;
+  margin-right: 4px;
+}

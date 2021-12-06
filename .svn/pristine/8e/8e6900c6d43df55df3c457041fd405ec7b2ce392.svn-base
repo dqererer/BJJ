@@ -1,0 +1,1032 @@
+<template>
+  <div>
+    <national-info
+      :teamId.sync="queryParams.teamId"
+      :areaCode.sync="queryParams.inspectAreaCode"
+      :areaName.sync="queryParams.inspectAreaName"
+      :inspectName.sync="queryParams.inspectName"
+      @nameChange="getList"
+    ></national-info>
+    <div class="box-body" v-show="showSearch">
+      <el-form :model="queryParams" label-width="120px">
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="举报内容：">
+              <el-input
+                v-model="queryParams.tipOffContent"
+                placeholder="请输入举报内容"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="举报编号：">
+              <el-input
+                v-model="queryParams.tipNumber"
+                placeholder="请输入举报编号"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="举报时间：">
+              <el-date-picker
+                v-model="issueDate"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd"
+                @change="issueDateChange"
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="污染类型：">
+              <el-select
+                v-model="queryParams.pollutionLevelOne"
+                placeholder="请选择污染类型"
+              >
+                <el-option
+                  v-for="item in pollutantArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="举报来源：">
+              <el-select
+                v-model="queryParams.tipType"
+                placeholder="请选择举报来源"
+              >
+                <el-option
+                  v-for="item in tipArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-form-item class="pull-right">
+            <el-button type="primary" @click="onQuery">查询</el-button>
+            <el-button type="primary" @click="onClear">清空</el-button>
+          </el-form-item>
+        </el-row>
+      </el-form>
+    </div>
+    <el-row :gutter="10" class="mb8">
+      <el-button size="small" @click="handleTurnClick" type="primary"
+        >转办</el-button
+      >
+      <el-button size="small" @click="handleNoAccpet" type="danger"
+        >暂不转办</el-button
+      >
+      <el-button size="small" @click="handleComplaint" type="danger"
+        >不受理</el-button
+      >
+      <right-toolbar
+        :showSearch.sync="showSearch"
+        @queryTable="getList"
+      ></right-toolbar>
+    </el-row>
+    <el-table
+      v-loading="loading"
+      :data="List"
+      border
+      @selection-change="handleSelectionChange"
+      :stripe="true"
+    >
+      <el-table-column type="selection" width="50"></el-table-column>
+      <el-table-column width="50" label="序号">
+        <template scope="scope">
+          <span>{{
+            (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+          }}</span>
+        </template></el-table-column
+      >
+      <el-table-column
+        label="举报主要内容"
+        min-width="200px"
+        :show-overflow-tooltip="true"
+      >
+        <template v-slot="scope">
+          <span class="accounChunk" @click="handleSee(scope.row)">{{
+            scope.row.tipOffContent
+          }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="旗县" width="180px">
+        <template v-slot="scope">
+          {{ scope.row.cityName }}{{ scope.row.countyName }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="举报地址"
+        :show-overflow-tooltip="true"
+        width="180px"
+      >
+        <template v-slot="scope">
+          {{ scope.row.address }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="tipNumber"
+        label="举报编号"
+        width="140px"
+      ></el-table-column>
+      <el-table-column
+        prop="tipTime"
+        label="举报时间"
+        width="120px"
+      ></el-table-column>
+      <el-table-column
+        prop="acceptNum"
+        label="受理编号"
+        width="160px"
+      ></el-table-column>
+      <el-table-column
+        prop="acceptDate"
+        label="受理时间"
+        width="120px"
+      ></el-table-column>
+      <el-table-column
+        prop="pollutionType"
+        label="污染类型"
+        width="120px"
+        :show-overflow-tooltip="true"
+      ></el-table-column>
+      <el-table-column
+        prop="industryName"
+        label="行业类型"
+        width="120px"
+        :show-overflow-tooltip="true"
+      ></el-table-column>
+      <el-table-column
+        prop="tipTypeName"
+        label="举报类型"
+        width="80px"
+      ></el-table-column>
+      <el-table-column
+        prop="importantFlagName"
+        label="重点关注"
+        width="80px"
+      ></el-table-column>
+      <el-table-column
+        prop="spotFlagName"
+        label="纳入抽查"
+        width="80px"
+      ></el-table-column>
+      <el-table-column label="操作" width="80">
+        <template v-slot="scope">
+          <el-button size="mini" type="warning" @click="handleRepeal(scope.row)"
+            >撤销</el-button
+          >
+        </template>
+      </el-table-column>
+    </el-table>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :pageNo.sync="queryParams.pageNo"
+      :limit.sync="queryParams.pageSize"
+      @pagination="getList"
+    />
+    <el-dialog
+      title="转办"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <div ref="print">
+        <div class="turn-dialog-top">
+          <h1 class="turn-dialog-title">
+            {{ inspectInfo.suite.provinceName }}环境保护督察组转办单
+          </h1>
+          <el-button
+            class="dialog-top-btn"
+            @click="handlePrintClick"
+            type="primary"
+            size="mini"
+            >打印</el-button
+          >
+        </div>
+
+        <div class="turn-dialog-box">
+          <span class="turn-dialog-name">{{ queryParams.inspectName }}</span>
+          <span class="turn-dialog-number">
+            环督【{{ shortenedName }}】转【自动生成】号</span
+          >
+          <!-- province_brife -->
+        </div>
+        <el-form
+          ref="dialogForm"
+          :model="dialogParams"
+          :rules="dialogRules"
+          label-width="80px"
+          class="dialogForm"
+        >
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="转往地市：">
+                <el-input
+                  readonly
+                  class="dialog-city"
+                  v-model="dialogParams.cityName"
+                ></el-input>
+                <p class="hit-message">
+                  协调联络组
+                </p>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="转办内容：">
+                <span
+                  >来电举报材料
+                  <el-input
+                    class="dialog-materials"
+                    readonly
+                    v-model="dialogParams.phoneNum"
+                  ></el-input
+                  >件,来信举报材料
+                  <el-input
+                    class="dialog-materials"
+                    readonly
+                    v-model="dialogParams.letterNum"
+                  ></el-input
+                  >件,请按规定处理。总体办理情况及标“*”问题查处情况请于10日内反馈督察组。</span
+                >
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="经办人：">
+                {{ userInfo.name }}
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="接收人：" prop="acceptPerson">
+                <el-input
+                  v-model="dialogParams.acceptPerson"
+                  placeholder="请输入接收人"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="转办日期：" prop="transferTime">
+                <el-date-picker
+                  v-model="dialogParams.transferTime"
+                  format="yyyy-MM-d"
+                  value-format="yyyy-MM-dd"
+                  type="date"
+                  placeholder="选择日期"
+                >
+                </el-date-picker>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <div class="dialogFormFooter" v-if="showBtn">
+            <el-button type="primary" @click="dailogSubmit">保存</el-button>
+            <el-button type="primary" @click="handleDialogClose"
+              >关闭</el-button
+            >
+          </div>
+        </el-form>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="不受理"
+      :visible.sync="noAccpetOpen"
+      width="80%"
+      :before-close="handleDialogNoAccpetClose"
+      append-to-body
+    >
+      <p class="noAccpet-text">
+        本次选中<b class="noAccpet-b">{{ dialogNoAccpetParams.noAccpetNum }}</b
+        >条数据，请填写不受理原因
+      </p>
+      <el-form
+        ref="dialogNoAccpetForm"
+        :model="dialogNoAccpetParams"
+        :rules="dialogNoAccpetRules"
+        label-width="80px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="不受理原因：" prop="handleIdea">
+              <el-input
+                type="textarea"
+                v-model="dialogNoAccpetParams.handleIdea"
+                placeholder="请输入不受理原因"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogNoAccpetubmit"
+            >保存</el-button
+          >
+          <el-button type="primary" @click="handleDialogNoAccpetClose"
+            >关闭</el-button
+          >
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="lookOpen"
+      width="80%"
+      :before-close="handleDialogLookClose"
+      append-to-body
+    >
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">举报内容</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">轮次：</span>
+            <span class="info-item-content">{{ manageInfo.roundName }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">督察地区：</span>
+            <span class="info-item-content">{{
+              manageInfo.inspectAreaName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报编号：</span>
+            <span class="info-item-content">{{ manageInfo.tipNumber }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报类型：</span>
+            <span class="info-item-content">{{ manageInfo.tipTypeName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报人：</span>
+            <span class="info-item-content">{{ manageInfo.tipBy }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报时间：</span>
+            <span class="info-item-content">{{ manageInfo.tipTime }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">来电显示号码：</span>
+            <span class="info-item-content">{{
+              manageInfo.reporterPhoneShow
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">行业类型：</span>
+            <span class="info-item-content">{{ manageInfo.industryName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">主要举报内容：</span>
+            <span class="info-item-content">{{
+              manageInfo.tipOffContent
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报地址：</span>
+            <span class="info-item-content">{{ manageInfo.tipAddress }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.longitude }}
+            </span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.latitude }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">污染类型：</span>
+            <span class="info-item-content">{{
+              manageInfo.pollutionType
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="telBoolean == false">
+          <div class="info-item-quare">
+            <span class="info-item-title">来信电子件：</span>
+            <span
+              class="info-item-content accounChunk"
+              @click="handleDownLoadDoc(manageInfo.attachementPath)"
+              >{{ manageInfo.attachementName }}</span
+            >
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">备注：</span>
+            <span class="info-item-content">{{ manageInfo.remarks }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">审核内容</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">审核人：</span>
+            <span class="info-item-content">{{ auditInfo.checkByName }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">审核时间：</span>
+            <span class="info-item-content">{{ auditInfo.checkTime }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="industryBoolena">
+          <div class="info-item-quare">
+            <span class="info-item-title">行业类型修正：</span>
+            <span class="info-item-content">{{
+              auditInfo.industryTypeReviewName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="tipOffContentBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报内容修正：</span>
+            <span class="info-item-content">{{
+              auditInfo.tipOffContentReivew
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="addressBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报地址修正：</span>
+            <span class="info-item-content"
+              >{{ auditInfo.cityReviewName }}{{ auditInfo.countyRevireName
+              }}{{ auditInfo.addressReview }}</span
+            >
+          </div>
+        </div>
+        <div class="info-item" v-if="pollutionLevelBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">污染类型修正：</span>
+            <span class="info-item-content">{{ auditInfo.pollutionLevelOneReviewName }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="longitudeBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度修正：</span>
+            <span class="info-item-content">{{ auditInfo.longitudeReview }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度修正：</span>
+            <span class="info-item-content">{{ auditInfo.latitudeReview }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否受理：</span>
+            <span class="info-item-content">{{ auditInfo.weatherAccept }}</span>
+          </div>
+          <div class="info-item-quare" v-if="auditInfo.weatherAccept === '否'">
+            <span class="info-item-title">不受理原因：</span>
+            <span class="info-item-content">{{ auditInfo.handIdea }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否重复：</span>
+            <span class="info-item-content">{{ auditInfo.repeatFlag }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="auditInfo.repeatFlag === '是'">
+          <div class="info-item-quare">
+            <span class="info-item-title">重复举报编号：</span>
+            <span class="info-item-content">{{ auditInfo.repeatNums }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">纳入抽查范围：</span>
+            <span class="info-item-content">{{ auditInfo.spotFlag }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">是否重点关注：</span>
+            <span class="info-item-content">{{ auditInfo.importantFlag }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否转办：</span>
+            <span class="info-item-content">{{
+              auditInfo.weatherTransfer
+            }}</span>
+          </div>
+          <div
+            class="info-item-quare"
+            v-if="auditInfo.weatherTransfer === '是'"
+          >
+            <span class="info-item-title">办理时限：</span>
+            <span class="info-item-content">{{
+              auditInfo.handleDeadline
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="auditInfo.weatherTransfer === '是'">
+          <div class="info-item-quare">
+            <span class="info-item-title">拟办意见：</span>
+            <span class="info-item-content">{{ auditInfo.proposal }}</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  acceptList,
+  acceptNoTransfer,
+  acceptRevoke,
+  acceptCheckReject,
+  acceptTurnSave,
+  acceptSee,
+  acceptCheckInfo
+} from "@/api/burg/garrison";
+import nationalInfo from "@/components/nationalInfo";
+import { dictListType, dictName } from "@/api/styem/dict/type";
+import { mapGetters } from "vuex";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip } from "@/utils/styem";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      pollutantArry: [],
+      tipArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        tipOffContent: undefined,
+        tipNumber: undefined,
+        beginTipTime: undefined,
+        endTipTime: undefined,
+        pollutionLevelOne: undefined,
+        tipType: undefined,
+        state: 4,
+        teamId: undefined,
+        inspectAreaCode: undefined,
+        inspectAreaName: undefined,
+        inspectName: undefined
+      },
+      issueDate: undefined,
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        tipIds: undefined,
+        superviseGroupId: undefined,
+        dataType: undefined,
+        cityName: undefined,
+        city: undefined,
+        toUnit: undefined,
+        number: undefined,
+        phoneNum: 0,
+        letterNum: 0,
+        dealPerson: undefined,
+        acceptPerson: undefined,
+        transferTime: undefined,
+        uploadFlag: 0
+      },
+      dialogRules: {
+        acceptPerson: [{ required: true, message: "请输入接收人" }],
+        transferTime: [{ required: true, message: "请选择转办日期" }]
+      },
+      shortenedName: undefined,
+      showBtn: true,
+      noAccpetOpen: false,
+      dialogNoAccpetParams: {
+        noAccpetNum: undefined,
+        idList: undefined,
+        handleIdea: undefined
+      },
+      dialogNoAccpetRules: {
+        handleIdea: [{ required: true, message: "请输入不受理原因" }]
+      },
+      telBoolean: true,
+      lookOpen: false,
+      manageInfo: {
+        roundName: undefined,
+        inspectAreaName: undefined,
+        tipNumber: undefined,
+        tipTypeName: undefined,
+        tipBy: undefined,
+        tipTime: undefined,
+        reporterPhoneShow: undefined,
+        industryName: undefined,
+        tipOffContent: undefined,
+        tipAddress: undefined,
+        pollutionType: undefined,
+        remarks: undefined,
+        attachementPath: undefined,
+        attachementName: undefined,
+        longitude: undefined,
+        latitude: undefined
+      },
+      auditInfo: {
+        checkByName: undefined,
+        checkTime: undefined,
+        industryTypeReviewName: undefined,
+        tipOffContentReivew: undefined,
+        cityReviewName: undefined,
+        countyRevireName: undefined,
+        addressReview: undefined,
+        weatherAccept: undefined,
+        handIdea: undefined,
+        repeatFlag: undefined,
+        repeatNums: undefined,
+        spotFlag: undefined,
+        importantFlag: undefined,
+        weatherTransfer: undefined,
+        handleDeadline: undefined,
+        proposal: undefined,
+        pollutionLevelOneReviewName:undefined,
+        longitudeReview:undefined,
+        latitudeReview:undefined
+      },
+      multipleSelection: [],
+      industryBoolena: false,
+      tipOffContentBoolean: false,
+      addressBoolean: false,
+      pollutionLevelBoolean:false,
+      longitudeBoolean:false,
+      buttonAuthority:false
+    };
+  },
+  created() {
+    this.getList();
+    this.getDictPollutant();
+    this.getDictTip();
+    
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await acceptList(this.queryParams);
+      reponse.data.list &&
+        reponse.data.list.map(item => {
+          item["importantFlagName"] = item.importantFlag == 1 ? "是" : "否";
+          item["spotFlagName"] = item.spotFlag == 1 ? "是" : "否";
+        });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    async getDictTip() {
+      const reponse = await dictListType({ type: "tip_type" });
+      this.tipArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.tipOffContent = undefined;
+      this.queryParams.tipNumber = undefined;
+      this.queryParams.beginTipTime = undefined;
+      this.queryParams.endTipTime = undefined;
+      this.queryParams.pollutionLevelOne = undefined;
+      this.queryParams.tipType = undefined;
+      this.issueDate = undefined;
+    },
+    async handleTurnClick() {
+      const data = this.multipleSelection;
+      let phoneNum = 0;
+      let letterNum = 0;
+      if (data.length) {
+        this.open = true;
+        const reponse = await dictName({
+          type: "province_brife",
+          value: this.queryParams.inspectAreaCode
+        });
+        this.shortenedName = reponse.data.label;
+        let tipIds = [];
+        data.forEach(item => {
+          tipIds.push(item.id);
+          if (item.tipTypeName === "来电") {
+            phoneNum++;
+          } else {
+            letterNum++;
+          }
+        });
+        this.dialogParams.city = this.queryParams.inspectAreaCode;
+        this.dialogParams.cityName = this.queryParams.inspectAreaName;
+        this.dialogParams.toUnit =
+          this.queryParams.inspectAreaName + "协调联络组";
+        this.dialogParams.phoneNum = phoneNum;
+        this.dialogParams.letterNum = letterNum;
+        this.dialogParams.number = Number(letterNum) + Number(phoneNum);
+        this.dialogParams.tipIds = tipIds;
+        this.dialogParams.dealPerson = this.userInfo.name;
+      } else {
+        this.$message.error(`请选择数据！`);
+      }
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await acceptTurnSave(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+    },
+    handlePrintClick() {
+      this.showBtn = false;
+      setTimeout(() => {
+        this.$print(this.$refs.print);
+        this.showBtn = true;
+      }, 50);
+    },
+    handleComplaint() {
+      const obj = this.getIdsGather();
+      if (obj) {
+        this.dialogNoAccpetParams.noAccpetNum = obj.len;
+        this.dialogNoAccpetParams.idList = obj.ids;
+        this.noAccpetOpen = true;
+      } else {
+        return;
+      }
+    },
+    async dailogNoAccpetubmit(ids) {
+      const reponse = await acceptCheckReject(this.dialogNoAccpetParams);
+      this.handleDialogNoAccpetClose();
+      this.getList();
+    },
+    handleDialogNoAccpetClose() {
+      this.noAccpetOpen = false;
+      this.dialogNoAccpetParams.noAccpetNum = undefined;
+      this.dialogNoAccpetParams.idList = undefined;
+      this.handleformClear("dialogNoAccpetForm");
+    },
+    handleNoAccpet() {
+      const obj = this.getIdsGather();
+      let len, ids;
+      if (obj) {
+        len = obj.len;
+        ids = obj.ids;
+      } else {
+        return;
+      }
+      this.$confirm(`是否要对这${len}条数据进行暂不转办`, "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const reponse = await acceptNoTransfer({ idList: ids });
+        this.getList();
+      });
+    },
+    getIdsGather() {
+      const ids = [];
+      const len = this.multipleSelection.length;
+      if (len <= 0) {
+        this.$message.error(`请选择数据！`);
+        return false;
+      }
+      this.multipleSelection.forEach(item => {
+        ids.push(item.id);
+      });
+      return { ids, len };
+    },
+    handleRepeal(data) {
+      this.$confirm("是否要撤销", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "撤销",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await acceptRevoke({ tipId: id });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+    },
+    handleSee(data) {
+      this.lookOpen = true;
+      this.manageInfo.roundName = this.inspectInfo.suite.roundName;
+      this.manageInfo.inspectAreaName = this.queryParams.inspectAreaName;
+      this.manageInfo.tipNumber = data.tipNumber;
+      this.manageInfo.tipTypeName = data.tipTypeName;
+      this.manageInfo.tipBy = data.tipBy;
+      this.manageInfo.tipTime = data.tipTime;
+      this.manageInfo.reporterPhoneShow = data.reporterPhoneShow;
+      this.manageInfo.industryName = data.industryName;
+      this.manageInfo.tipOffContent = data.tipOffContent;
+      this.manageInfo.tipAddress =
+        data.cityName + data.countyName + data.address;
+      this.manageInfo.pollutionType = data.pollutionType;
+      this.manageInfo.remarks = data.remarks;
+      this.manageInfo.longitude = data.longitude;
+      this.manageInfo.latitude = data.latitude;
+      if (data.tipTypeName === "来信") {
+        this.telBoolean = false;
+        const { id } = data;
+        this.getRegisterFile(id);
+      } else {
+        this.telBoolean = true;
+      }
+      this.getauditInfo(data.id);
+    },
+    async getauditInfo(id) {
+      const reponse = await acceptCheckInfo({ id });
+      const subject = reponse.data;
+      this.auditInfo.checkByName = subject.checkByName;
+      this.auditInfo.checkTime = subject.checkTime;
+      this.auditInfo.industryTypeReviewName = subject.industryTypeReviewName;
+      this.auditInfo.tipOffContentReivew = subject.tipOffContentReivew;
+      this.auditInfo.cityReviewName = subject.cityReviewName;
+      this.auditInfo.countyRevireName = subject.countyRevireName;
+      this.auditInfo.addressReview = subject.addressReview;
+      this.auditInfo.pollutionLevelOneReviewName = subject.pollutionLevelOneReviewName;
+      this.auditInfo.longitudeReview = subject.longitudeReview;
+      this.auditInfo.latitudeReview = subject.latitudeReview;
+      this.auditInfo.weatherAccept = this.getNotVal(subject.weatherAccept);
+      this.auditInfo.handIdea = subject.handIdea;
+      this.auditInfo.repeatFlag = this.getNotVal(subject.repeatFlag);
+      this.auditInfo.repeatNums = subject.repeatNums;
+      this.auditInfo.spotFlag = this.getNotVal(subject.spotFlag);
+      this.auditInfo.importantFlag = this.getNotVal(subject.importantFlag);
+      this.auditInfo.weatherTransfer = this.getNotVal(subject.weatherTransfer);
+      this.auditInfo.handleDeadline = subject.handleDeadline;
+      this.auditInfo.proposal = subject.proposal;
+      if (subject.modifyItems) {
+        subject.modifyItems.indexOf("0") > -1
+          ? (this.industryBoolena = true)
+          : (this.industryBoolena = false);
+        subject.modifyItems.indexOf("1") > -1
+          ? (this.tipOffContentBoolean = true)
+          : (this.tipOffContentBoolean = false);
+        subject.modifyItems.indexOf("2") > -1
+          ? (this.addressBoolean = true)
+          : (this.addressBoolean = false);
+        subject.modifyItems.indexOf("3") > -1
+          ? (this.pollutionLevelBoolean = true)
+          : (this.pollutionLevelBoolean = false);
+        subject.modifyItems.indexOf("4") > -1
+          ? (this.longitudeBoolean = true)
+          : (this.longitudeBoolean = false);
+      }
+    },
+    getNotVal(val) {
+      if (val === "1") {
+        return "是";
+      } else {
+        return "否";
+      }
+    },
+    handleDialogLookClose() {
+      this.lookOpen = false;
+      this.manageInfo.attachementPath = undefined;
+      this.manageInfo.attachementName = undefined;
+    },
+    async getRegisterFile(id) {
+      const reponse = await acceptSee({ id });
+      const subject = reponse.data;
+      if (subject.attachmentId) {
+        const {
+          attachementPath,
+          attachementName
+        } = await this.getSingleMessagInfo(subject.attachmentId);
+        this.manageInfo.attachementPath = attachementPath;
+        this.manageInfo.attachementName = attachementName;
+      }
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      let attachementName, attachementPath;
+      if (reponse.data && reponse.data.length) {
+        const subject = reponse.data;
+        attachementName = subject[0].file_name;
+        attachementPath = subject[0].save_path;
+      }
+      return {
+        attachementPath,
+        attachementName
+      };
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginTipTime = undefined;
+        this.queryParams.endTipTime = undefined;
+      } else {
+        this.queryParams.beginTipTime = picker[0];
+        this.queryParams.endTipTime = picker[1];
+      }
+    },
+    handleSelectionChange(data) {
+      this.multipleSelection = data;
+    },
+    handleDownLoadDoc(path) {
+      getdownLoadZip(path);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.noAccpet-text {
+  text-align: center;
+  .noAccpet-b {
+    color: red;
+  }
+}
+.dialogForm {
+  .el-form-item {
+    /deep/.el-form-item__label {
+      width: 16% !important;
+    }
+    /deep/.el-form-item__content {
+      width: 60% !important;
+      display: flex;
+      .dialog-city {
+        width: 100px;
+      }
+      .hit-message {
+        margin: 0;
+        line-height: 34px;
+        margin-left: 6px;
+        .hit-infuse {
+          color: red;
+          font-weight: normal;
+          display: inline-block;
+          margin-left: 10px;
+        }
+      }
+      .dialog-materials {
+        width: 100px;
+        .el-input__inner {
+          border: none;
+          border-bottom: 1px solid #dcdfe6;
+          text-align: center;
+        }
+      }
+    }
+  }
+}
+.manage-info {
+  .info-item {
+    .info-item-title {
+      width: 112px;
+    }
+  }
+}
+</style>

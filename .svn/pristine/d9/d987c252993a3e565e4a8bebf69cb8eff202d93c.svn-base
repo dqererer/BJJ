@@ -1,0 +1,155 @@
+<template>
+  <div class="tab-list-content">
+    <el-table
+      :data="menuListData"
+      v-loading="loading"
+      border
+      style="width: 100%"
+      row-key="id"
+      default-expand-all
+      :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+    >
+      <el-table-column label="菜单名称" min-width="160">
+        <template slot-scope="scope">
+          <div class="linStyle" style="padding-left: 20px;" @click="handleEdit(scope.row)">
+            {{ scope.row.name }}
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="href"
+        label="链接"
+        width="180"
+        :show-overflow-tooltip="true"
+      ></el-table-column>
+      <el-table-column prop="sort" label="排序" width="80">
+        <template slot-scope="scope">
+          <el-input
+            v-model="scope.row.sort"
+            class="sort-input"
+            placeholder=""
+          ></el-input>
+        </template>
+      </el-table-column>
+      <el-table-column label="可见" width="50">
+        <template slot-scope="scope">
+          {{ isShowChange(scope.row.isShow) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="permission"
+        label="权限标识"
+        width="180"
+        :show-overflow-tooltip="true"
+      ></el-table-column>
+      <el-table-column prop="name" label="操作" width="400">
+        <template slot-scope="scope">
+          <el-button size="mini" @click="handleEdit(scope.row)">修改</el-button>
+          <el-button size="mini" type="danger" @click="handleDelete(scope.row)"
+            >删除</el-button
+          >
+          <el-button
+            size="mini"
+            type="primary"
+            @click="handleAddLower(scope.row)"
+            ><i class="el-icon-plus" style="margin-right:5px;"></i
+            >添加下级机构</el-button
+          >
+          <el-button size="mini" @click="handleSort(scope.row)">排序</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+</template>
+
+<script>
+import { menuList, menuUpdateSort, menuDelete } from "@/api/styem/menu";
+import { MessageBox } from "element-ui";
+import Bus from "@/utils/vueBus";
+export default {
+  props: {
+    menuListData: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      loading: true
+    };
+  },
+  watch: {
+    menuListData: {
+      immediate: true,
+      deep: true,
+      handler(newValue) {
+        if (newValue.length != 0) {
+          this.loading = false;
+        }
+      }
+    }
+  },
+  created() {},
+  methods: {
+    isShowChange(val) {
+      if (val === "1") {
+        return "显示";
+      } else {
+        return "隐藏";
+      }
+    },
+    handleEdit(row) {
+      const { id } = row;
+      Bus.$emit("outMentComeId", {
+        state: "amend",
+        id
+      });
+      this.$emit("handleSeeAmend", { tabState: "amend", name: "add" });
+    },
+    handleDelete(row) {
+      const { id } = row;
+      MessageBox.confirm("是否要删除", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          menuDelete({ menuId: id }).then(reponse => {
+            if (reponse.code == 200) {
+              this.$emit("backHandle", "update");
+            }
+          });
+        })
+        .catch(e => e);
+    },
+    handleAddLower(row) {
+      const { id } = row;
+      Bus.$emit("outMentComeId", {
+        state: "addNext",
+        id
+      });
+      this.$emit("handleSeeAmend", { tabState: "add", name: "add" });
+    },
+    async handleSort(row) {
+      const { id, sort } = row;
+      const reponse = await menuUpdateSort({ id, sort });
+      if (reponse.code === 200) {
+        this.$emit("backHandle", "update");
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .el-table .cell {
+  display: flex;
+}
+/deep/.sort-input .el-input__inner {
+  height: 28px;
+  text-align: center;
+}
+/deep/.el-table__expand-icon{
+  margin-right: -20px!important;
+}
+</style>

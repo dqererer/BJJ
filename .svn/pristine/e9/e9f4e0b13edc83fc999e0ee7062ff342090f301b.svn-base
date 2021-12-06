@@ -1,0 +1,284 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">信访问责</h1>
+    <div class="tab-list-content">
+      <national-info></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察地市：">
+                <el-select v-model="cityCode" multiple  placeholder="请选择督查地市">
+                  <el-option
+                    v-for="item in areaArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="受理编号：">
+                <el-input
+                  v-model="queryParams.acceptNum"
+                  placeholder="请输入受理编号"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="姓名：">
+                <el-input
+                  v-model="queryParams.name"
+                  placeholder="请输入姓名"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="单位：">
+                <el-input
+                  v-model="queryParams.unit"
+                  placeholder="请输入单位"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="级别：">
+                <el-select v-model="queryParams.level" placeholder="请选择级别">
+                  <el-option
+                    v-for="item in levelArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="处理方式：">
+                <el-select
+                  v-model="queryParams.accountWay"
+                  placeholder="请选择处理方式"
+                >
+                  <el-option
+                    v-for="item in accountWayArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="人员分类：">
+                <el-select
+                  v-model="queryParams.staffType"
+                  placeholder="请选择人员分类"
+                >
+                  <el-option
+                    v-for="item in staffTypeArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right marginLeft0">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleExport" type="primary"
+          >导出</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column type="index" label="序号" width="50">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="areaName"
+          label="督察地市"
+          min-width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="acceptNum"
+          label="受理编号"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="name"
+          label="姓名"
+          width="100px"
+        ></el-table-column>
+        <el-table-column
+          prop="unit"
+          label="单位"
+          min-width="140px"
+        ></el-table-column>
+        <el-table-column
+          prop="levelName"
+          label="级别"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="accountTime"
+          label="责任追究时间"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="accountWayName"
+          label="处理方式"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="staffTypeName"
+          label="人员分类"
+          width="120px"
+        ></el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+  </div>
+</template>
+<script>
+import nationalInfo from "@/components/nationalInfo";
+import { petitionList } from "@/api/national/casemanage";
+import { dictListType } from "@/api/styem/dict/type";
+import { downLoadZip } from "@/utils/zipdownload";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      levelArry: [],
+      accountWayArry: [],
+      staffTypeArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        type: "1",
+        areaCodes: undefined,
+        acceptNum: undefined,
+        name: undefined,
+        unit: undefined,
+        level: undefined,
+        accountWay: undefined,
+        staffType: undefined,
+        inspectType: undefined
+      },
+      List: [],
+      cityCode: [],
+      total: 0,
+      loading: true,
+      buttonAuthority:true
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+      this.queryParams.inspectType = this.inspectInfo.suite.superviseType;
+    }else{
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.superviseType;
+    }
+    this.getList();
+    this.getDictLevel();
+    this.getDictAccountWay();
+    this.getDictStaffType();
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      if (this.cityCode.length === 0) {
+        this.queryParams.areaCodes = undefined;
+      } else {
+        this.queryParams.areaCodes = JSON.parse(JSON.stringify(this.cityCode)).join(
+          ","
+        );
+      }
+      const reponse = await petitionList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictLevel() {
+      const reponse = await dictListType({ type: "staff_level" });
+      this.levelArry = reponse.data;
+    },
+    async getDictAccountWay() {
+      const reponse = await dictListType({ type: "account_way" });
+      this.accountWayArry = reponse.data;
+    },
+    async getDictStaffType() {
+      const reponse = await dictListType({ type: "staff_type" });
+      this.staffTypeArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.areaCodes = undefined;
+      this.queryParams.acceptNum = undefined;
+      this.queryParams.name = undefined;
+      this.queryParams.unit = undefined;
+      this.queryParams.level = undefined;
+      this.queryParams.accountWay = undefined;
+      this.queryParams.staffType = undefined;
+      this.cityCode = [];
+    },
+    /** 导出按钮操作 */
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$confirm("是否确认导出所有用户数据项?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(function() {
+        downLoadZip(
+          "/center/tcommon/account/tCommonAccount/export",
+          queryParams
+        );
+      });
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

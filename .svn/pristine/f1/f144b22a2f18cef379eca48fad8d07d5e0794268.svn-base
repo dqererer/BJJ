@@ -1,0 +1,169 @@
+<template>
+  <div class="ziliao">
+    <section>
+      <div class="title">进驻手册</div>
+      <p>
+        <a
+          v-for="(item, index) in moveinNoticeFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != moveinNoticeFileIds.length - 1">、</span></a
+        >
+      </p>
+    </section>
+    <section>
+      <div class="title">进驻培训会</div>
+      <p>
+        会议时间：<span>{{ meetDate }}</span>
+      </p>
+      <p>
+        培训手册：<a
+          v-for="(item, index) in trainingManualFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != trainingManualFileIds.length - 1">、</span></a
+        >
+      </p>
+      <p>
+        培训通知：<a
+          v-for="(item, index) in trainingNoticeFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != trainingNoticeFileIds.length - 1">、</span></a
+        >
+      </p>
+      <p>
+        培训PPT：<a
+          v-for="(item, index) in trainingPPTFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != trainingPPTFileIds.length - 1">、</span></a
+        >
+      </p>
+      <p>
+        培训总结：<a
+          v-for="(item, index) in trainingSummaryFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != trainingSummaryFileIds.length - 1">、</span></a
+        >
+      </p>
+      <p>
+        现场照片：<a
+          v-for="(item, index) in photoFileIds"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != photoFileIds.length - 1">、</span></a
+        >
+      </p>
+    </section>
+  </div>
+</template>
+<script>
+import { findTeamMeetList } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+export default {
+  data() {
+    return {
+      total: 0,
+      moveinNoticeFileIds: [],
+      trainingManualFileIds: [],
+      trainingNoticeFileIds: [],
+      trainingPPTFileIds: [],
+      trainingSummaryFileIds: [],
+      photoFileIds: [],
+      meetDate: "",
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getTeamMeetList();
+  },
+  methods: {
+    getTeamMeetList: function () {
+      findTeamMeetList({
+        type: 1,
+        teamId: this.id,
+      }).then((res) => {
+        let info = res.data[0];
+        this.meetDate = info.meetDate;
+        let moveinNoticeFileIds = info.moveinNoticeFileIds.split(",");
+        let trainingManualFileIds = info.trainingManualFileIds.split(",");
+        let trainingNoticeFileIds = info.trainingNoticeFileIds.split(",");
+        let trainingPPTFileIds = info.trainingPPTFileIds.split(",");
+        let trainingSummaryFileIds = info.trainingSummaryFileIds.split(",");
+        let photoFileIds = info.photoFileIds.split(",");
+        moveinNoticeFileIds.forEach((item) => {
+          this.getFileInfo(item, "moveinNoticeFileIds");
+        });
+        trainingManualFileIds.forEach((item) => {
+          this.getFileInfo(item, "trainingManualFileIds");
+        });
+        trainingNoticeFileIds.forEach((item) => {
+          this.getFileInfo(item, "trainingNoticeFileIds");
+        });
+        trainingPPTFileIds.forEach((item) => {
+          this.getFileInfo(item, "trainingPPTFileIds");
+        });
+        trainingSummaryFileIds.forEach((item) => {
+          this.getFileInfo(item, "trainingSummaryFileIds");
+        });
+           photoFileIds.forEach((item) => {
+          this.getFileInfo(item, "photoFileIds");
+        });
+      });
+    },
+    getFileInfo: function (id, key) {
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this[key].push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.ziliao {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  p {
+    padding-left: 10px;
+    font-weight: 500;
+    span,
+    a {
+      font-weight: 400;
+    }
+  }
+  a {
+    color: #2196f3;
+  }
+}
+</style>
+
+

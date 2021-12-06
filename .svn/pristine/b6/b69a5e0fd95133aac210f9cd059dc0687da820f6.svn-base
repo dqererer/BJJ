@@ -1,0 +1,1210 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">移交问题案卷</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.teamId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        :areaName.sync="queryParams.inspectAreaName"
+        :inspectName.sync="queryParams.inspectName"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="案卷名称：">
+                <el-input v-model="queryParams.archiveName" placeholder="请输入案卷名称"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="案卷编号：">
+                <el-input v-model="queryParams.archiveCode" placeholder="请输入案卷编号"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <div class="button-authority-style" v-if="buttonAuthority">
+          <el-button size="small" @click="handleNewly" type="primary">新增</el-button>
+        </div>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getListb"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column width="120px" prop="areaName" label="督察地区"></el-table-column>
+        <el-table-column :show-overflow-tooltip="true" label="案卷标题" width="200px">
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">
+              {{
+              scope.row.archiveName
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="archiveCode" label="案卷编号" width="140px"></el-table-column>
+        <el-table-column
+          :show-overflow-tooltip="true"
+          prop="archiveContent"
+          label="案卷内容"
+          min-width="240px"
+        ></el-table-column>
+        <el-table-column label="案卷说明" width="240px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              v-if="scope.row.archiveExplain"
+              @click="handlePreviewClick(scope.row.archiveExplain)"
+            >{{ scope.row.archiveExplainName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160">
+          <template slot-scope="scope" v-if="buttonAuthority">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      class="manage-dialog"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <div class="manage-box">
+          <div class="examineInfo">
+            <h1 class="examineInfo-title" style="margin-top:10px;">案卷信息</h1>
+          </div>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="案卷标题：" prop="archiveName">
+                <el-input
+                  v-model="dialogParams.archiveName"
+                  placeholder="请输入案卷标题"
+                  maxlength="60"
+                  show-word-limit
+                  class="input-limit"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="案卷编号：" prop="archiveCode">
+                <el-input
+                  v-model="dialogParams.archiveCode"
+                  placeholder="请输入案卷编号"
+                  maxlength="60"
+                  show-word-limit
+                  class="input-limit"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="案卷内容：" prop="archiveContent">
+                <el-input
+                  type="textarea"
+                  v-model="dialogParams.archiveContent"
+                  placeholder="请输入案卷内容"
+                  maxlength="240"
+                  show-word-limit
+                  rows="4"
+                  class="textarea-limt-padding"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="案卷说明：" prop="archiveExplain">
+                <upload
+                  ref="uploadFile"
+                  :limit="1"
+                  :fileId="dialogParams.archiveExplain"
+                  fromKey="archiveExplain"
+                  @setUrlPath="setUrlPath"
+                  @deleteServeFile="deleteServeFile"
+                ></upload>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="案件相关问题：" prop="problemId">
+                <el-button @click="handleQuestionClick" type="primary" size="mini">点击添加问题</el-button>
+                <el-table :data="problemList" border class="queryTable" :stripe="true">
+                  <el-table-column width="50" label="序号">
+                    <template scope="scope">
+                      <span>
+                        {{
+                        (queryParams.pageNo - 1) * queryParams.pageSize +
+                        scope.$index +
+                        1
+                        }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="problemDescript"
+                    :show-overflow-tooltip="true"
+                    label="问题名称"
+                    min-width="200px"
+                  ></el-table-column>
+                  <el-table-column
+                    prop="problemContent"
+                    :show-overflow-tooltip="true"
+                    label="问题内容"
+                    width="120px"
+                  ></el-table-column>
+                  <el-table-column
+                    prop="workArrangeName"
+                    label="工作安排"
+                    min-width="180px"
+                    :show-overflow-tooltip="true"
+                  ></el-table-column>
+                  <el-table-column label="线索数" width="70px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(scope.row.id, scope.row.lineNum, '1')
+                        "
+                      >{{ scope.row.lineNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="书证" width="70px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.evidenceId,
+                            scope.row.evidenceNum,
+                            '2'
+                          )
+                        "
+                      >{{ scope.row.evidenceNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="取证笔录" width="80px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.inquiryId,
+                            scope.row.inquiryNum,
+                            '3'
+                          )
+                        "
+                      >{{ scope.row.inquiryNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="勘察笔录" width="80px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.surveyId,
+                            scope.row.surveyNum,
+                            '4'
+                          )
+                        "
+                      >{{ scope.row.surveyNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="多媒体记录" width="100px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.mediaId,
+                            scope.row.mediaNum,
+                            '5'
+                          )
+                        "
+                      >{{ scope.row.mediaNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="80">
+                    <template slot-scope="scope">
+                      <el-button
+                        size="mini"
+                        type="danger"
+                        @click="handleQuestionDelete(scope.$index)"
+                      >删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <div class="examineInfo" style="margin-top:20px;">
+            <h1 class="examineInfo-title">移交情况</h1>
+          </div>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="调查人员：" prop="investigator">
+                <el-select
+                  v-model="dialogParams.investigator"
+                  @change="handleInvestigatorChange"
+                  placeholder="请选择调查人员"
+                >
+                  <el-option
+                    v-for="item in personArry"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.personId"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="身份证号：" prop="investigatorNum">
+                <el-input v-model="dialogParams.investigatorNum" placeholder="请输入身份证号"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="联系电话：" prop="investigatorPhone">
+                <el-input v-model="dialogParams.investigatorPhone" placeholder="请输入联系电话"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="移交时间：" prop="transferDate">
+                <el-date-picker
+                  v-model="dialogParams.transferDate"
+                  format="yyyy-MM-d"
+                  value-format="yyyy-MM-dd"
+                  type="date"
+                  placeholder="请选择移交时间"
+                ></el-date-picker>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="简要情况说明：" prop="infoNote">
+                <el-input
+                  type="textarea"
+                  v-model="dialogParams.infoNote"
+                  placeholder="请输入简要情况说明"
+                  maxlength="240"
+                  show-word-limit
+                  rows="4"
+                  class="textarea-limt-padding"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="移交移送依据：" prop="transferBasis">
+                <upload
+                  ref="uploadFile1"
+                  accept=".doc, .docx, .pdf"
+                  :limit="5"
+                  :fileId="dialogParams.transferBasis"
+                  fromKey="transferBasis"
+                  @setUrlPath="setUrlPath"
+                  @deleteServeFile="deleteServeFile"
+                ></upload>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item label="移交移送建议：" prop="transferProposal">
+                <el-input
+                  type="textarea"
+                  v-model="dialogParams.transferProposal"
+                  placeholder="请输入移交移送建议"
+                  maxlength="240"
+                  show-word-limit
+                  rows="4"
+                  class="textarea-limt-padding"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="添加问题"
+      :visible.sync="questionOpen"
+      :before-close="handleDialogQuestionClose"
+      class="information-inner"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <div class="box-body">
+        <el-form :model="questionParams" label-width="100px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="问题名称：">
+                <el-input v-model="questionParams.problemDescript" placeholder="请输入问题名称"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right marginLeft0">
+              <el-button type="primary" @click="onDialogQuery">查询</el-button>
+              <el-button type="primary" @click="onDialogClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-table
+        v-loading="loading"
+        :data="questionList"
+        border
+        :stripe="true"
+        @selection-change="handleSelectionChange"
+        ref="multipleTable"
+      >
+        <el-table-column type="selection" width="50"></el-table-column>
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (questionParams.pageNo - 1) * questionParams.pageSize +
+              scope.$index +
+              1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="problemDescript" label="问题名称" min-width="200px"></el-table-column>
+        <el-table-column prop="problemContent" label="问题内容" width="120px"></el-table-column>
+        <el-table-column
+          prop="workArrangeName"
+          label="工作安排"
+          min-width="180px"
+          :show-overflow-tooltip="true"
+        ></el-table-column>
+        <el-table-column prop="lineNum" label="线索数" width="70px"></el-table-column>
+        <el-table-column prop="evidenceNum" label="书证" width="70px"></el-table-column>
+        <el-table-column prop="inquiryNum" label="取证笔录" width="80px"></el-table-column>
+        <el-table-column prop="surveyNum" label="勘察笔录" width="80px"></el-table-column>
+        <el-table-column prop="mediaNum" label="多媒体记录" width="100px"></el-table-column>
+      </el-table>
+      <pagination
+        v-show="questionTotal > 0"
+        :total="questionTotal"
+        :pageNo.sync="questionParams.pageNo"
+        :limit.sync="questionParams.pageSize"
+        @pagination="getQuestionList"
+      />
+      <div class="dialogQueryFormFooter" style="margin-top:22px;">
+        <el-button type="primary" @click="dailogConfirm">确定</el-button>
+        <el-button type="primary" @click="handleDialogQuestionClose">关闭</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="check"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+      class="manage-dialog"
+    >
+      <div class="manage-box">
+        <div class="manage-info">
+          <div class="examineInfo">
+            <h1 class="examineInfo-title" style="margin-top:10px;">案卷信息</h1>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">案卷标题：</span>
+              <span class="info-item-content">{{ checkInfo.archiveName }}</span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">案卷编号：</span>
+              <span class="info-item-content">{{ checkInfo.archiveCode }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">案卷内容：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.archiveContent
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">案卷说明：</span>
+              <span
+                class="info-item-content accounChunk"
+                @click="handleDownLoadDoc(checkInfo.archiveExplain)"
+              >{{ checkInfo.archiveExplainName }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">案卷相关问题：</span>
+              <div class="info-item-content">
+                <el-table
+                  :data="checkInfo.problemList"
+                  border
+                  class="queryTable"
+                  :stripe="true"
+                >
+                  <el-table-column width="50" label="序号">
+                    <template scope="scope">
+                      <span>
+                        {{
+                        scope.$index +1
+                        }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    prop="problemDescript"
+                    :show-overflow-tooltip="true"
+                    label="问题名称"
+                    min-width="200px"
+                  ></el-table-column>
+                  <el-table-column
+                    prop="problemContent"
+                    :show-overflow-tooltip="true"
+                    label="问题内容"
+                    width="120px"
+                  ></el-table-column>
+                  <el-table-column
+                    prop="workArrangeName"
+                    label="工作安排"
+                    min-width="180px"
+                    :show-overflow-tooltip="true"
+                  ></el-table-column>
+                  <el-table-column label="线索数" width="70px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(scope.row.id, scope.row.lineNum, '1')
+                        "
+                      >{{ scope.row.lineNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="书证" width="70px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.evidenceId,
+                            scope.row.evidenceNum,
+                            '2'
+                          )
+                        "
+                      >{{ scope.row.evidenceNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="取证笔录" width="80px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.inquiryId,
+                            scope.row.inquiryNum,
+                            '3'
+                          )
+                        "
+                      >{{ scope.row.inquiryNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="勘察笔录" width="80px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.surveyId,
+                            scope.row.surveyNum,
+                            '4'
+                          )
+                        "
+                      >{{ scope.row.surveyNum }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="多媒体记录" width="100px">
+                    <template v-slot="scope">
+                      <span
+                        class="accounChunk"
+                        @click="
+                          handleFileDialog(
+                            scope.row.mediaId,
+                            scope.row.mediaNum,
+                            '5'
+                          )
+                        "
+                      >{{ scope.row.mediaNum }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </div>
+          <div class="examineInfo" style="margin-top:30px">
+            <h1 class="examineInfo-title">移交情况</h1>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">调查人员：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.investigatorName
+                }}
+              </span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">身份证号：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.investigatorNum
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">联系电话：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.investigatorPhone
+                }}
+              </span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">移交时间：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.transferDate
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">简要情况说明：</span>
+              <span class="info-item-content">{{ checkInfo.infoNote }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">移交依据：</span>
+              <div class="info-item-content">
+                <span
+                  class="accounChunk"
+                  @click="handleDownLoadPathDoc(item.save_path)"
+                  v-for="(item,index) in checkInfo.attachementArry"
+                  :key="index"
+                >{{ item.file_name }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">移交移送建议：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.transferProposal
+                }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="fileOpen"
+      width="80%"
+      append-to-body
+      :before-close="handleFileDialogClose"
+    >
+      <div>
+        <span
+          class="accounChunk file-item"
+          v-for="item in seeData"
+          :key="item.id"
+          @click="handleFileShow(item.id, item.sort)"
+        >{{ item.text }}</span>
+      </div>
+    </el-dialog>
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+    <inspect-index-preview
+      ref="inspectIndexRef"
+      v-if="previewIndexOpen"
+      :inspectName="queryParams.inspectName"
+      @handleInspectIndexPreviewClose="handleInspectIndexPreviewClose"
+      :previewIndexOpen="previewIndexOpen"
+      :previewIndexOpenId="previewIndexOpenId"
+    ></inspect-index-preview>
+    <spot-index-preview
+      ref="spotIndexRef"
+      v-if="spotIndexOpen"
+      :inspectName="queryParams.inspectName"
+      @handleSpotIndexPreviewClose="handleSpotIndexPreviewClose"
+      :spotIndexOpen="spotIndexOpen"
+      :spotIndexOpenId="spotIndexOpenId"
+    ></spot-index-preview>
+    <media-index-preview
+      ref="mediaIndexRef"
+      :mediaIndexOpen="mediaIndexOpen"
+      :mediaIndexId="mediaIndexId"
+      @handleMediaIndexClose="handleMediaIndexClose"
+    ></media-index-preview>
+  </div>
+</template>
+
+<script>
+import {
+  overList,
+  overSee,
+  overDelete,
+  overSave,
+  issueList,
+  issueDetail
+} from "@/api/burg/garrison";
+import { inspectorPersonInfo } from "@/api/support/inspectorate";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo,getdownLoadZip } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+import inspectIndexPreview from "@/views/burg/garrison/sink/sinkIssue/inspectIndexPreview";
+import spotIndexPreview from "@/views/burg/garrison/sink/sinkIssue/spotIndexPreview";
+import mediaIndexPreview from "@/views/burg/garrison/sink/sinkIssue/mediaIndexPreview";
+export default {
+  components: {
+    nationalInfo,
+    clewInfo,
+    inspectIndexPreview,
+    spotIndexPreview,
+    mediaIndexPreview
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        archiveName: undefined,
+        archiveCode: undefined,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        teamId: undefined,
+        inspectAreaCode: undefined,
+        inspectAreaName: undefined,
+        inspectName: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        teamId: undefined,
+        areaName: undefined,
+        archiveName: undefined,
+        archiveCode: undefined,
+        archiveContent: undefined,
+        archiveExplain: [],
+        investigator: undefined,
+        investigatorNum: undefined,
+        investigatorPhone: undefined,
+        transferDate: undefined,
+        infoNote: undefined,
+        transferBasis: [],
+        transferProposal: undefined,
+        problemId: undefined
+      },
+      dialogRules: {
+        archiveName: [{ required: true, message: "请输入案卷标题" }],
+        archiveCode: [{ required: true, message: "请输入案卷编号" }],
+        archiveContent: [{ required: true, message: "请输入案卷内容" }],
+        archiveExplain: [{ required: true, message: "请上传案卷说明" }],
+        investigator: [{ required: true, message: "请选择调查人员" }],
+        investigatorNum: [
+          { required: true, message: "请输入身份证号" },
+          {
+            pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/,
+            message: "你的身份证格式不正确",
+            trigger: "blur"
+          }
+        ],
+        investigatorPhone: [
+          { required: true, message: "请输入联系电话" },
+          {
+            pattern: /^1[34578]\d{9}$/,
+            message: "请输入正确的手机号码",
+            trigger: "blur"
+          }
+        ],
+        transferDate: [{ required: true, message: "请选择移交时间" }],
+        infoNote: [{ required: true, message: "请输入简要情况说明" }],
+        transferBasis: [{ required: true, message: "请上传移交移送依据" }],
+        transferProposal: [{ required: true, message: "请输入移交移送建议" }],
+        problemId: [
+          { required: true, message: "请选择案件相关问题", trigger: "change" }
+        ]
+      },
+      personArry: [],
+      questionParams: {
+        pageNo: 1,
+        pageSize: 10,
+        problemDescript: undefined,
+        teamId: undefined
+      },
+      questionTotal: 0,
+      questionList: [],
+      questionOpen: false,
+      multipleSelection: [],
+      problemList: [],
+      check: false,
+      checkInfo: {
+        areaName: undefined,
+        archiveName: undefined,
+        archiveCode: undefined,
+        archiveContent: undefined,
+        archiveExplain: undefined,
+        archiveExplainName: undefined,
+        investigatorName: undefined,
+        investigatorNum: undefined,
+        investigatorPhone: undefined,
+        transferDate: undefined,
+        infoNote: undefined,
+        attachementArry: undefined,
+        transferProposal: undefined,
+        problemId: undefined,
+        problemList: undefined
+      },
+      fileOpen: false,
+      clewId: undefined,
+      lookOpen: false,
+      previewIndexOpen: undefined,
+      previewIndexOpenId: undefined,
+      spotIndexOpen: undefined,
+      spotIndexOpenId: undefined,
+      mediaIndexOpen: undefined,
+      mediaIndexId: undefined,
+      seeData: [],
+      buttonAuthority: true,
+      dialogTitle: "新增案卷"
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.superviseType;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo", "userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await overList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+      this.getPerson();
+      this.getQuestionList();
+    },
+    async getListb() {
+      this.loading = true;
+      const reponse = await overList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getPerson() {
+      const teamId = this.queryParams.teamId;
+      const personReponse = await inspectorPersonInfo({ teamId });
+      this.personArry = personReponse.data;
+    },
+    async getQuestionList() {
+      this.questionParams.inspectId = this.queryParams.teamId;
+      const reponse = await issueList(this.questionParams);
+      this.questionList = reponse.data.list;
+      this.questionTotal = reponse.data.count;
+      this.handleQuestionShow();
+    },
+    handleQuestionClick() {
+      this.questionOpen = true;
+      this.handleQuestionShow();
+    },
+    handleQuestionShow() {
+      for (let i = 0; i < this.problemList.length; i++) {
+        for (let j = 0; j < this.questionList.length; j++) {
+          if (this.problemList[i].id === this.questionList[j].id) {
+            this.$nextTick(() => {
+              this.$refs.multipleTable.toggleRowSelection(this.questionList[j]);
+            });
+          }
+        }
+      }
+    },
+    onDialogQuery() {
+      this.getQuestionList();
+      this.questionParams.pageNo = 1;
+    },
+    onDialogClear() {
+      this.questionParams.problemDescript = undefined;
+    },
+    handleSelectionChange(data) {
+      this.multipleSelection = data;
+    },
+    dailogConfirm() {
+      this.questionOpen = false;
+      this.problemList = this.multipleSelection;
+      this.$refs.multipleTable.clearSelection();
+    },
+    handleQuestionDelete(index) {
+      this.problemList.splice(index, 1);
+    },
+    handleDialogQuestionClose() {
+      this.$refs.multipleTable.clearSelection();
+      this.questionOpen = false;
+    },
+    onQuery() {
+      this.getListb();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.archiveName = undefined;
+      this.queryParams.archiveCode = undefined;
+    },
+    handleNewly() {
+      this.dialogTitle = "新增案卷";
+      this.open = true;
+      this.dialogParams.id = undefined;
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+      this.$refs.uploadFile.handleClear && this.$refs.uploadFile.handleClear();
+      this.$refs.uploadFile1.handleClear &&
+        this.$refs.uploadFile1.handleClear();
+      this.problemList = [];
+    },
+    handleInvestigatorChange(e) {
+      for (const item in this.personArry) {
+        const subject = this.personArry[item];
+        if (subject.personId == e) {
+          this.dialogParams.investigatorNum = subject.idCard;
+          this.dialogParams.investigatorPhone = subject.telephone;
+        }
+      }
+    },
+    dailogSubmit() {
+      if (this.problemList.length > 0) {
+        let problemIdArry = [];
+        for (const item in this.problemList) {
+          const subject = this.problemList[item];
+          problemIdArry.push(subject.id);
+        }
+        this.dialogParams.problemId = problemIdArry.join(",");
+      }
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+
+          this.dialogParams.areaName = this.queryParams.inspectAreaName;
+          this.dialogParams.teamId = this.queryParams.teamId;
+          this.dialogParams.archiveExplain = this.dialogParams.archiveExplain.join(
+            ","
+          );
+          this.dialogParams.transferBasis = this.dialogParams.transferBasis.join(
+            ","
+          );
+          const reponse = await overSave(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getListb();
+        }
+      });
+    },
+    handleEdit({ id }) {
+      this.dialogTitle = "修改案卷";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await overSee({ id });
+      const subject = reponse.data.archive;
+      const problemList = reponse.data.problemList;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.archiveName = subject.archiveName;
+      this.dialogParams.archiveCode = subject.archiveCode;
+      this.dialogParams.archiveContent = subject.archiveContent;
+      this.dialogParams.archiveExplain = subject.archiveExplain.split(",");
+      this.dialogParams.investigator = subject.investigator;
+      this.dialogParams.investigatorNum = subject.investigatorNum;
+      this.dialogParams.investigatorPhone = subject.investigatorPhone;
+      this.dialogParams.transferDate = subject.transferDate;
+      this.dialogParams.infoNote = subject.infoNote;
+      this.dialogParams.transferBasis = subject.transferBasis.split(",");
+      this.dialogParams.transferProposal = subject.transferProposal;
+      this.problemList = problemList;
+      this.$nextTick(() => {
+        this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+        this.$refs.uploadFile1 && this.$refs.uploadFile1.getFileMessageInfo();
+      });
+    },
+    async handleSee({ id }) {
+      this.check = true;
+      this.getDialogCheckInfo(id);
+    },
+    async getDialogCheckInfo(id) {
+      const reponse = await overSee({ id });
+      const subject = reponse.data.archive;
+      const problemList = reponse.data.problemList;
+      this.checkInfo.id = subject.id;
+      this.checkInfo.archiveName = subject.archiveName;
+      this.checkInfo.archiveCode = subject.archiveCode;
+      this.checkInfo.archiveContent = subject.archiveContent;
+      this.checkInfo.archiveExplain = subject.archiveExplain;
+      this.checkInfo.archiveExplainName = subject.archiveExplainName;
+      this.checkInfo.investigatorName = subject.investigatorName;
+      this.checkInfo.investigatorNum = subject.investigatorNum;
+      this.checkInfo.investigatorPhone = subject.investigatorPhone;
+      this.checkInfo.transferDate = subject.transferDate;
+      this.checkInfo.infoNote = subject.infoNote;
+      this.checkInfo.transferBasis = subject.transferBasis;
+      this.checkInfo.transferProposal = subject.transferProposal;
+      this.checkInfo.problemList = problemList;
+      this.getSingleMessagInfo(subject.transferBasis);
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      this.checkInfo.attachementArry = reponse.data;
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+    },
+    async handleFileDialog(ids, num, selectType) {
+      let res = [];
+      if (num == 0 || num == undefined) {
+        return;
+      }
+      if (selectType == 1) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.clueName,
+            sort: "线索数"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 2) {
+        const reponse = await issueDetail({ selectType, ids });
+      } else if (selectType == 3) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.theme + "询问笔录",
+            sort: "取证笔录"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 4) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.actualCityName + "勘察笔录",
+            sort: "勘察笔录"
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 5) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.mediaExplain + "现场多媒体证据",
+            sort: "多媒体记录"
+          };
+          res.push(temp);
+        }
+      }
+      this.fileOpen = true;
+      this.seeData = res;
+    },
+    async handleFileShow(id, sort) {
+      if (sort == "线索数") {
+        this.clewId = id;
+        this.lookOpen = true;
+        this.$nextTick(() => {
+          this.$refs.clewRef.handleEdit();
+        });
+      } else if (sort == "取证笔录") {
+        this.previewIndexOpenId = id;
+        this.previewIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.inspectIndexRef.handleEdit();
+        });
+      } else if (sort == "勘察笔录") {
+        this.spotIndexOpenId = id;
+        this.spotIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.spotIndexRef.handleEdit();
+        });
+      } else if (sort == "多媒体记录") {
+        this.mediaIndexId = id;
+        this.mediaIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.mediaIndexRef.handleEdit();
+        });
+      }
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleInspectIndexPreviewClose() {
+      this.previewIndexOpen = false;
+    },
+    handleSpotIndexPreviewClose() {
+      this.spotIndexOpen = false;
+    },
+    handleMediaIndexClose() {
+      this.mediaIndexOpen = false;
+    },
+    handleFileDialogClose() {
+      this.fileOpen = false;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await overDelete({ id });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.$nextTick(() => {
+        this.resetFieldsTap(formName);
+      });
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey].push(file.fileId);
+    },
+    deleteServeFile(file) {
+      const fromKeyVal = this.dialogParams[file.fromKey];
+      const fileId = file.fileId;
+      const fromKey = file.fromKey;
+      const index = fromKeyVal.indexOf(fileId);
+      this.dialogParams[file.fromKey].splice(index, 1);
+    },
+    handleDownLoadDoc(fileId) {
+      getSingleInfo(fileId);
+    },
+    handleDownLoadPathDoc(path) {
+      getdownLoadZip(path);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.manage-dialog {
+  /deep/.el-dialog__body {
+    padding: 0 20px 30px 20px;
+    .manage-box {
+      .manage-title {
+        margin: 10px 0;
+        font-size: 22px;
+        font-weight: normal;
+        line-height: 30px;
+        border-left: 4px solid #02a7f0;
+        padding-left: 10px;
+      }
+    }
+  }
+}
+.dialogQueryFormFooter {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.queryTable {
+  /deep/th {
+    padding: 0px;
+  }
+}
+.accounChunk {
+  display: block;
+}
+</style>

@@ -1,0 +1,150 @@
+<template>
+  <div>
+    <national-info :teamId.sync="queryParams.inspectId" @nameChange="getList"></national-info>
+    <div class="box-body" v-show="showSearch">
+      <el-form :model="queryParams" label-width="120px">
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="资料名称：">
+              <el-input v-model="queryParams.fileName" placeholder="请输入资料名称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="资料编号：">
+              <el-input v-model="queryParams.number" placeholder="请输入资料编号"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="资料文号：">
+              <el-input v-model="queryParams.fileNumber" placeholder="请输入资料文号"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="调阅人：">
+              <el-input v-model="queryParams.callerName" placeholder="请输入资料名称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-form-item class="pull-right">
+            <el-button type="primary" @click="onQuery">查询</el-button>
+            <el-button type="primary" @click="onClear">清空</el-button>
+          </el-form-item>
+        </el-row>
+      </el-form>
+    </div>
+    <el-row :gutter="10" class="mb8">
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+    </el-row>
+    <el-table v-loading="loading" :data="List" border :stripe="true">
+      <el-table-column width="50" label="序号">
+        <template scope="scope">
+          <span>
+            {{
+            (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="fileName" label="资料名称" :show-overflow-tooltip="true" min-width="200px"></el-table-column>
+      <el-table-column prop="number" label="资料编号" width="160px"></el-table-column>
+      <el-table-column prop="fileNumber" label="资料文号" width="110px"></el-table-column>
+      <el-table-column prop="fromPerson" label="提供人" width="80px"></el-table-column>
+      <el-table-column prop="number" label="查阅电子件名称" width="120px"></el-table-column>
+      <el-table-column prop="callerName" label="调阅人" width="120px"></el-table-column>
+      <el-table-column :show-overflow-tooltip="true" prop="callerTime" label="调阅时间" width="160px"></el-table-column>
+      <el-table-column prop="type" label="调阅方式" width="160px"></el-table-column>
+    </el-table>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :pageNo.sync="queryParams.pageNo"
+      :limit.sync="queryParams.pageSize"
+      @pagination="getList"
+    />
+  </div>
+</template>
+
+<script>
+import nationalInfo from "@/components/nationalInfo";
+import { materiaLogList } from "@/api/national/consult";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        fileName:undefined,
+        number:undefined,
+        fileNumber:undefined,
+        callerName:undefined,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        teamId: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.code;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await materiaLogList(this.queryParams);
+      // reponse.data.list &&
+      //   reponse.data.list.map(item => {
+      //     item["whetherProvideName"] = item.whetherProvide == 1 ? "是" : "否";
+      //   });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.infoName = undefined;
+      this.queryParams.number = undefined;
+      this.queryParams.fileNumber = undefined;
+      this.queryParams.callerName = undefined;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+@import "~@/assets/styles/mixin.scss";
+.report-box {
+  display: flex;
+  margin-top: 20px;
+  &:first-child {
+    margin-top: 0px;
+  }
+}
+.infoName {
+  @include textOmit;
+}
+</style>

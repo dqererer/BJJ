@@ -1,0 +1,15 @@
+<template>
+  <div>
+    受理举报
+  </div>
+</template>
+
+<script>
+  export default {
+    
+  }
+</script>
+
+<style lang="scss" scoped>
+
+</style>

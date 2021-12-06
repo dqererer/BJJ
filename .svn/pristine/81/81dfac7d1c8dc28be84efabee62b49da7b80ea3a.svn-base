@@ -1,0 +1,12 @@
+const getters = {
+  token: state => state.user.token,
+  name: state => state.user.name,
+  userInfo:state => state.user.userInfo,
+  areaArry:state => state.user.areaInfo,
+  userId: state => state.user.userId,
+  roles: state => state.user.roles,
+  avatar: state => state.user.avatar,
+  inspectInfo:state => state.user.inspectUserInfo,
+  sidebarRouters:state => state.permission.sidebarRouters,
+}
+export default getters

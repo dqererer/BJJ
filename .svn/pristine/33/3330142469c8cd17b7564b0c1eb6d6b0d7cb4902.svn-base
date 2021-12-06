@@ -1,0 +1,106 @@
+<template>
+  <div class="baogao">
+    <section v-for="(item, index) in List" v-bind:key="index">
+      <div class="title"></div>
+      <p>
+        提交时间：<span>{{ item.reportTime.slice(0,10) }}</span>
+      </p>
+      <p>
+        报告标题：<span>{{ item.reportTitle }}</span>
+      </p>
+      <p>
+        报告简介：<span>{{ item.reportContent }}</span>
+      </p>
+      <p>
+        报告文件：<a
+          v-for="(i, index) in item.filelist"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(i.path)"
+          >{{ i.name
+          }}<span v-if="index != item.filelist.length - 1">、</span></a
+        >
+      </p>
+      <el-divider></el-divider>
+    </section>
+  </div>
+</template>
+<script>
+import { reportList } from "@/api/support/search";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+export default {
+  data() {
+    return {
+      id: "",
+      List: [],
+      workPlan: [],
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.reportList();
+  },
+  methods: {
+    reportList: function () {
+      reportList({
+        teamId: this.id,
+        type: "1",
+      }).then((res) => {
+        if (res.data) {
+          this.List = res.data;
+          res.data.forEach((item, index) => {
+            let filelist = item.reportFile.split(",");
+            filelist.forEach((i, idx) => {
+              this.getFileInfo(i, index, idx);
+            });
+          });
+        }
+      });
+    },
+    getFileInfo: function (id, index, idx) {
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+
+        this.$set(this.List[index], "filelist", []);
+
+        this.$nextTick(() => {
+          this.$set(this.List[index].filelist, idx, obj);
+        });
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.baogao {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  p {
+    padding-left: 10px;
+    font-weight: 500;
+    span,
+    a {
+      font-weight: 400;
+    }
+  }
+  a {
+    color: #2196f3;
+  }
+}
+</style>
+
+

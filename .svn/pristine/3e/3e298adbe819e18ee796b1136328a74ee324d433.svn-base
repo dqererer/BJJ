@@ -1,0 +1,52 @@
+<template>
+  <div>
+    <viewer :images="images">
+      <img v-for="(src,index) in images" :src="src" :key="index" :onerror="errorImg" />
+    </viewer>
+  </div>
+</template>
+
+<script>
+import { imgShow } from "@/utils/imgShow";
+import { getFileInfo } from "@/api/file";
+export default {
+  props: {
+    fileId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      images: [],
+      errorImg: undefined
+    };
+  },
+  methods: {
+    async handleImgPreview() {
+      const reponse = await getFileInfo({ ids: this.fileId });
+      const subject = reponse.data;
+      const fileUrl = subject[0].save_path;
+      const state = subject[0].object_id;
+      if (state === "FASTDFS") {
+        const fastInfo = localStorage.getItem("fastInfo");
+        const fastSubject = JSON.parse(fastInfo);
+        const path = fastSubject.downloadUrl + fileUrl;
+        this.images = [path];
+        this.$viewerApi({
+          images: this.images
+        });
+      } else {
+        imgShow("/center/file/downloadFile", fileUrl).then(path => {
+          this.images = [path];
+          this.$viewerApi({
+            images: this.images
+          });
+        });
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

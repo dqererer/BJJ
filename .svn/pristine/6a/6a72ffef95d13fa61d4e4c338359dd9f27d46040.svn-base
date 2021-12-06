@@ -1,0 +1,295 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">资料目录</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="目录名称：">
+                <el-input
+                  v-model="queryParams.name"
+                  placeholder="请输入目录名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="目录编码：">
+                <el-input
+                  v-model="queryParams.number"
+                  placeholder="请输入目录编码"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table
+        class="table-lower"
+        v-loading="loading"
+        :data="List"
+        border
+        :stripe="true"
+        row-key="id"
+        :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+      >
+        <el-table-column
+          prop="name"
+          label="目录名称"
+          min-width="200px"
+          class="column-left"
+        ></el-table-column>
+        <el-table-column
+          prop="number"
+          label="目录编码"
+          width="180px"
+        ></el-table-column>
+        <el-table-column
+          prop="describe"
+          label="目录描述"
+          width="180px"
+        ></el-table-column>
+        <el-table-column
+          prop="sort"
+          label="排序"
+          width="180px"
+        ></el-table-column>
+        <el-table-column
+          prop="updateDate"
+          label="创建时间"
+          width="180px"
+        ></el-table-column>
+        <el-table-column label="操作" width="150">
+          <template slot-scope="scope">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="160px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-form-item label="上级目录：" prop="parentId">
+            <treeselect
+              v-model="dialogParams.parentId"
+              :options="menuList"
+              :disableBranchNodes="false"
+              :normalizer="normalizer"
+              noChildrenText="无"
+              placeholder="请选择上级目录"
+            />
+          </el-form-item>
+        </el-row>
+        <el-row :gutter="10">
+          <el-form-item label="目录名称：" prop="name">
+            <el-input
+              v-model="dialogParams.name"
+              placeholder="请输入目录名称"
+            ></el-input>
+          </el-form-item>
+        </el-row>
+        <el-row :gutter="10">
+          <el-form-item label="目录编码：" prop="number">
+            <el-input
+              type="number"
+              v-model="dialogParams.number"
+              placeholder="请输入目录编码"
+            ></el-input>
+          </el-form-item>
+        </el-row>
+        <el-row :gutter="10">
+          <el-form-item label="目录排序：" prop="sort">
+            <el-input
+              type="number"
+              v-model="dialogParams.sort"
+              placeholder="请输入目录排序"
+            ></el-input>
+          </el-form-item>
+        </el-row>
+        <el-row :gutter="10">
+          <el-form-item label="目录描述：" prop="describe">
+            <el-input
+              type="textarea"
+              v-model="dialogParams.describe"
+            ></el-input>
+          </el-form-item>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  catalogList,
+  catalogDelete,
+  catalogSave,
+  catalogySee
+} from "@/api/support/material";
+export default {
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        name: undefined,
+        number: undefined
+      },
+      List: [],
+      loading: true,
+      open: false,
+      dialogTitle: "新增",
+      dialogParams: {
+        id: undefined,
+        parentId: undefined,
+        name: undefined,
+        number: undefined,
+        sort: undefined,
+        describe: undefined
+      },
+      menuList: [],
+      normalizer(node) {
+        return {
+          label: node.name
+        };
+      },
+      dialogRules: {
+        parentId: [{ required: true, message: "请选择上级目录" }],
+        name: [{ required: true, message: "请输入目录名称" }],
+        number: [{ required: true, message: "请输入目录编码" }],
+        sort: [{ required: true, message: "请输入目录排序" }]
+      }
+    };
+  },
+  created() {
+    this.getList();
+    this.getMenuList();
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await catalogList(this.queryParams);
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.List = menu;
+      this.loading = false;
+    },
+    async getMenuList() {
+      const reponse = await catalogList({ parentId: 0 });
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      const menuOptions = [
+        {
+          id: 0,
+          name: "资料目录",
+          children: menu
+        }
+      ];
+      this.menuList = menuOptions;
+    },
+    handleNewly() {
+      this.open = true;
+      this.dialogTitle = "新增";
+      this.resetFieldsTap("dialogForm");
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear();
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.name = undefined;
+      this.queryParams.number = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const reponse = await catalogSave(this.dialogParams);
+          this.getList();
+          this.open = false;
+          this.handleformClear();
+        }
+      });
+    },
+    async handleEdit({ id }) {
+      this.dialogTitle = "修改";
+      this.open = true;
+      const reponse = await catalogySee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.parentId = subject.parentId;
+      this.dialogParams.name = subject.name;
+      this.dialogParams.number = subject.number;
+      this.dialogParams.sort = subject.sort;
+      this.dialogParams.describe = subject.describe;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await catalogDelete({ id });
+        this.getList();
+      });
+    },
+    handleformClear() {
+      this.resetFieldsTap("dialogForm");
+      this.dialogParams.id = undefined;
+      this.dialogParams.describe = undefined;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

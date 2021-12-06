@@ -1,0 +1,722 @@
+<template>
+  <div class="wrap">
+    <div class="card left">
+      <div class="title">跟踪信息</div>
+      <div class="tail-top">
+        <h1 class="tail-title"><i class="tail-emphasis">*</i>请选择督察信息</h1>
+      </div>
+      <div class="timeline-box" :style="timelinStyleShow ? timelineStyle : ''">
+        <el-timeline>
+          <el-timeline-item
+            v-for="(item, index) in clueList"
+            :key="index"
+            :timestamp="item.createDate"
+            @click.native="handleTimelineClick(item, index)"
+            :class="index == taildIndex ? 'active' : ''"
+          >
+            <span class="timeline-title">{{ item.relationTableName }}</span>
+            <span class="timeline-person">操作人：{{ item.createName }}</span>
+            <span class="timeline-describe">{{ item.relationDescribe }}</span>
+          </el-timeline-item>
+        </el-timeline>
+      </div>
+    </div>
+    <div class="card right">
+      <clue-one
+        :clueBaseInfo="clueBaseInfo"
+        v-show="tailActive == 0"
+      ></clue-one>
+      <clue-two
+        ref="tailTwo"
+        :teamId="teamId"
+        v-if="tailActive == 1"
+      ></clue-two>
+      <clue-three
+        ref="tailThree"
+        :tailId="tailId"
+        :teamId="teamId"
+        v-if="tailActive == 2"
+      ></clue-three>
+      <clue-four
+        ref="tailFour"
+        :tailId="tailId"
+        :teamId="teamId"
+        v-if="tailActive == 3"
+      ></clue-four>
+      <clue-five
+        ref="tailFive"
+        :tailId="tailId"
+        :teamId="teamId"
+        v-if="tailActive == 4"
+      ></clue-five>
+      <clue-six
+        ref="tailSix"
+        :tailId="tailId"
+        :teamId="teamId"
+        v-if="tailActive == 5"
+      ></clue-six>
+      <clue-seven
+        ref="tailSeven"
+        :tailId="tailId"
+        :teamId="teamId"
+        v-if="tailActive == 6"
+      ></clue-seven>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  getRoundOrBatchList,
+  getSpectTypeList,
+  getCityList,
+  getTaskDetail,
+  getAllChangeProgramList,
+  getProgressList,
+  getUnitList,
+  deleteProgress,
+} from "@/api/change/dispatch";
+import {
+  threadList,
+  threadSave,
+  threadDelete,
+  threadTrackList,
+  threadTrackNewList,
+  findClueTeamList,
+} from "@/api/InspectorClues";
+import { threadSee } from "@/api/burg/prepare";
+import { dictListType } from "@/api/styem/dict/type";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+import { getFileInfo } from "@/api/file";
+import { areaTreeNew } from "@/api/styem/dept";
+import clueOne from "../../InspectorClues/cluesSource/clueOne.vue";
+import clueTwo from "../../InspectorClues/cluesSource/clueTwo";
+import clueThree from "../../InspectorClues/cluesSource/clueThree";
+import clueFour from "../../InspectorClues/cluesSource/clueFour";
+import clueFive from "../../InspectorClues/cluesSource/clueFive";
+import clueSix from "../../InspectorClues/cluesSource/clueSix";
+import clueSeven from "../../InspectorClues/cluesSource/clueSeven";
+export default {
+  components: {
+    clueOne,
+    clueTwo,
+    clueThree,
+    clueFour,
+    clueFive,
+    clueSix,
+    clueSeven,
+  },
+  data() {
+    return {
+      id:'',
+      pollutantArry: [],
+      dialogParams: {
+        id: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSource: undefined,
+        pollutionType: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentId: undefined,
+        weatherFocus: undefined,
+        longitude: undefined,
+        latitude: undefined,
+      },
+      manageInfo: {
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentName: undefined,
+        weatherFocus: undefined,
+        longitude: undefined,
+        latitude: undefined,
+      },
+      countyArry: [],
+      townArry: [],
+      lookOpen: false,
+      importOpen: false,
+      importPattern: false,
+      importUrl: "/center/clue/main/tClueMain/importData",
+      importDownUrl: "/template/线索导入模板.xlsx",
+      sourceArry: [],
+      dialogTailParams: {
+        levelType: undefined,
+        inspectType: undefined,
+        roundId: undefined,
+        batchId: undefined,
+        teamId: undefined,
+      },
+      clueItemArry: [],
+      superviseLevelArry: [], //督察级别
+      inspectTypeArry: [], // 督察类型字典
+      superviseRoundArry: [], //轮次下拉
+      superviseBatchArry: [], //批次下拉
+      superviseTeamArry: [],
+      timelineStyle: {
+        overflowY: "scroll",
+        height: "calc(100vh - 270px)", //666px
+        marginTop: "10px",
+      },
+      timelinStyleShow: false,
+      clueList: [],
+      clueBaseInfo: undefined,
+      tailActive: 0,
+      taildIndex: 0,
+      tailId: undefined,
+      teamId: undefined,
+      clueName: undefined,
+      tailBoolean: false,
+      model: undefined,
+      options: [],
+    };
+  },
+  created() {
+    this.id = this.$route.query.id;
+    this.getDictPollutant();
+    this.getDictSource();
+    this.getNewTail(this.id);
+    this.getFindClueTeamList(this.id);
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "areaArry"]),
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await threadList(this.queryParams);
+      reponse.data.list &&
+        reponse.data.list.map((item) => {
+          item["weatherFocusName"] = item.weatherFocus == 1 ? "是" : "否";
+        });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    async getDictSource() {
+      const reponse = await dictListType({ type: "clue_source" });
+      this.sourceArry = reponse.data;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.countyCode = undefined;
+      this.townArry = [];
+      this.dialogParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      this.townArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCountyChange(code) {
+      this.townArry = [];
+      this.dialogParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.townArry = reponse.data;
+    },
+    async handleCountyChangeb(code) {
+      this.townArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.townArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.clueNum = undefined;
+      this.queryParams.pollutionType = undefined;
+      this.queryParams.clueContent = undefined;
+    },
+    handleNewly() {
+      this.dialogTitle = "新增";
+      this.open = true;
+      this.dialogParams.cityCode = undefined;
+      this.dialogParams.countyCode = undefined;
+      this.dialogParams.townCode = undefined;
+      this.$nextTick(() => {
+        this.handleformClear("dialogForm");
+      });
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleImport() {
+      this.importOpen = true;
+    },
+    changeImportOpen() {
+      this.importOpen = false;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async (valid) => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)",
+          });
+          const reponse = await threadSave(this.dialogParams);
+          loading.close();
+          this.open = false;
+          this.getList();
+        }
+      });
+    },
+    async handleEdit({ id }) {
+      this.dialogTitle = "修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.clueName = subject.clueName;
+      this.dialogParams.clueNum = subject.clueNum;
+      this.dialogParams.clueSource = subject.clueSource;
+      this.dialogParams.pollutionType = subject.pollutionType;
+      this.dialogParams.problemType = subject.problemType;
+      this.dialogParams.cityCode = subject.cityCode;
+      this.dialogParams.countyCode = subject.countyCode;
+      this.dialogParams.townCode = subject.townCode;
+      this.dialogParams.address = subject.address;
+      this.dialogParams.clueContent = subject.clueContent;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.dialogParams.weatherFocus = subject.weatherFocus;
+      this.dialogParams.longitude = subject.longitude;
+      this.dialogParams.latitude = subject.latitude;
+      this.handleCityChangeb(subject.cityCode);
+      this.handleCountyChangeb(subject.countyCode);
+      this.$nextTick(() => {
+        this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+      });
+    },
+    handleSee({ id }) {
+      this.lookOpen = true;
+      this.getDetailInfo(id);
+    },
+    async getDetailInfo(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.manageInfo.clueName = subject.clueName;
+      this.manageInfo.clueNum = subject.clueNum;
+      this.manageInfo.clueSourceName = subject.clueSourceName;
+      this.manageInfo.pollutionTypeName = subject.pollutionTypeName;
+      this.manageInfo.problemType = subject.problemType;
+      this.manageInfo.city = subject.city;
+      this.manageInfo.county = subject.county;
+      this.manageInfo.town = subject.town;
+      this.manageInfo.address = subject.address;
+      this.manageInfo.clueContent = subject.clueContent;
+      this.manageInfo.weatherFocus = subject.weatherFocus === "1" ? "是" : "否";
+      this.manageInfo.attachmentId = subject.attachmentId;
+      this.manageInfo.attachmentName = subject.attachmentName;
+      this.manageInfo.longitude = subject.longitude;
+      this.manageInfo.latitude = subject.latitude;
+    },
+    handleDialogLookClose() {
+      this.lookOpen = false;
+      this.dialogParamsClear();
+    },
+    dialogParamsClear() {
+      this.manageInfo.clueName = undefined;
+      this.manageInfo.clueNum = undefined;
+      this.manageInfo.clueSourceName = undefined;
+      this.manageInfo.pollutionTypeName = undefined;
+      this.manageInfo.problemType = undefined;
+      this.manageInfo.city = undefined;
+      this.manageInfo.county = undefined;
+      this.manageInfo.town = undefined;
+      this.manageInfo.address = undefined;
+      this.manageInfo.clueContent = undefined;
+      this.manageInfo.attachmentId = undefined;
+      this.manageInfo.attachmentName = undefined;
+      this.manageInfo.longitude = undefined;
+      this.manageInfo.latitude = undefined;
+    },
+    async handleNewTail(data) {
+      this.tailOpen = true;
+      const { id } = data;
+      this.tailNewId = id;
+      this.getNewTail(id);
+      this.getFindClueTeamList(id);
+    },
+    async getFindClueTeamList(id) {
+      const reponse = await findClueTeamList({ id });
+      this.clueItemArry = reponse.data;
+    },
+    changeSuperviseTeam(e) {
+      this.getNewTail(this.tailNewId, e);
+      this.tailActive = 0;
+      this.taildIndex = 0;
+    },
+    handleTailAllClick() {
+      this.inspectTypeArry = [];
+      this.superviseRoundArry = [];
+      this.superviseBatchArry = [];
+      this.superviseTeamArry = [];
+      this.dialogTailParams.levelType = undefined;
+      this.dialogTailParams.teamId = undefined;
+      this.dialogTailParams.inspectType = undefined;
+      this.dialogTailParams.roundId = undefined;
+      this.dialogTailParams.batchId = undefined;
+      this.getNewTail(this.tailNewId);
+    },
+    async getNewTail(clueId, teamId) {
+      const reponse = await threadTrackNewList({ clueId, teamId });
+      const subject = reponse.data;
+      const clueBaseInfo = subject.clueInfo;
+      const clueTemp = {
+        relationTableName: "线索添加",
+        createName: clueBaseInfo.createName,
+        createDate: clueBaseInfo.createDate,
+        relationDescribe: clueBaseInfo.clueSourceName,
+      };
+      let clueList = subject.list;
+      if (clueList) {
+        if (clueList.length >= 8) {
+          this.timelinStyleShow = true;
+        }
+        clueList.unshift(clueTemp);
+      } else {
+        clueList = [clueTemp];
+      }
+      this.clueList = clueList;
+      this.clueBaseInfo = clueBaseInfo;
+    },
+    handleTimelineClick(item, index) {
+      this.taildIndex = index;
+      switch (item.relationTableName) {
+        case "线索添加":
+          this.tailActive = 0;
+          break;
+        case "纳入督察":
+          this.tailActive = 1;
+          this.teamId = item.teamId;
+          this.$nextTick(() => {
+            this.$refs.tailTwo.getTeamInfo();
+          });
+          break;
+        case "个别谈话":
+          this.tailActive = 2;
+          this.tailId = item.relationId;
+          this.teamId = item.teamId;
+          this.$nextTick(() => {
+            this.$refs.tailThree.getInfo();
+            this.$refs.tailThree.getTeamInfo();
+          });
+          break;
+        case "走访问询":
+          this.tailActive = 3;
+          this.tailId = item.relationId;
+          this.teamId = item.teamId;
+          this.$nextTick(() => {
+            this.$refs.tailFour.getInfo();
+            this.$refs.tailFour.getTeamInfo();
+          });
+          break;
+        case "下沉督察":
+          this.tailActive = 4;
+          this.tailId = item.relationId;
+          this.teamId = item.teamId;
+          this.$nextTick(() => {
+            this.$refs.tailFive.getInfo();
+            this.$refs.tailFive.getTeamInfo();
+          });
+          break;
+        case "问题聚焦":
+          this.tailActive = 5;
+          this.tailId = item.relationId;
+          this.teamId = item.teamId;
+          console.log(item);
+          this.$nextTick(() => {
+            this.$refs.tailSix.getInfo();
+            this.$refs.tailSix.getTeamInfo();
+          });
+          break;
+        case "问题案卷":
+          this.tailActive = 6;
+          this.tailId = item.relationId;
+          this.teamId = item.teamId;
+          this.$nextTick(() => {
+            this.$refs.tailSeven.getInfo();
+            this.$refs.tailSeven.getTeamInfo();
+          });
+          break;
+      }
+    },
+    changeSuperviseLevel(e) {
+      this.inspectTypeArry = [];
+      this.superviseRoundArry = [];
+      this.superviseBatchArry = [];
+      this.superviseTeamArry = [];
+      this.dialogTailParams.teamId = undefined;
+      this.dialogTailParams.inspectType = undefined;
+      this.dialogTailParams.roundId = undefined;
+      this.dialogTailParams.batchId = undefined;
+      for (const item in this.clueItemArry) {
+        const subject = this.clueItemArry[item];
+        if (subject.value == e) {
+          this.inspectTypeArry = this.clueItemArry[item].childList;
+        }
+      }
+    },
+    changeinspectType(e) {
+      this.superviseRoundArry = [];
+      this.superviseBatchArry = [];
+      this.superviseTeamArry = [];
+      this.dialogTailParams.teamId = undefined;
+      this.dialogTailParams.roundId = undefined;
+      this.dialogTailParams.batchId = undefined;
+      for (const item in this.inspectTypeArry) {
+        const subject = this.inspectTypeArry[item];
+        if (subject.value == e) {
+          this.superviseRoundArry = this.inspectTypeArry[item].childList;
+        }
+      }
+    },
+    changeSuperviseRound(e) {
+      this.superviseBatchArry = [];
+      this.superviseTeamArry = [];
+      this.dialogTailParams.teamId = undefined;
+      this.dialogTailParams.batchId = undefined;
+      for (const item in this.superviseRoundArry) {
+        const subject = this.superviseRoundArry[item];
+        if (subject.value == e) {
+          this.superviseBatchArry = this.superviseRoundArry[item].childList;
+        }
+      }
+    },
+    changeSuperviseBatch(e) {
+      this.superviseTeamArry = [];
+      this.dialogTailParams.teamId = undefined;
+      for (const item in this.superviseBatchArry) {
+        const subject = this.superviseBatchArry[item];
+        if (subject.value == e) {
+          this.superviseTeamArry = this.superviseBatchArry[item].childList;
+        }
+      }
+    },
+    handleDialogTailClose() {
+      this.tailOpen = false;
+      this.tailActive = 0;
+      this.taildIndex = 0;
+      this.timelinStyleShow = false;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await threadDelete({ id });
+        this.getList();
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    },
+  },
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 43%;
+      }
+    }
+  }
+}
+.manage-info {
+  .info-item {
+    .info-item-title {
+      width: 112px;
+    }
+  }
+}
+.card {
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  background-color: #fff;
+  overflow: hidden;
+  color: #303133;
+  transition: 0.3s;
+  box-shadow: 0 2px 12px 0 #8d9096;
+  padding: 10px 20px;
+  .title {
+    height: 20px;
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+.wrap {
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  /deep/ .el-form-item__label {
+    width: 100%;
+    float: none;
+  }
+  .left {
+    width: 32%;
+    min-height: 100%;
+    .timeline-box {
+      padding-top: 30px;
+      /deep/.el-timeline {
+        padding-left: 10px;
+        .el-timeline-item {
+          cursor: pointer;
+          &.active {
+            .el-timeline-item__node {
+              background-color: #409efe;
+            }
+          }
+          .el-timeline-item__tail {
+            left: 85px;
+          }
+        }
+      }
+      /deep/.el-timeline-item__node--normal {
+        left: 80px;
+      }
+      /deep/.el-timeline-item__wrapper {
+        padding-left: 100px;
+      }
+
+      /deep/.el-timeline-item__timestamp {
+        position: absolute;
+        left: 0;
+        top: -10px;
+        width: 68px;
+        display: block;
+        text-align: right;
+        line-height: 19px;
+        margin: 0;
+      }
+      .timeline-title {
+        display: block;
+        color: #5a5aff;
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .timeline-person {
+        display: block;
+        color: #b9b4b4;
+        font-size: 14px;
+        display: block;
+        margin: 4px 0px;
+      }
+      .timeline-describe {
+        display: block;
+        color: #777;
+        font-size: 14px;
+        width: 90%;
+      }
+    }
+  }
+  .right {
+    width: 66%;
+    margin-left: 2%;
+  }
+}
+.tail-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tail-title {
+  text-align: right;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #606266;
+  line-height: 20px;
+  padding: 0 12px 0 0;
+  box-sizing: border-box;
+  display: inline-block;
+  .tail-emphasis {
+    display: inline-block;
+    color: #f56c6c;
+    margin-right: 4px;
+  }
+}
+.tail-row {
+  padding: 0 12px;
+  /deep/.el-col-6 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  &.tail-row-name {
+    /deep/.el-col-24 {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      .el-select {
+        width: 100%;
+      }
+    }
+  }
+}
+.tail-dialog {
+  /deep/.el-dialog {
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+  }
+}
+.timeline-box::-webkit-scrollbar {
+  /*滚动条整体样式*/
+  width: 10px; /*高宽分别对应横竖滚动条的尺寸*/
+  height: 1px;
+}
+.timeline-box::-webkit-scrollbar-thumb {
+  /*滚动条里面小方块*/
+  border-radius: 10px;
+  box-shadow: inset 0 0 5px #44a0fc;
+  background: #535353;
+}
+.timeline-box::-webkit-scrollbar-track {
+  /*滚动条里面轨道*/
+  box-shadow: inset 0 0 5px #44a0fc;
+  border-radius: 10px;
+  background: #ededed;
+}
+</style>

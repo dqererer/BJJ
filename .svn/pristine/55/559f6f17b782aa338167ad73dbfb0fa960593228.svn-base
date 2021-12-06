@@ -1,0 +1,241 @@
+<template>
+  <div class="meeting">
+    <section>
+      <div class="title">见面沟通会（{{ jmList.length }}条）</div>
+      <el-table :data="jmList" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="meetName" label="会议主题" width="180">
+        </el-table-column>
+        <el-table-column prop="host" label="会议主持人" width="180">
+        </el-table-column>
+        <el-table-column prop="meetDate" label="会议时间"></el-table-column>
+        <el-table-column prop="szd" label="会议地点"></el-table-column>
+        <el-table-column prop="attendees" label="参会人员"></el-table-column>
+        <el-table-column label="会议纪要">
+          <template slot-scope="scope" >
+            <a
+            v-if="scope.row.meetingMinutesFileIds"
+              @click="
+                checkFile(scope.row.meetingMinutesFileIds, scope.column.label)
+              "
+              >会议纪要</a
+            >
+            <span v-else>-</span>
+          </template>
+          
+        </el-table-column>
+      </el-table>
+    </section>
+    <section>
+      <div class="title">动员会（{{ dyList.length }}条）</div>
+      <el-table :data="dyList" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="meetName" label="会议主题" width="180">
+        </el-table-column>
+        <el-table-column prop="host" label="会议主持人" width="180">
+        </el-table-column>
+        <el-table-column prop="meetDate" label="会议时间"> </el-table-column>
+        <el-table-column prop="szd" label="会议地点"> </el-table-column>
+        <el-table-column prop="attendees" label="参会人员"> </el-table-column>
+        <el-table-column label="组长讲话稿">
+          <template slot-scope="scope">
+            <a v-if="scope.row.leaderSpeechFileIds"
+              @click="
+                checkFile(scope.row.leaderSpeechFileIds, scope.column.label)
+              "
+              >组长讲话稿</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="副组长讲话稿">
+          <template slot-scope="scope">
+            <a v-if="scope.row.deputyLeaderSpeechFileIds"
+              @click="
+                checkFile(
+                  scope.row.deputyLeaderSpeechFileIds,
+                  scope.column.label
+                )
+              "
+              >副组长讲话稿</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </section>
+    <section>
+      <div class="title">汇报会（{{ hbList.length }}条）</div>
+      <el-table :data="hbList" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="meetName" label="会议主题" width="180">
+        </el-table-column>
+        <el-table-column prop="host" label="会议主持人" width="180">
+        </el-table-column>
+        <el-table-column prop="meetDate" label="会议时间"> </el-table-column>
+        <el-table-column prop="szd" label="会议地点"> </el-table-column>
+        <el-table-column prop="attendees" label="参会人员"> </el-table-column>
+        <el-table-column label="汇报稿">
+          <template slot-scope="scope">
+            <a v-if="scope.row.reportDraftFileIds"
+              @click="
+                checkFile(scope.row.reportDraftFileIds, scope.column.label)
+              "
+              >汇报稿</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </section>
+    <section>
+      <div class="title">督察组会（{{ dczList.length }}条）</div>
+      <el-table :data="dczList" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="meetName" label="会议主题" width="180">
+        </el-table-column>
+        <el-table-column prop="host" label="会议主持人" width="180">
+        </el-table-column>
+        <el-table-column prop="meetDate" label="会议时间"> </el-table-column>
+        <el-table-column prop="szd" label="会议地点"> </el-table-column>
+        <el-table-column prop="attendees" label="参会人员"> </el-table-column>
+        <el-table-column label="会议纪要">
+          <template slot-scope="scope">
+            <a v-if="scope.row.meetingMinutesFileIds"
+              @click="
+                checkFile(scope.row.meetingMinutesFileIds, scope.column.label)
+              "
+              >会议纪要</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </section>
+    <el-dialog
+      :title="fileTitle"
+      :visible.sync="check"
+      width="80%"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div v-for="(item, index) in fileList" v-bind:key="index">
+        <a href="#" @click="downloadFile(item.path)">{{ item.name }}</a>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import { findTeamMeetList } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+
+export default {
+  data() {
+    return {
+      total: 0,
+      id: "",
+      jmList: [],
+      dyList: [],
+      hbList: [],
+      dczList: [],
+      check: false,
+      fileList: [],
+      fileTitle: "",
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getTeamMeetList("2");
+    this.getTeamMeetList("3");
+    this.getTeamMeetList("4");
+    this.getTeamMeetList("5");
+  },
+  methods: {
+    getTeamMeetList: function (type) {
+      let key = "";
+      switch (type) {
+        case "2":
+          key = "jmList";
+          break;
+        case "3":
+          key = "dyList";
+          break;
+        case "4":
+          key = "hbList";
+          break;
+        case "5":
+          key = "dczList";
+          break;
+      }
+      findTeamMeetList({
+        teamId: this.id,
+        type,
+      }).then((res) => {
+        res.data.forEach((item) => {
+          item.szd = item.meetCityName + item.meetCountyName + item.meetAddress;
+        });
+        this[key] = res.data;
+      });
+    },
+    checkFile: function (fileIds, title) {
+      this.fileTitle = title;
+      let fileIdList = [];
+      if(fileIds){
+        fileIdList = fileIds.split(",");
+      }
+      fileIdList.forEach((item) => {
+        this.getFileInfo(item);
+      });
+      this.check = true;
+    },
+    getFileInfo: function (id) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this.fileList.push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.meeting {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+    a {
+    color: #2196f3;
+  }
+}
+</style>
+
+

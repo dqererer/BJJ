@@ -1,0 +1,569 @@
+<template>
+  <div>
+    <div class="title">下沉督察信息</div>
+    <div class="clue-info">
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>督察信息：
+          </span>
+          <span class="clue-item-input">{{teamInfo}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label" style="margin:0">
+            <i class="clue-import">*</i>下沉基本信息
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>下沉组名称：
+          </span>
+          <span class="clue-item-input">{{manageInfo.teamName}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>日志时间：
+          </span>
+          <span class="clue-item-input">{{manageInfo.sinkDate}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>下沉人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.sinkPerson}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label" style="margin:0">
+            <i class="clue-import">*</i>下沉日志信息
+          </span>
+        </div>
+      </div>
+
+      <div
+        class="clue-item-box"
+        v-for="(item,index) in manageInfo.evidenceWithAddrList"
+        :key="index"
+      >
+        <div class="clue-item">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>下沉地点：
+            </span>
+            <span class="clue-item-input">{{item.county}}{{item.address}}</span>
+          </div>
+        </div>
+        <div class="clue-item">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>主要核实问题：
+            </span>
+            <span class="clue-item-input">{{item.problemDescript}}</span>
+          </div>
+        </div>
+        <div class="clue-item clue-item-paper" v-if="item.discoverList.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>问题相关线索：
+            </span>
+            <div class="clue-item-file">
+              <span
+                class="accounChunk"
+                v-for="(item,index) in item.discoverList"
+                :key="index"
+              >{{ index + 1 }}、{{ item.name }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="clue-item" v-if="item.clewList.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>新发现线索：
+            </span>
+            <div class="clue-item-file" style="flex:1;">
+              <el-table :data="item.clewList">
+                <el-table-column prop="clueName" label="线索名称">
+                  <template v-slot="scope">
+                    <span
+                      class="accounChunkc"
+                      @click="handleClewClick(scope.row)"
+                    >{{scope.row.clueName}}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="聚焦到此问题" width="200px">
+                  <template v-slot="scope">
+                    <el-switch v-model="item.clewList[scope.$index].state" disabled></el-switch>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </div>
+        <div class="clue-item clue-item-paper" v-if="item.workArry.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>相关证书：
+            </span>
+            <div class="clue-item-file">
+              <span
+                class="accounChunk"
+                v-for="(item,index) in item.workArry"
+                :key="index"
+              >{{item.name}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="clue-item clue-item-paper" v-if="item.inspectArry.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>询问笔录：
+            </span>
+            <div class="clue-item-file">
+              <span
+                class="accounChunk"
+                @click="handleInspectClick(item.id)"
+                v-for="(item,index) in item.inspectArry"
+                :key="index"
+              >{{item.theme}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="clue-item clue-item-paper" v-if="item.spotArry.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>勘察笔录：
+            </span>
+            <div class="clue-item-file">
+              <span
+                class="accounChunk"
+                @click="handleSpotClick(item.id)"
+                v-for="(item,index) in item.spotArry"
+                :key="index"
+              >{{item.actualCityName}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="clue-item clue-item-paper" v-if="item.mediaArry.length>0">
+          <div class="clue-item-quare clue-item-inspect">
+            <span class="clue-item-label">
+              <i class="clue-import">*</i>多媒体记录：
+            </span>
+            <div class="clue-item-file">
+              <span
+                class="accounChunk"
+                @click="handleMediaClick(item.id)"
+                v-for="(item,index) in item.mediaArry"
+                :key="index"
+              >{{item.mediaExplain}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <inspect-index-preview
+      ref="inspectIndexRef"
+      :inspectName="inspectName"
+      @handleInspectIndexPreviewClose="handleInspectIndexPreviewClose"
+      :previewIndexOpen="previewIndexOpen"
+      v-if="previewIndexOpen"
+      :previewIndexOpenId="previewIndexOpenId"
+    ></inspect-index-preview>
+    <spot-index-preview
+      ref="spotIndexRef"
+      v-if="spotIndexOpen"
+      :inspectName="inspectName"
+      @handleSpotIndexPreviewClose="handleSpotIndexPreviewClose"
+      :spotIndexOpen="spotIndexOpen"
+      :spotIndexOpenId="spotIndexOpenId"
+    ></spot-index-preview>
+    <media-index-preview
+      ref="mediaIndexRef"
+      :mediaIndexOpen="mediaIndexOpen"
+      :mediaIndexId="mediaIndexId"
+      @handleMediaIndexClose="handleMediaIndexClose"
+    ></media-index-preview>
+  </div>
+</template>
+
+<script>
+import { threadTeamInfo, threadByAddress } from "@/api/InspectorClues";
+import { logClueListByTableAndId } from "@/api/burg/garrison";
+import inspectIndexPreview from "@/views/burg/garrison/sink/sinkIssue/inspectIndexPreview";
+import spotIndexPreview from "@/views/burg/garrison/sink/sinkIssue/spotIndexPreview";
+import mediaIndexPreview from "@/views/burg/garrison/sink/sinkIssue/mediaIndexPreview";
+export default {
+  components: {
+    inspectIndexPreview,
+    spotIndexPreview,
+    mediaIndexPreview
+  },
+  props: {
+    tailId: {
+      type: String
+    },
+    teamId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      teamInfo: undefined,
+      manageInfo: {
+        teamName: undefined,
+        sinkDate: undefined,
+        sinkPerson: undefined,
+        evidenceWithAddrList: []
+      },
+      previewIndexOpenId: undefined,
+      spotIndexOpenId: undefined,
+      mediaIndexId: undefined,
+      previewIndexOpen: false,
+      spotIndexOpen: false,
+      mediaIndexOpen: false,
+      inspectName: undefined
+    };
+  },
+  methods: {
+    handleInspectClick(id) {
+      this.previewIndexOpenId = id;
+      this.previewIndexOpen = true;
+      this.$nextTick(() => {
+        this.$refs.inspectIndexRef.handleEdit();
+      });
+    },
+    handleSpotClick(id) {
+      this.spotIndexOpenId = id;
+      this.spotIndexOpen = true;
+      this.$nextTick(() => {
+        this.$refs.spotIndexRef.handleEdit();
+      });
+    },
+    handleMediaClick(id) {
+      this.mediaIndexId = id;
+      this.mediaIndexOpen = true;
+      this.$nextTick(() => {
+        this.$refs.mediaIndexRef.handleEdit();
+      });
+    },
+    handleInspectIndexPreviewClose() {
+      this.previewIndexOpen = false;
+    },
+    handleSpotIndexPreviewClose() {
+      this.spotIndexOpen = false;
+    },
+    handleMediaIndexClose() {
+      this.mediaIndexOpen = false;
+    },
+    handleClewClick(data) {
+      this.$confirm("是否要跳转其他线索", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      }).then(() => {
+        this.$emit("handleNewClewInfo", data.clueId);
+      });
+    },
+    async getTeamInfo() {
+      const reponse = await threadTeamInfo({ id: this.teamId });
+      const subject = reponse.data;
+      this.teamInfo =
+        subject.superviseName +
+        subject.roundName +
+        subject.batchName +
+        subject.name;
+    },
+    async getInfo() {
+      const reponse = await threadByAddress({ id: this.tailId });
+      const subject = reponse.data;
+      this.manageInfo.teamName = subject.teamName;
+      this.manageInfo.sinkDate = subject.sinkDate;
+      this.manageInfo.sinkPerson = subject.sinkPerson;
+      for (const item in subject.evidenceWithAddrList) {
+        const subjectc = subject.evidenceWithAddrList[item];
+        this.manageInfo.evidenceWithAddrList.push({});
+        this.manageInfo.evidenceWithAddrList[item].county = subjectc.county;
+        this.manageInfo.evidenceWithAddrList[item].address = subjectc.address;
+        this.manageInfo.evidenceWithAddrList[item].problemDescript =
+          subjectc.problemDescript;
+        this.manageInfo.evidenceWithAddrList[item].discoverList = [];
+        this.manageInfo.evidenceWithAddrList[item].clewList = [];
+        const childMap = subjectc.childMap;
+        if (subjectc.childMap) {
+          if (childMap.szList) {
+            const workArry = [];
+            for (const item in childMap.szList) {
+              const subject = childMap.szList[item];
+              const temp = {
+                id: subject.id,
+                name: subject.name
+              };
+              workArry.push(temp);
+            }
+            this.manageInfo.evidenceWithAddrList[item].workArry = workArry;
+          } else {
+            this.manageInfo.evidenceWithAddrList[item].workArry = [];
+          }
+          if (childMap.dcxwList) {
+            const inspectArry = [];
+            for (const itemb in childMap.dcxwList) {
+              const subjectb = childMap.dcxwList[itemb];
+              inspectArry.push({
+                id: subjectb.id,
+                theme: subjectb.theme + "询问笔录"
+              });
+            }
+            this.manageInfo.evidenceWithAddrList[
+              item
+            ].inspectArry = inspectArry;
+          } else {
+            this.manageInfo.evidenceWithAddrList[item].inspectArry = [];
+          }
+          if (childMap.kcblList) {
+            const spotArry = [];
+            const kcblList = childMap.kcblList;
+            for (const item in kcblList) {
+              const subjectb = kcblList[item];
+              spotArry.push({
+                actualCityName: subjectb.actualCityName + "勘察笔录",
+                id: subjectb.id
+              });
+            }
+            this.manageInfo.evidenceWithAddrList[item].spotArry = spotArry;
+          } else {
+            this.manageInfo.evidenceWithAddrList[item].spotArry = [];
+          }
+          if (childMap.mediaList) {
+            const mediaArry = [];
+            const mediaList = childMap.mediaList;
+            for (const item in mediaList) {
+              const subjectb = mediaList[item];
+              mediaArry.push({
+                mediaExplain: subjectb.mediaExplain + "现场多媒体证据",
+                id: subjectb.id
+              });
+            }
+            this.manageInfo.evidenceWithAddrList[item].mediaArry = mediaArry;
+          } else {
+            this.manageInfo.evidenceWithAddrList[item].mediaArry = [];
+          }
+          const clewList = [];
+          const focusClue = childMap.focusClue;
+          const unfocusClue = childMap.unfocusClue;
+          if (childMap.focusClue) {
+            focusClue.map(item => {
+              item["state"] = true;
+            });
+            clewList.push(...focusClue);
+          }
+          if (childMap.unfocusClue) {
+            unfocusClue.map(item => {
+              item["state"] = false;
+            });
+            clewList.push(...unfocusClue);
+          }
+          this.manageInfo.evidenceWithAddrList[item].clewList = clewList;
+        } else {
+          this.manageInfo.evidenceWithAddrList[item].workArry = [];
+          this.manageInfo.evidenceWithAddrList[item].inspectArry = [];
+          this.manageInfo.evidenceWithAddrList[item].spotArry = [];
+          this.manageInfo.evidenceWithAddrList[item].mediaArry = [];
+        }
+        this.$nextTick(() => {
+          this.handleSinkPrombleChange(item, subjectc.problemId);
+        });
+      }
+    },
+    async handleSinkPrombleChange(item, relationId) {
+      const reponse = await logClueListByTableAndId({
+        relationTable: "TInspectProblem",
+        relationId
+      });
+      let data;
+      if (reponse.data) {
+        data = JSON.parse(JSON.stringify(reponse.data));
+      }
+      const addrList = this.manageInfo.evidenceWithAddrList[item].clewList;
+      if (addrList) {
+        const clewList = JSON.parse(
+          JSON.stringify(this.manageInfo.evidenceWithAddrList[item].clewList)
+        );
+        const result = [];
+        for (let i = 0; i < data.length; i++) {
+          const isExist = false;
+          for (let j = 0; j < clewList.length; j++) {
+            if (clewList[j].clueId == data[i].id) {
+              isExist = true;
+              break;
+            }
+          }
+          if (!isExist) {
+            result.push(data[i]);
+          }
+        }
+        this.$set(
+          this.manageInfo.evidenceWithAddrList[item],
+          "discoverList",
+          result
+        );
+      } else {
+        this.manageInfo.evidenceWithAddrList[item].discoverList = data;
+      }
+      // let newArr = [];
+      // let isExit;
+      // for (let i = 0; i < data.length; i++) {
+      //   for (let j = 0; j < clewList.length; j++) {
+      //     if (data[i].id === clewList[j].clueId) {
+      //       isExit = true;
+      //     }
+      //   }
+      //   isExit && newArr.push(data[i]);
+      // }
+      // console.log(newArr);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.title {
+  height: 20px;
+  border-left: 3px solid #2196f3;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.clue-info {
+  width: 100%;
+  .clue-item {
+    display: flex;
+    margin-top: 16px;
+    &.two-clue-item {
+      .clue-item-quare {
+        &:first-child {
+          margin-right: 16px;
+        }
+      }
+    }
+    .clue-item-quare {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      &.clue-item-inspect {
+        flex-direction: row;
+        .clue-item-label {
+          width: 110px;
+          text-align: right;
+          margin-bottom: 0;
+          margin-top: 10px;
+        }
+      }
+      .clue-item-file {
+        display: block;
+      }
+      .clue-item-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        .clue-import {
+          display: inline-block;
+          margin-right: 4px;
+          color: #f56c6c;
+        }
+      }
+      .clue-item-input {
+        width: 100%;
+        min-height: 32px;
+        line-height: 32px;
+        font-size: 14px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding-left: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+        flex: 1;
+      }
+      .clue-item-select {
+        display: flex;
+        .clue-item-select-city {
+          width: 11%;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          margin-right: 16px;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+        .clue-item-select-address {
+          flex: 1;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}
+.clue-question {
+  display: flex;
+  flex-direction: column;
+  .question-item {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    .question-top {
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+    .question-bottom {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+  }
+}
+.clue-item-paper .clue-item-label {
+  margin-top: 4px !important;
+}
+.accounChunk {
+  display: block;
+  padding: 4px 10px 4px 10px;
+  background-color: #eee;
+  margin-bottom: 4px;
+}
+.accounChunkc {
+  color: blue;
+  cursor: pointer;
+}
+.clue-item-box {
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+</style>

@@ -1,0 +1,46 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import login from '@/views/login'
+import forget from '@/views/forget'
+import onemap from '@/views/oneMap'
+import platform from '@/views/platform'
+import abc from '@/views/implement/dispatch/programme'
+import abc2 from '@/views/burg/garrison/municipal/acceptReport/caseTransact'
+
+Vue.use(VueRouter)
+
+
+import Layout from '@/layout'
+import ParentView from '@/components/ParentView';
+
+export const constantRoutes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: (resolve) => require(['@/views/login'], resolve),
+  },
+  {
+    path: '/onemap',
+    name: 'onemap',
+    component: (resolve) => require(['@/views/oneMap'], resolve),
+  },
+  {
+    path: '/platform',
+    name: 'platform',
+    component: (resolve) => require(['@/views/platform'], resolve),
+  }
+]
+
+const router = new VueRouter({
+  mode: 'history',
+  scrollBehavior: () => ({ y: 0 }),
+  routes: constantRoutes
+})
+
+export default router
+
+
+// const originalPush = VueRouter.prototype.push
+// VueRouter.prototype.push = function push(location) {
+//   return originalPush.call(this, location).catch(err => err)
+// }

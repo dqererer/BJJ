@@ -1,0 +1,18 @@
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+// 整改方案
+const getAllSearchData = params => getAction(path + `/center/env/getEnvList`, params);  //参数查询，根据输入框和多选框筛选查询条件
+const getTeamInfo = params => getAction(path + `/center/tinspect/team/tInspectTeam/getTeamInfo`, params);  //获取督察组信息
+const findTeamClueInfo = params => getAction(path + `/center/clue/main/tClueMain/findTeamClueInfo`, params);  //获取线索信息
+const findTeamMeetList = params => getAction(path + `/center/tinspect/meet/tInspectMeet/findTeamMeetList`, params);  //获取会议信息
+const getRegisterList = params => getAction(path + `/center/ttip/tInspectTip/registerList`, params);  //获取举报信息
+const findTeamInfoListPage = params => getAction(path + `/center/tinspect/infolist/tInspectInfoList/findTeamInfoListPage`, params);  //资料提供
+
+export {
+  getAllSearchData,
+  getTeamInfo,
+  findTeamClueInfo,
+  findTeamMeetList,
+  getRegisterList,
+  findTeamInfoListPage
+}

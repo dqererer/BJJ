@@ -1,0 +1,91 @@
+<template>
+  <div class="jubao">
+    <div class="title">
+     wz-- {{wz}},jb--{{jb}}
+      <el-link :type="jb" :underline="false" @click="getTable('jb')">信访举报（{{ jubaoList.length }}条）</el-link>
+      <div style="margin-right:20px;margin-left:10px">/</div>
+      <el-link :type="wz" :underline="false"  @click="getTable('wz')">信访问责（{{ jubaoList.length }}条）</el-link>
+    </div>
+    <el-table :data="jubaoList" border style="width: 100%">
+      <el-table-column type="index" label="序号" width="180"></el-table-column>
+      <el-table-column prop="clueName" label="线索名称" width="180">
+      </el-table-column>
+      <el-table-column prop="clueContent" label="线索内容" width="180">
+      </el-table-column>
+      <el-table-column prop="szd" label="线索所在地"> </el-table-column>
+      <el-table-column prop="updateDate" label="发现时间"> </el-table-column>
+    </el-table>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :pageNo.sync="pageNo"
+      :limit.sync="pageSize"
+      @pagination="goSearch"
+    />
+  </div>
+</template>
+<script>
+import { findTeamClueInfo } from "@/api/support/search";
+
+export default {
+  data() {
+    return {
+      pageNo: 1,
+      pageSize: 10,
+      total: 0,
+      id: "",
+      jubaoList: [],
+      cur: 'jb',
+    };
+  },
+computed:{
+  jb: function(){
+    return this.cur == 'jb'? 'primary': 'info';
+  },
+  wz: function(){
+    return this.cur == 'wz'? 'primary': 'info';
+  }
+},
+  created() {
+    this.id = this.$route.query.id;
+    this.getTeamClueInfo();
+  },
+  methods: {
+    getTable: function(type){
+      debugger
+      this.cur == type;
+      if(type == 'jb'){
+        this.getTeamClueInfo;
+      }
+    },
+    getTeamClueInfo: function () {
+      findTeamClueInfo({
+        pageNo: this.pageNo,
+        pageSize: this.pageSize,
+        inspectTeamId: this.id,
+      }).then((res) => {
+        res.data.list.forEach((item) => {
+          item.szd = item.city + item.county + item.town + item.address;
+        });
+        this.tableData = res.data.list;
+        this.total = res.data.count;
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.jubao {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+  }
+}
+</style>
+
+

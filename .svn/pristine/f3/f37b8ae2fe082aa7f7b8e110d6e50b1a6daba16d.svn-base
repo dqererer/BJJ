@@ -1,0 +1,191 @@
+import { constantRoutes } from '@/router'
+import { getRouters } from '@/api/styem/menu'
+import { findSysByUser, getUserSysMenu } from '@/api/findeSystem'
+import Layout from '@/layout/index'
+import ParentView from '@/components/ParentView';
+
+import { getStorageRouters, setRouters } from '../../utils/storage'
+import { Store } from 'vuex';
+import router from '../../router';
+const permission = {
+  state: {
+    routes: [],
+    defaultRoutes: [],
+    topbarRouters: [],
+    sidebarRouters: [],
+  },
+  mutations: {
+    SET_ROUTES: (state, routes) => {
+      if (state.routes.length == 0) {
+        state.routes = constantRoutes;
+      } else {
+        state.routes = state.routes.concat(routes);
+      }
+    },
+    SET_DEFAULT_ROUTES: (state, routes) => {
+      state.defaultRoutes = constantRoutes.concat(routes)
+    },
+    SET_TOPBAR_ROUTES: (state, routes) => {
+      state.topbarRouters = routes;
+    },
+    SET_SIDEBAR_ROUTERS: (state, routes) => {
+      state.sidebarRouters = routes
+    },
+    // SET_SYSTEM_ROUTERS: (state, routes) => {
+    //   state.systemRoutes = routes
+    // },
+  },
+  actions: {
+    GenerateRoutes({ commit, state }) {
+      return new Promise(resolve => {
+        getRouters().theFromSessionStoragen(res => {
+          const sdata = JSON.parse(JSON.stringify(res.data))
+          const rdata = JSON.parse(JSON.stringify(res.data))
+          const sidebarRoutes = filterAsyncRouter(sdata)
+          const rewriteRoutes = filterAsyncRouter(rdata, false, true)
+          // rewriteRoutes.push({ path: '*', redirect: '/inspectorate/singleton', hidden: true })
+          commit('SET_ROUTES', rewriteRoutes)
+          commit('SET_SIDEBAR_ROUTERS', constantRoutes.concat(sidebarRoutes))
+          commit('SET_DEFAULT_ROUTES', sidebarRoutes)
+          // commit('SET_TOPBAR_ROUTES', sidebarRoutes)
+          resolve(rewriteRoutes)
+        })
+      })
+    },
+    findSysByUser({ commit, state }) {
+      return new Promise(resolve => {
+        findSysByUser().then(res => {
+          if (!res.data) {
+            resolve('empty');
+            return;
+          }
+          if (res.code == '200') {
+            let systemData = JSON.parse(JSON.stringify(res.data));
+            let arr = JSON.parse(JSON.stringify(res.data));
+            const systemRoutes = filterAsyncRouter(arr, false, true)
+            let obj = {
+              systemData,
+              systemRoutes
+            }
+            commit('SET_ROUTES', systemRoutes)
+            setRouters('findSysByUser', res.data);
+            resolve(obj)
+          }
+        })
+      })
+    },
+    getSystemMenu({ commit, state }, payload) {
+      return new Promise(resolve => {
+        getUserSysMenu({ sysId: payload }).then((res) => {
+          if (res.code == '200') {
+            let systemData = JSON.parse(JSON.stringify(res.data));
+
+            const systemRoutes = filterAsyncRouter(systemData)
+            commit('SET_ROUTES', systemRoutes)
+            commit('SET_TOPBAR_ROUTES', systemRoutes)
+
+            commit('SET_SIDEBAR_ROUTERS', constantRoutes.concat(systemRoutes))
+            setRouters('topbar_router', res.data);
+            setRouters(payload, res.data);
+
+            resolve(systemRoutes)
+          } else {
+
+          }
+        }).catch((err) => {
+        })
+      })
+
+    },
+  }
+}
+
+function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {
+  return asyncRouterMap.filter(route => {
+    if (type && route.children) {
+      route.children = filterChildren(route.children)
+    }
+    if (route.component) {
+      if (route.component === 'Layout') {
+        route.component = Layout
+      } else if (route.component === 'ParentView') {
+        route.component = ParentView
+      } else {
+        route.component = loadView(route.component)
+      }
+    }
+    route.meta = {}
+    if (route.name) {
+      route.meta['title'] = route.name
+      delete route['name']
+    }
+    if (route.icon) {
+      route.meta['icon'] = route.icon
+      delete route['icon']
+    }
+    if (route.router) {
+      route.name = route.router
+      delete route['router']
+    }
+    if (route.href) {
+      route.path = route.href
+      delete route['href']
+    }
+    if (route.children != null && route.children && route.children.length) {
+      route.children = filterAsyncRouter(route.children, route, type)
+    } else {
+      delete route['children']
+      delete route['redirect']
+    }
+    return true
+  })
+}
+
+function filterChildren(childrenMap, lastRouter = false) {
+  var children = []
+  childrenMap.forEach((el, index) => {
+    if (el.children && el.children.length) {
+      if (el.component === 'ParentView') {
+        el.children.forEach(c => {
+          c.href = el.href + '/' + c.href
+          if (c.children && c.children.length) {
+            children = children.concat(filterChildren(c.children, c))
+            return
+          }
+          children.push(c)
+        })
+        return
+      }
+    }
+    if (lastRouter) {
+      el.path = lastRouter.path + '/' + el.path
+    }
+    children = children.concat(el)
+  })
+  return children
+}
+
+function routersInit() {
+  let routersSource = getStorageRouters('routers');
+  let topBarSource = getStorageRouters('topbar_router');
+
+  if (topBarSource) {
+    permission.state.topbarRouters = filterAsyncRouter(JSON.parse(JSON.stringify(topBarSource)))
+    permission.state.sidebarRouters = filterAsyncRouter(JSON.parse(JSON.stringify(constantRoutes.concat(topBarSource))))
+  }
+  if (routersSource) {
+    for (let key in routersSource) {
+      let routeItem = filterAsyncRouter(JSON.parse(JSON.stringify(routersSource[key])))
+      router.addRoutes(routeItem);
+    }
+  }
+
+}
+
+export const loadView = (view) => {
+  return (resolve) => require([`@/views/${view}`], resolve)
+}
+
+routersInit();
+
+export default permission

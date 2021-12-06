@@ -1,0 +1,261 @@
+<template>
+  <div id="informationPlatform">
+    <div class="wrap"></div>
+    <div class="content">
+      <div class="title">
+        <img
+          src="../../assets/images/platform/platform-title.png"
+          alt=""
+          style="width: 1000px"
+        />
+        <img
+          src="../../assets/images/platform/platform-my.png"
+          alt=""
+          style="width: 400px"
+        />
+      </div>
+      <section>
+        <div class="platform-list">
+          <div
+            class="platform"
+            :class="{ cur: curIndex == index }"
+            v-for="(item, index) in sysList"
+            v-bind:key="index"
+            @mouseenter="showCur(index)"
+            @click="handleClick(item)"
+          >
+            <img
+              :src="
+                require('../../assets/images/platform/' + item.class + '.png')
+              "
+              alt=""
+            />
+            <p>{{ item.title }}</p>
+          </div>
+        </div>
+        <div class="subplatform-list" v-if="subList">
+          <div
+            class="subplatform"
+            v-for="(item, index) in subList"
+            v-bind:key="index"
+            @click="goToSub(item)"
+          >
+            <div class="icon">
+              <img
+                :src="
+                  require('../../assets/images/platform/' + item.class + '.png')
+                "
+                alt=""
+              />
+            </div>
+            <p>{{ item.title }}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "../../router";
+import { getStorageRouters, setItem } from "../../utils/storage";
+import { getSubSystem } from "@/api/findeSystem";
+export default {
+  name: "informationPlatform",
+  data() {
+    return {
+      sysList: [],
+      routersSource: {},
+      curIndex: 0,
+      subList: [],
+    };
+  },
+  created: function () {
+    this.routersSource = getStorageRouters("topbar_router") || {};
+    this.getSystemRoutes();
+  },
+  methods: {
+    handleClick: function (item) {
+      if (item.name == "onemap") {
+        let routeData = this.$router.resolve({ path: item.path });
+        window.open(routeData.href, "_blank");
+      } else if (!item.child) {
+        this.$store.dispatch("getSystemMenu", item.id).then((res) => {
+          setItem("backPath", "platform");
+          router.addRoutes(res);
+          this.$router.push({ path: res[0].path });
+        });
+      }
+    },
+    goToSub: function (item) {
+      setItem("superviseItem", JSON.stringify(item));
+      let key = item.id;
+      let code = item.code;
+      let obj = getStorageRouters("topbar_router") || {};
+      if (!obj.hasOwnProperty(key)) {
+        this.$store.dispatch("InspectUserInfo", { code }).then((res) => {
+          this.$store.dispatch("getSystemMenu", key).then((res) => {
+            setItem("backPath", "platform");
+            router.addRoutes(res);
+            this.$router.push({ path: res[0].path });
+          });
+        });
+      }
+    },
+    getSystemRoutes: function () {
+      let obj = this.routersSource;
+      if (obj.hasOwnProperty("findSysByUser")) {
+        this.routeUIInit(JSON.parse(JSON.stringify(obj["findSysByUser"])));
+      }
+      this.$store
+        .dispatch("findSysByUser")
+        .then((res) => {
+          router.addRoutes(res.systemRoutes);
+          this.sysList = res.systemData;
+          this.sysList.forEach((item, index) => {
+            if (item.child == true) {
+              this.curIndex = index;
+              this.showCur(index);
+            }
+          });
+        })
+        .catch((err) => {});
+    },
+    showCur: function (index) {
+      this.curIndex = index;
+      if (this.sysList[index].child) {
+        let baseList = this.sysList[index].children;
+        getSubSystem().then((res) => {
+          if (res.code == "200") {
+            baseList.forEach((item) => {
+              Object.assign(item, res.data[item.code]);
+            });
+          }
+        });
+        this.subList = baseList;
+      } else {
+        this.subList = undefined;
+      }
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+#informationPlatform {
+  width: 100%;
+  height: 100%;
+  background: url(../../assets/images/platform/platform-bg.png) no-repeat top
+    center;
+  background-size: 100% 100%;
+  .wrap {
+    width: 90%;
+    height: 90%;
+    border-bottom-left-radius: 36px;
+    border-bottom-right-radius: 36px;
+    background: white;
+    opacity: 0.1;
+    margin: 0 auto;
+  }
+  .content {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    height: 90%;
+    margin-left: -650px;
+    width: 1300px;
+    padding-top: 4%;
+    .title {
+      // height: ;
+      img {
+        display: block;
+        margin: 0 auto;
+        padding-bottom: 20px;
+      }
+    }
+    section {
+      height: calc(100% - 170px);
+      .platform-list {
+        width: 90%;
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        height: 60%;
+        align-items: center;
+        .platform {
+          width: 150px;
+          height: 150px;
+          margin: 0 10px;
+          box-shadow: 0px 10px 15px -2px #4b4b4b;
+          color: white;
+          font-weight: bold;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          img {
+            padding: 10px;
+            width: 60px;
+            height: 60px;
+          }
+          p {
+            margin: 0;
+          }
+        }
+        .platform:nth-child(even) {
+          background: linear-gradient(#ffd25b, #ffa727);
+        }
+        .platform:nth-child(odd) {
+          background: linear-gradient(#60f5d1, #04b6c0);
+        }
+        // .left{
+        //   // transform:skew(10deg,10deg);
+        //    transform:skewY(10deg) scale3d(.5,.5,.8);
+        // }
+        .cur {
+          width: 190px;
+          height: 190px;
+          // margin-top: -14px;
+          img {
+            width: 80px;
+            height: 80px;
+          }
+        }
+      }
+      .subplatform-list {
+        display: flex;
+        height: 40%;
+        width: 76%;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+        .subplatform {
+          margin: 0 10px;
+          cursor: pointer;
+          .icon {
+            background: white;
+            border-radius: 40px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            img {
+              padding: 0;
+              width: 36px;
+              height: 36px;
+            }
+          }
+          color: white;
+          p {
+            margin: 10px 0;
+            font-weight: bold;
+          }
+        }
+      }
+    }
+  }
+}
+</style>

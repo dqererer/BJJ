@@ -1,0 +1,732 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">个别谈话</h1>
+    <div class="tab-list-content">
+      <national-info></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="谈话领导：">
+                <el-input
+                  v-model="queryParams.arrangeSpeaker"
+                  placeholder="请输入谈话领导"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="被谈话人：">
+                <el-input
+                  v-model="queryParams.arrangeInterviewee"
+                  placeholder="请输入被谈话人"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <el-button size="small" @click="handleImport" type="primary"
+          >导入</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column label="谈话安排情况">
+          <el-table-column
+            prop="arrangeSpeaker"
+            label="谈话领导"
+            :show-overflow-tooltip="true"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="arrangeInterviewee"
+            label="被谈话人"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="arrangeIntervieweePost"
+            label="被谈话人职务"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="arrangeTime"
+            label="谈话时间"
+            width="180px"
+          ></el-table-column>
+          <el-table-column label="谈话地点" width="280px">
+            <template slot-scope="scope">
+              {{ scope.row.actualCityName }}{{ scope.row.actualCountyName
+              }}{{ scope.row.actualAddress }}
+            </template>
+          </el-table-column>
+        </el-table-column>
+        <el-table-column label="谈话记录情况">
+          <el-table-column
+            prop="whetherTalkName"
+            label="是否记录"
+            :show-overflow-tooltip="true"
+            width="80px"
+          >
+          </el-table-column>
+          <el-table-column
+            prop="actualSpeaker"
+            label="谈话领导"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="actualInterviewee"
+            label="被谈话人"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="actualIntervieweePost"
+            label="被谈话人职务"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="startTime"
+            label="谈话时间"
+            width="180px"
+          ></el-table-column>
+          <el-table-column
+            prop="actualAddress"
+            label="谈话地点"
+            width="200px"
+          ></el-table-column>
+          <el-table-column
+            prop="actualRecord"
+            label="记录人"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="attachmentId"
+            label="谈话记录"
+            width="120px"
+          ></el-table-column>
+        </el-table-column>
+        <el-table-column label="操作" width="240">
+          <template slot-scope="scope">
+            <div v-if="scope.row.whetherTalk == 0">
+              <el-button
+                size="mini"
+                type="success"
+                @click="handleRecord(scope.row)"
+                >添加记录</el-button
+              >
+              <el-button
+                size="mini"
+                type="primary"
+                @click="handleEdit(scope.row)"
+                >修改</el-button
+              >
+              <el-button
+                size="mini"
+                type="danger"
+                @click="handleDelete(scope.row)"
+                >删除</el-button
+              >
+            </div>
+            <div v-if="scope.row.whetherTalk == 1">
+              <el-button
+                size="mini"
+                type="success"
+                @click="handleRecord(scope.row)"
+                >修改记录</el-button
+              >
+              <el-button
+                size="mini"
+                type="primary"
+                @click="handleEdit(scope.row)"
+                >预览</el-button
+              >
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNum.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="新增资料清单"
+      :visible.sync="open"
+      width="1000px"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">谈话安排信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="谈话时间：" prop="arrangeTime">
+              <el-date-picker
+                v-model="dialogParams.arrangeTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择谈话时间"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="谈话领导：" prop="arrangeSpeakerIds">
+              <el-select
+                v-model="dialogParams.arrangeSpeakerIds"
+                placeholder="请选择谈话领导"
+                multiple
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="被谈话人：" prop="arrangeInterviewee">
+              <el-input
+                v-model="dialogParams.arrangeInterviewee"
+                placeholder="请输入被谈话人"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="被谈话人职务：" prop="arrangeIntervieweePost">
+              <el-input
+                v-model="dialogParams.arrangeIntervieweePost"
+                placeholder="请输入被谈话人职务"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="谈话地点："
+              class="meet-address"
+              prop="arrangeAddress"
+            >
+              <el-select
+                v-model="dialogParams.arrangeCityCode"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.arrangeCountyCode"
+                filterable
+                placeholder="请选择县"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-input
+                v-model="dialogParams.arrangeAddress"
+                placeholder="详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="添加记录"
+      :visible.sync="recordOpen"
+      width="1000px"
+      :before-close="handleDialogRecordClose"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">谈话安排信息</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">谈话时间：</span>
+            <span class="info-item-content">{{ recordInfo.arrangeTime }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">谈话领导：</span>
+            <span class="info-item-content">{{
+              recordInfo.arrangeSpeaker
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">被谈话人：</span>
+            <span class="info-item-content">{{
+              recordInfo.arrangeInterviewee
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">被谈话人职务：</span>
+            <span class="info-item-content">{{
+              recordInfo.arrangeIntervieweePost
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <span class="info-item-title">谈话地点：</span>
+          <span class="info-item-content"
+            >{{ recordInfo.actualCityName }}{{ recordInfo.actualCountyName
+            }}{{ recordInfo.actualAddress }}</span
+          >
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">相关线索信息</h1>
+      </div>
+
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">谈话记录</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogRecordParams"
+        :rules="dialogRecordRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="谈话时间：" prop="startTime">
+              <el-date-picker
+                v-model="dialogRecordParams.startTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择谈话时间"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="谈话人员：" prop="actualSpeakerIds">
+              <el-select
+                v-model="dialogRecordParams.actualSpeakerIds"
+                placeholder="请选择谈话人员"
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="记录人员：" prop="actualRecordId">
+              <el-select
+                v-model="dialogRecordParams.actualRecordId"
+                placeholder="请选择记录人员务"
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="被谈话人：" prop="actualInterviewee">
+              <el-input
+                v-model="dialogRecordParams.actualInterviewee"
+                placeholder="请输入被谈话人"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="单位：" prop="actualIntervieweeUnit">
+              <el-input
+                v-model="dialogRecordParams.actualIntervieweeUnit"
+                placeholder="请输入单位"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="职务：" prop="actualIntervieweePost">
+              <el-input
+                v-model="dialogRecordParams.actualIntervieweePost"
+                placeholder="请输入职务"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="谈话地点："
+              class="meet-address"
+              prop="actualAddress"
+            >
+              <el-select
+                v-model="dialogRecordParams.actualCityCode"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogRecordParams.actualCountyCode"
+                filterable
+                placeholder="请选择县"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-input
+                v-model="dialogRecordParams.actualAddress"
+                placeholder="请输入详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="其他参与人员：" prop="otherHander">
+              <el-input
+                v-model="dialogRecordParams.otherHander"
+                placeholder="请输入其他参与人员"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogRecordSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogRecordClose"
+            >关闭</el-button
+          >
+        </div>
+      </el-form>
+    </el-dialog>
+    <import-dialog
+      :importOpen="importOpen"
+      :importUrl="importUrl"
+      :importDownUrl="importDownUrl"
+      title="谈话安排导入"
+      @changeOpen="changeImportOpen"
+      @update="getList"
+    ></import-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  severalList,
+  severalSave,
+  severalInfoSave,
+  severalSee,
+  severalDelete,
+  severalPersonList
+} from "@/api/burg/garrison";
+import examineInfo from "@/components/examineInfo";
+import importDialog from "@/components/importDialog";
+import nationalInfo from "@/components/nationalInfo";
+import { areaTreeNew } from "@/api/styem/dept";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo,
+    importDialog
+  },
+  data() {
+    return {
+      showSearch: true,
+      documentArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        type: 1,
+        arrangeSpeaker: undefined,
+        arrangeInterviewee: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        arrangeTime: undefined,
+        arrangeSpeakerIds: undefined,
+        arrangeInterviewee: undefined,
+        arrangeIntervieweePost: undefined,
+        arrangeCityCode: undefined,
+        arrangeCountyCode: undefined,
+        arrangeAddress: undefined
+      },
+      dialogRules: {
+        arrangeTime: [{ required: true, message: "请选择谈话时间" }],
+        arrangeSpeakerIds: [{ required: true, message: "请选择谈话领导" }],
+        arrangeInterviewee: [{ required: true, message: "请输入被谈话人" }],
+        arrangeIntervieweePost: [
+          { required: true, message: "请输入被谈话人职务" }
+        ],
+        arrangeAddress: [{ required: true, message: "请输入谈话地点" }]
+      },
+      countyArry: [],
+      personArry: [],
+      recordOpen: false,
+      recordInfo: {
+        arrangeTime: undefined,
+        arrangeSpeaker: undefined,
+        arrangeInterviewee: undefined,
+        arrangeIntervieweePost: undefined,
+        actualCityName: undefined,
+        actualCountyName: undefined,
+        arrangeAddress: undefined
+      },
+      dialogRecordParams: {
+        startTime: undefined,
+        actualSpeakerIds: undefined,
+        actualRecordId: undefined,
+        actualInterviewee: undefined,
+        actualIntervieweeUnit: undefined,
+        actualIntervieweePost: undefined,
+        actualCityCode: undefined,
+        actualCountyCode: undefined,
+        actualAddress: undefined,
+        otherHander: undefined
+      },
+      dialogRecordRules: {
+        startTime: [{ required: true, message: "请选择谈话时间" }],
+        actualSpeakerIds: [{ required: true, message: "请选择谈话人员" }],
+        actualRecordId: [{ required: true, message: "请选择记录人员务" }],
+        actualInterviewee: [{ required: true, message: "请输入被谈话人" }],
+        actualIntervieweeUnit: [{ required: true, message: "请输入单位" }],
+        actualIntervieweePost: [{ required: true, message: "请输入职务" }],
+        actualAddress: [{ required: true, message: "请输入详细地址" }],
+        otherHander: [{ required: true, message: "请输入其他参与人员" }]
+      },
+      importOpen: false,
+      importDownUrl: "",
+      importUrl: ""
+    };
+  },
+  created() {
+    this.getList();
+    this.getPersonList();
+  },
+  computed: {
+    ...mapGetters(["areaArry"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await severalList(this.queryParams);
+      reponse.data.list.map(item => {
+        item["whetherTalkName"] = item.whetherTalk == 1 ? "是" : "否";
+      });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async handleCityChange(code) {
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async getPersonList(code) {
+      const reponse = await severalPersonList();
+      this.personArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.arrangeSpeaker = undefined;
+      this.queryParams.arrangeInterviewee = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+      this.handleformClear("dialogForm");
+    },
+    handleDialogClose() {
+      this.dialogParams.arrangeCountyCode = undefined;
+      this.dialogParams.arrangeCityCode = undefined;
+      this.open = false;
+    },
+    handleImport() {
+      this.importOpen = true;
+    },
+    changeImportOpen() {
+      this.importOpen = false;
+    },
+    async handleEdit(data) {
+      const { id } = data;
+      this.open = true;
+      const reponse = await severalSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.arrangeTime = subject.arrangeTime;
+      this.dialogParams.arrangeSpeaker = subject.arrangeSpeaker;
+      this.dialogParams.arrangeInterviewee = subject.arrangeInterviewee;
+      this.dialogParams.arrangeIntervieweePost = subject.arrangeIntervieweePost;
+      this.dialogParams.arrangeCityCode = subject.arrangeCityCode;
+      this.dialogParams.arrangeCountyCode = subject.arrangeCountyCode;
+      this.dialogParams.arrangeAddress = subject.arrangeAddress;
+      this.handleCityChange(subject.arrangeCityCode);
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const reponse = await severalSave(this.dialogParams);
+          this.getList();
+          this.open = false;
+        }
+      });
+    },
+    handleRecord(data) {
+      this.recordOpen = true;
+      this.getReacodInfo(data);
+    },
+    getReacodInfo(data) {
+      this.recordInfo.arrangeTime = data.arrangeTime;
+      this.recordInfo.arrangeSpeaker = data.arrangeSpeaker;
+      this.recordInfo.arrangeInterviewee = data.arrangeInterviewee;
+      this.recordInfo.arrangeIntervieweePost = data.arrangeIntervieweePost;
+      this.recordInfo.actualCityName = data.actualCityName;
+      this.recordInfo.actualCountyName = data.actualCountyName;
+      this.recordInfo.arrangeAddress = data.arrangeAddress;
+    },
+    handleDialogRecordClose() {
+      this.recordOpen = false;
+    },
+    dailogRecordSubmit() {},
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await severalDelete({ id });
+        this.getList();
+      });
+    },
+    dailogRegisterSubmit() {
+      this.$refs.dialogRegisterForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await consultSave(this.registerParams);
+          loading.close();
+          this.getList();
+          this.register.open = false;
+          this.handleformClear("dialogRegisterForm");
+          this.$refs.uploadFile.handleClear();
+        }
+      });
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.registerParams[file.fromKey].push(file.fileId);
+    },
+    deleteServeFile(file) {
+      const fromKeyVal = this.registerParams[file.fromKey];
+      const fileId = file.fileId;
+      const fromKey = file.fromKey;
+      const index = fromKeyVal.indexOf(fileId);
+      this.registerParams[file.fromKey].splice(index, 1);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 25%;
+      }
+      .el-input {
+        width: 50%;
+      }
+    }
+  }
+}
+.info-item-title {
+  width: 100px !important;
+}
+</style>

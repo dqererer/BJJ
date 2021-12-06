@@ -1,0 +1,160 @@
+<template>
+  <el-menu
+    :default-active="activeMenu"
+    mode="horizontal"
+    @select="handleSelect"
+  >
+    <template v-for="(item, index) in topMenus">
+      <el-menu-item
+        :index="item.path"
+        :key="index"
+        v-if="index < visibleNumber"
+      >
+        <!-- <svg-icon :icon-class="item.meta.icon" /> -->
+        <i class="menu-img" :class="item.meta.icon"></i>
+        <span class="menu-text">{{ item.meta.title }}</span>
+      </el-menu-item>
+    </template>
+
+    <el-submenu index="more" v-if="topMenus.length > visibleNumber">
+      <template slot="title">更多菜单</template>
+      <template v-for="(item, index) in topMenus">
+        <el-menu-item
+          :index="item.path"
+          :key="index"
+          v-if="index >= visibleNumber"
+        >
+          <!-- <svg-icon :icon-class="item.meta.icon" /> -->
+          {{ item.meta.title }}</el-menu-item
+        >
+      </template>
+    </el-submenu>
+  </el-menu>
+</template>
+<script>
+import { constantRoutes } from "@/router";
+export default {
+  data() {
+    return {
+      visibleNumber: 7,
+      isFrist: false,
+      currentIndex: undefined,
+    };
+  },
+  computed: {
+    topMenus() {
+      const topMenus = [];
+      this.routers.map((menu) => {
+        if (menu.hidden !== true) {
+          if (menu.path === "/") {
+            topMenus.push(menu.children[0]);
+          } else {
+            topMenus.push(menu);
+          }
+        }
+      });
+      return topMenus;
+    },
+    routers() {
+      return this.$store.state.permission.topbarRouters;
+    },
+    childrenMenus() {
+      var childrenMenus = [];
+      this.routers.map((router) => {
+        for (var item in router.children) {
+          if (router.children[item].parentPath === undefined) {
+            if (router.path === "/") {
+              router.children[item].path =
+                "/redirect/" + router.children[item].path;
+            } else {
+              if (!this.ishttp(router.children[item].path)) {
+                router.children[item].path =
+                  router.path + "/" + router.children[item].path;
+              }
+            }
+            router.children[item].parentPath = router.path;
+          }
+
+          childrenMenus.push(router.children[item]);
+        }
+      });
+      return constantRoutes.concat(childrenMenus);
+    },
+    activeMenu() {
+      const path = this.$route.path;
+      let activePath = this.routers[0].path;
+      if (path.lastIndexOf("/") > 0) {
+        const tmpPath = path.substring(1, path.length);
+        activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
+      } else if ("/index" == path || "" == path) {
+        // if (!this.isFrist) {
+        //   this.isFrist = true;
+        // } else {
+        //   activePath = "index";
+        // }
+      }
+      var routes = this.activeRoutes(activePath);
+      if (routes.length === 0) {
+        activePath = this.currentIndex || this.routers[0].path;
+        this.activeRoutes(activePath);
+      }
+      return activePath;
+    },
+  },
+  beforeMount() {
+    window.addEventListener("resize", this.setVisibleNumber);
+  },
+  beforeDestroy() {
+    window.removeEventListener("resize", this.setVisibleNumber);
+  },
+  mounted() {
+    //this.setVisibleNumber();
+  },
+  methods: {
+    setVisibleNumber() {
+      const width = document.body.getBoundingClientRect().width;
+      this.visibleNumber = parseInt(width / 110);
+    },
+    // 菜单选择事件
+    handleSelect(key, keyPath) {
+      this.currentIndex = key;
+      if (this.ishttp(key)) {
+        window.open(key, "_blank");
+      } else if (key.indexOf("/redirect") !== -1) {
+        this.$router.push({ path: key.replace("/redirect", "") });
+      } else if (key.indexOf("redirect") !== -1) {
+      } else {
+        var routes = this.activeRoutes(key);
+        var pathb = "";
+        if (routes[0]) {
+          pathb = routes[0].path;
+          if (routes[0].children) {
+            pathb += "/" + routes[0].children[0].path;
+          }
+        }
+        this.$router.replace({ path: pathb });
+      }
+    },
+    activeRoutes(key) {
+      var routes = [];
+      if (this.childrenMenus && this.childrenMenus.length > 0) {
+        this.childrenMenus.map((item) => {
+          if (key == item.parentPath || (key == "index" && "" == item.path)) {
+            routes.push(item);
+          }
+        });
+      }
+      if (routes.length > 0) {
+        this.$store.commit("SET_SIDEBAR_ROUTERS", routes);
+      }
+      return routes;
+    },
+    ishttp(url) {
+      return url.indexOf("http://") !== -1 || url.indexOf("https://") !== -1;
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

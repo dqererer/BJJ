@@ -1,0 +1,363 @@
+<template>
+  <div class="login-body">
+    <div class="header">
+      <img src="../assets/images/platform/platform-title.png" style="margin-bottom: 20px;" />
+      <img src="../assets/images/platform/platform-my.png" >
+    </div>
+    <div class="login-box">
+      <div class="login-content">
+        <div class="title">
+          <img src="../assets/images/login-left.png" alt="" />
+          <span>账号登录</span>
+          <img src="../assets/images/login-right.png" alt="" />
+        </div>
+        <!-- <div class="form"> -->
+        <el-form
+          ref="loginFrom"
+          :rules="rules"
+          class="login-form"
+          :model="form"
+        >
+          <el-form-item>
+            <el-select
+              v-model="form.loginType"
+              class="login-select"
+              placeholder="请选择登录方式"
+            >
+              <el-option value="0" label="用户名密码登录"></el-option>
+              <el-option value="1" label="邮箱密码登录"></el-option>
+              <el-option value="2" label="手机号密码登录"></el-option>
+              <el-option value="3" label="身份证号密码"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item prop="username">
+            <el-input
+              v-model="form.username"
+              placeholder="请输入账号"
+              prefix-icon="el-icon-user"
+            ></el-input>
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input
+              v-model="form.password"
+              placeholder="请输入密码"
+              show-password
+              prefix-icon="el-icon-lock"
+            ></el-input>
+          </el-form-item>
+          <el-form-item prop="code" class="formCode">
+            <el-input
+              v-model="form.code"
+              placeholder="请输入验证码"
+              prefix-icon="el-icon-key"
+            ></el-input>
+            <img
+              @click="validateCodeLoad"
+              class="codeImg"
+              :src="'data:image/jpeg;base64,' + codeImg"
+              alt
+            />
+          </el-form-item>
+          <router-link class="forget-link" :to="{ path: 'forget' }"
+            >忘记密码？</router-link
+          >
+          <el-form-item class="login-btn">
+            <el-button @click="loginClick('loginFrom')" type="primary"
+              >登 录</el-button
+            >
+          </el-form-item>
+        </el-form>
+        <!-- </div> -->
+      </div>
+    </div>
+    <div class="info">
+      <p>
+        <span style="margin-right: 20px"
+          >版权所有©内蒙古自治区生态环境厅督察办</span
+        ><span>内蒙古自治区生态环境保护督察信息化平台</span>
+      </p>
+      <p><span>技术支持©北京华志信科技股份有限公司</span></p>
+    </div>
+  </div>
+</template>
+
+
+<script>
+import { mapActions } from "vuex";
+import { getStorageRouters, setItem } from "../utils/storage";
+import router from "../router";
+import { getSubSystem } from "@/api/findeSystem";
+import {
+  validateCode,
+  checkValidateCode,
+  getUser,
+  getToken,
+} from "@/api/login";
+import { setToken, setName } from "@/utils/auth";
+export default {
+  name: "Login",
+  data() {
+    var validateCode = (rule, value, callback) => {
+      if (value === "" || value === undefined) {
+        callback(new Error("请输入验证码"));
+      } else if (value.length != 4) {
+        callback(new Error("请输入4位验证码"));
+      } else {
+        const codeData = {
+          code: this.form.code,
+          uuid: this.form.uuid,
+        };
+        checkValidateCode(codeData).then((res) => {
+          if (res.code == 500) {
+            this.validateCodeLoad();
+            callback(new Error(res.msg));
+          } else {
+            callback();
+          }
+        });
+      }
+    };
+    return {
+      form: {
+        loginType: "0",
+        username: undefined,
+        password: undefined,
+        code: undefined,
+        uuid: undefined,
+      },
+      rules: {
+        username: [{ required: true, message: "请输入账号", trigger: "blur" }],
+        password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+        code: [{ validator: validateCode, trigger: "change" }],
+      },
+      codeImg: "",
+      redirect: undefined,
+    };
+  },
+  watch: {
+    $route: {
+      handler: function (route) {
+        this.redirect = route.query && route.query.redirect;
+      },
+      immediate: true,
+    },
+  },
+  methods: {
+    ...mapActions(["Login"]),
+    loginClick(forName) {
+      this.$refs[forName].validate((valid) => {
+        if (valid) {
+          this.$store
+            .dispatch("Login", this.form)
+            .then(() => {
+              this.$store
+                .dispatch("GetInfo")
+                .then((res) => {
+                  this.$store.dispatch("GetAreaInfo");
+                })
+                .catch((err) => {
+                  this.$store.dispatch("LogOut").then(() => {
+                    Message.error(err);
+                    next({ path: "/login" });
+                  });
+                });
+              //  获取一级路由
+              this.$store
+                .dispatch("findSysByUser")
+                .then((res) => {
+                  if (res == "empty") {
+                    this.$message.error(
+                      "您暂无本系统权限，请联系管理员添加权限"
+                    );
+                    return;
+                  }
+                  router.addRoutes(res.systemRoutes);
+                  const isOneMap = res.systemData.find(
+                    (item) => item.name == "onemap"
+                  );
+                  if (isOneMap) {
+                    //有一张图权限
+                    this.$router.push({ path: isOneMap.path });
+                  } else {
+                    // 只有一个权限
+                    if (
+                      res.systemData.length == 1 &&
+                      !res.systemData[0].child
+                    ) {
+                      this.$store
+                        .dispatch("getSystemMenu", res.systemData[0].id)
+                        .then((resource) => {
+                          setItem("backPath", "none");
+                          router.addRoutes(resource);
+                          this.$router.push({ path: resource[0].path });
+                        });
+                      // this.$router.push({ path: res.systemData[0].path });
+                    } else if (
+                      res.systemData.length == 1 &&
+                      res.systemData[0].child &&
+                      res.systemData[0].children.length == 1
+                    ) {
+                      let item = res.systemData[0].children[0];
+                      getSubSystem().then((resource) => {
+                        if (resource.code == "200") {
+                          Object.assign(item, resource.data[item.code]);
+                          setItem("superviseItem", JSON.stringify(item));
+                          let key = item.id;
+                          let code = item.code;
+                          this.$store
+                            .dispatch("InspectUserInfo", { code })
+                            .then(() => {
+                              this.$store
+                                .dispatch("getSystemMenu", key)
+                                .then((res) => {
+                                  setItem("backPath", "none");
+                                  router.addRoutes(res);
+                                  this.$router.push({ path: res[0].path });
+                                });
+                            });
+                        }
+                      });
+                    } else {
+                      // 跳大首页
+                      this.$router.push({ path: "/platform" });
+                    }
+                  }
+                })
+                .catch((err) => {});
+            })
+            .catch((err) => {
+              this.validateCodeLoad();
+              this.$notify({
+                title: "登录失败",
+                message: err.msg,
+              });
+            });
+        } else {
+          return false;
+        }
+      });
+    },
+    validateCodeLoad() {
+      validateCode({ height: "40", width: "100" }).then((res) => {
+        this.codeImg = res.img;
+        this.form.uuid = res.uuid;
+      });
+    },
+  },
+  created() {
+    this.validateCodeLoad();
+    const _self = this;
+    let ids = null;
+    document.onkeydown = function (e) {
+      const key = window.event.keyCode;
+      if (key == 13 || key == 100) {
+        _self.loginClick("loginFrom");
+      }
+    };
+  },
+};
+</script>
+
+<style lang="scss" scope>
+.login-body {
+  width: 100%;
+  height: 100%;
+  background: url("../assets/images/bgd-img_6.jpg") no-repeat center center /
+    cover;
+  padding: 60px 0 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  img {
+    margin: 0 auto;
+    display: block;
+    height: 44px;
+  }
+  .login-box {
+    background: url("../assets/images/login-bg.png") no-repeat center center /
+      cover;
+    margin: 0 auto;
+    height: 412px;
+    width: 722px;
+    .login-content {
+      float: right;
+      height: 100%;
+      width: 380px;
+      padding: 50px;
+      .title {
+        display: flex;
+        justify-content: center;
+        img {
+          height: 12px;
+        }
+        span {
+          font-size: 16px;
+          font-weight: bolder;
+          color: #333333;
+          margin: 0 20px;
+        }
+      }
+      // .form {
+      //   /deep/ .el-input__inner {
+      //     border-radius: 0;
+      //     border: none;
+      //     border-bottom: 1px solid gray;
+      //   }
+      // }
+      .login-form {
+        width: 300px;
+        margin: 20px auto;
+        .login-select {
+          width: 100%;
+        }
+      }
+      .el-button {
+        width: 100%;
+        border-radius: 6px;
+        background-color: #409eff;
+        color: #fff;
+        font-size: 18px;
+        font-weight: bolder;
+      }
+      .login-btn {
+        margin-top: 22px;
+      }
+      .formCode {
+        display: flex;
+        flex-direction: row;
+        .el-form-item__content {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          .el-input {
+            width: 60%;
+          }
+          .codeImg {
+            flex: 1;
+            height: 100%;
+            margin-left: 10px;
+          }
+        }
+      }
+    }
+    .el-form-item {
+      margin-bottom: 12px !important;
+    }
+    .forget-link {
+      float: right;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+  }
+  .info {
+    color: #546001;
+    padding-top: 30px;
+    font-size: 13px;
+    p {
+      margin: 0;
+      text-align: center;
+    }
+  }
+}
+</style>

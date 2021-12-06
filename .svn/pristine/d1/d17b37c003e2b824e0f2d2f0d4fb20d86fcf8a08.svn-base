@@ -1,0 +1,902 @@
+<template>
+  <div>
+    <div class="burg-home" v-show="burgBoolean">
+      <div class="burg-home-left">
+        <div class="home-box condition-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">督察组情况</h1>
+            <div class="home-box-top-time">
+              <label class="time-label">选择时间：</label>
+              <el-date-picker
+                v-model="queryParams.startTime"
+                type="date"
+                placeholder="选择日期"
+                format="yyyy-MM-dd"
+                value-format="yyyy-MM-dd"
+                :picker-options="pickerOptionStart"
+              >
+              </el-date-picker
+              ><span class="time-line">-</span
+              ><el-date-picker
+                v-model="queryParams.endTime"
+                type="date"
+                placeholder="选择日期"
+                fformat="yyyy-MM-dd"
+                value-format="yyyy-MM-dd"
+                :picker-options="pickerOptionEnd"
+              >
+              </el-date-picker>
+              <el-button size="mini" type="primary" @click="handleTimeClick"
+                >确定</el-button
+              >
+            </div>
+          </div>
+          <div class="home-box-bottom">
+            <el-table v-loading="loading" :data="List" border :stripe="true">
+              <el-table-column
+                :show-overflow-tooltip="true"
+                label="督察组"
+                min-width="140px"
+              >
+                <template v-slot="scope">
+                  <span class="accounChunk" @click="handleSee(scope.row.id)">{{
+                    scope.row.name
+                  }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="areaName"
+                label="督察地市"
+                width="100px"
+              ></el-table-column>
+              <el-table-column
+                prop="leaderName"
+                label="督察组长"
+                width="100px"
+              ></el-table-column>
+              <el-table-column
+                prop="deputyName"
+                label="督察副组长"
+                width="120px"
+                :show-overflow-tooltip="true"
+              ></el-table-column>
+              <el-table-column
+                prop="chiefName"
+                label="督察总协调人"
+                width="110px"
+              ></el-table-column>
+              <el-table-column
+                prop="memberCount"
+                label="督察人员个数"
+                width="110px"
+              ></el-table-column>
+            </el-table>
+          </div>
+        </div>
+        <div class="home-box bulletin-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">工作简报</h1>
+          </div>
+          <div class="home-box-bottom">
+            <p class="bulletin-section">
+              {{ tiemDate }}共接到群众来电投诉{{
+                briefInfoObj.phoneNum
+              }}件,来信投诉{{ briefInfoObj.latterNum }}件,其中非环境问题不转办{{
+                briefInfoObj.rejectNum || 0
+              }}件,复投诉{{ briefInfoObj.repeatNum || 0 }}件。<span
+                >{{ tiemDate
+                }}<span
+                  v-for="(item, index) in briefInfoObj.transferMap"
+                  :key="index"
+                  >向{{ item.name }}转办{{ item.value }}件,其中重点件{{
+                    item.keyValue
+                  }}件。</span
+                >按照污染类型,
+                {{ briefInfoObj.latterNum }}件来电来信投诉中,<span
+                  v-for="itema in briefInfoObj.latterPollutionMap"
+                  :key="itema.name"
+                  >{{ itema.name }}环境污染{{ itema.value }}件、</span
+                >。从区域分布来看，<span
+                  v-for="itemb in briefInfoObj.latterCityCountMap"
+                  :key="itemb.code"
+                  >{{ itemb.name }}{{ itemb.value }}件、</span
+                >。</span
+              >
+            </p>
+            <p class="bulletin-section">
+              按照污染类型，{{
+                briefInfoObj.phoneNum
+              }}件来电来信投诉中，按照污染类型,<span
+                v-for="itemc in briefInfoObj.phonePollutionMap"
+                :key="itemc.name"
+                >{{ itemc.name }}环境污染{{ itemc.value }}件、</span
+              >。从区域分布来看，<span
+                v-for="itemd in briefInfoObj.phoneCityCountMap"
+                :key="itemd.code"
+                >{{ itemd.name }}{{ itemd.value }}件、</span
+              >。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="burg-home-right">
+        <div class="home-box work-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">督察工作情况</h1>
+          </div>
+          <div class="home-box-bottom">
+            <div class="work-echart-box">
+              <h1 class="work-echart-title">督察会议召开</h1>
+              <div
+                id="workEchart1"
+                class="work-echart"
+                v-show="meetBoolean"
+              ></div>
+              <div class="work-echart-content" v-show="!meetBoolean">
+                暂无数据
+              </div>
+            </div>
+            <div class="work-echart-box">
+              <h1 class="work-echart-title">资料提供情况</h1>
+              <div
+                id="workEchart2"
+                v-show="meansBoolean"
+                class="work-echart"
+              ></div>
+              <div class="work-echart-content" v-show="!meansBoolean">
+                暂无数据
+              </div>
+            </div>
+            <div class="work-echart-box">
+              <h1 class="work-echart-title">督察方式分布</h1>
+              <div
+                id="workEchart3"
+                v-show="inspectBoolean"
+                class="work-echart"
+              ></div>
+              <div class="work-echart-content" v-show="!inspectBoolean">
+                暂无数据
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="home-box tip-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">信访件情况</h1>
+          </div>
+          <div class="home-box-bottom">
+            <div class="tip-city">
+              <el-checkbox
+                :indeterminate="isIndeterminate"
+                v-model="checkAll"
+                @change="handleCheckAllChange"
+                >全选</el-checkbox
+              >
+              <el-checkbox-group
+                v-model="checkedCities"
+                @change="handleCheckedCitiesChange"
+              >
+                <el-checkbox
+                  v-for="item in areaArry"
+                  :label="item.id"
+                  :key="item.id"
+                  >{{ item.label }}</el-checkbox
+                >
+              </el-checkbox-group>
+            </div>
+            <div class="tip-tab" @click="handleTabItemClick">
+              <!-- <span
+                class="tab-item"
+                :class="index == 0 ? 'active' : ''"
+                v-for="(item, index) in Object.keys(
+                  tipObj.stateNumberCountData
+                )"
+                :key="item"
+                >{{ item }}（{{ tipObj.stateNumberCountData[item] }}）</span
+              > -->
+              <span class="tab-item active" state="1"
+                >登记信息（{{ stateNumberCountData.num1 }}）</span
+              >
+              <span class="tab-item" state="2"
+                >受理信息（{{ stateNumberCountData.num2 }}）</span
+              >
+              <span class="tab-item" state="3"
+                >转办信息（{{ stateNumberCountData.num3 }}）</span
+              >
+              <span class="tab-item" state="4"
+                >办理信息（{{ stateNumberCountData.num4 }}）</span
+              >
+            </div>
+            <div class="tip-echart-box">
+              <div class="work-echart-box">
+                <h1 class="work-echart-title">举报类型情况</h1>
+                <div
+                  id="tipEchart1"
+                  class="tip-echart"
+                  v-show="tipTypeCountBoolean"
+                ></div>
+                <div class="work-echart-content" v-show="!tipTypeCountBoolean">
+                  暂无数据
+                </div>
+              </div>
+              <div class="work-echart-box">
+                <h1 class="work-echart-title">污染类型情况</h1>
+                <div
+                  id="tipEchart2"
+                  class="tip-echart"
+                  v-show="pollutioCountBoolean"
+                ></div>
+                <div class="work-echart-content" v-show="!pollutioCountBoolean">
+                  暂无数据
+                </div>
+              </div>
+              <div class="work-echart-box">
+                <h1 class="work-echart-title">行业类型情况</h1>
+                <div
+                  id="tipEchart3"
+                  class="tip-echart"
+                  v-show="industryCountBoolean"
+                ></div>
+                <div class="work-echart-content" v-show="!industryCountBoolean">
+                  暂无数据
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="home-box sink-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">下沉督察情况</h1>
+          </div>
+          <div class="home-box-bottom">
+            <el-table
+              v-loading="teamLoading"
+              :data="teamList"
+              border
+              :stripe="true"
+            >
+              <el-table-column
+                :show-overflow-tooltip="true"
+                label="下沉督察组"
+                min-width="140px"
+                prop="teamName"
+              >
+              </el-table-column>
+              <el-table-column
+                prop="areaName"
+                label="督察旗县"
+                width="100px"
+              ></el-table-column>
+              <el-table-column
+                prop="evidenceNum"
+                label="听取汇报"
+                width="100px"
+              ></el-table-column>
+              <el-table-column
+                prop="inquiryNum"
+                label="聚焦问题"
+                width="120px"
+                :show-overflow-tooltip="true"
+              ></el-table-column>
+              <el-table-column
+                prop="evidenceNum"
+                label="书证"
+                width="110px"
+              ></el-table-column>
+              <el-table-column
+                prop="inquiryNum"
+                label="现场检查笔录"
+                width="110px"
+              ></el-table-column>
+              <el-table-column
+                prop="surveyNum"
+                label="现场勘查笔录"
+                width="110px"
+              ></el-table-column>
+              <el-table-column
+                prop="mediaNum"
+                label="现场多媒体信息"
+                width="110px"
+              ></el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <burg-info
+      ref="burgInfo"
+      v-show="!burgBoolean"
+      @handleGoHome="handleGoHome"
+      :burgInfoId="burgInfoId"
+    ></burg-info>
+  </div>
+</template>
+
+<script>
+import {
+  homeBatchInfo,
+  homeTeamList,
+  homeTeamInfo,
+  homeBriefInfo,
+  hometWorkInfo,
+  homeTipInfo,
+  homeSinkTeamList,
+  homeWorkTypeInfo
+} from "@/api/burg/home";
+import burgInfo from "@/views/burg/burgHome/burgInfo";
+import { mapGetters } from "vuex";
+import echarts from "echarts";
+export default {
+  components: {
+    burgInfo
+  },
+  data() {
+    return {
+      burgBoolean: true,
+      burgInfoId: undefined,
+      loading: true,
+      superviseType: undefined,
+      List: [],
+      queryParams: {
+        batchId: undefined, //"200000000004"
+        startTime: undefined, //"2021-6-1"
+        endTime: undefined
+      },
+      tipParams: {
+        state: 1,
+        cityCode: undefined
+      },
+      startTimeState: undefined,
+      endTimeState: undefined,
+      tiemDate: undefined,
+      briefInfoObj: {
+        phoneNum: undefined,
+        latterNum: undefined,
+        rejectNum: undefined,
+        repeatNum: undefined,
+        transferMap: undefined,
+        latterPollutionMap: undefined,
+        latterCityCountMap: undefined,
+        phonePollutionMap: undefined,
+        phoneCityCountMap: undefined
+      },
+      isIndeterminate: false,
+      checkAll: false,
+      checkedCities: [],
+      teamList: [],
+      teamLoading: true,
+      meetCountList: undefined,
+      meetLegendList: undefined,
+      meetBoolean: false,
+      meansBoolean: false,
+      inspectMethodList: undefined,
+      inspectBoolean: false,
+      stateNumberCountData: {
+        num1: 0,
+        num2: 0,
+        num3: 0,
+        num4: 0
+      },
+      tipObj: {},
+      tipTypeCountBoolean: false,
+      pollutioCountBoolean: false,
+      industryCountBoolean: false,
+      pickerOptionStart: this.startDateFun(),
+      pickerOptionEnd: this.endDateFun()
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.superviseType = this.inspectInfo.suite.superviseType;
+    } else {
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.superviseType = superviseSubject.superviseType;
+    }
+    this.getBatchInfo();
+    this.getDate();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "areaArry"])
+  },
+  methods: {
+    getDate() {
+      const myDate = new Date();
+      const month = myDate.getMonth() + 1;
+      const day = myDate.getDate();
+      this.tiemDate = month + "月" + day + "日";
+    },
+    handleTimeClick() {
+      if (this.queryParams.startTime && this.queryParams.endTime) {
+        const startDay = this.getTimeValue(this.queryParams.startTime);
+        const endDay = this.getTimeValue(this.queryParams.endTime);
+        this.tiemDate = startDay + "至" + endDay;
+      } else {
+        const myDate = new Date();
+        const month = myDate.getMonth() + 1;
+        const day = myDate.getDate();
+        this.tiemDate = month + "月" + day + "日";
+      }
+      this.handleMethods();
+    },
+    getTimeValue(time) {
+      const timeArry = time.split("-");
+      const yearArry = timeArry[1];
+      const secondArry = timeArry[2];
+      return yearArry + "月" + secondArry + "日";
+    },
+    startDateFun() {},
+    endDateFun() {},
+    async getBatchInfo() {
+      const reponse = await homeBatchInfo({
+        superviseType: this.superviseType
+      });
+      this.queryParams.batchId = reponse.data.id;
+      this.startTimeState = reponse.data.startDate;
+      this.endTimeState = reponse.data.endDate;
+      this.handleMethods();
+    },
+    handleMethods() {
+      const loading = this.$loading({
+        lock: true,
+        text: "正在加载",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.1)"
+      });
+      this.getTeamList();
+      this.getBriefInfo();
+      this.getWorkInfo();
+      this.getTipInfo();
+      this.getSinkTeamList();
+      loading.close();
+    },
+    handleSee(id) {
+      this.burgInfoId = id;
+      this.burgBoolean = false;
+      this.$nextTick(function() {
+        this.$refs.burgInfo.getTeamInfo();
+      });
+    },
+    handleGoHome() {
+      this.burgBoolean = true;
+    },
+    async getTeamList() {
+      this.loading = true;
+      const reponse = await homeTeamList({ batchId: this.queryParams.batchId });
+      this.List = reponse.data;
+      this.loading = false;
+    },
+    async getBriefInfo() {
+      const reponse = await homeBriefInfo(this.queryParams);
+      const subject = reponse.data;
+      this.briefInfoObj.phoneNum = subject.tipTypeMap["来电"];
+      this.briefInfoObj.latterNum = subject.tipTypeMap["来信"];
+      this.briefInfoObj.rejectNum = subject.rejectNum;
+      this.briefInfoObj.repeatNum = subject.repeatNum;
+      this.briefInfoObj.transferMap = subject.transferMap;
+      this.briefInfoObj.latterPollutionMap = subject.latterPollutionMap;
+      this.briefInfoObj.latterCityCountMap = subject.latterCityCountMap;
+      this.briefInfoObj.phonePollutionMap = subject.phonePollutionMap;
+      this.briefInfoObj.phoneCityCountMap = subject.phoneCityCountMap;
+    },
+    async getWorkInfo() {
+      const reponse = await hometWorkInfo(this.queryParams);
+      const subject = reponse.data;
+      this.meetCountList = subject.meetCountList;
+      this.meetBoolean = subject.meetCountList ? true : false;
+      this.meetLegendList = subject.meetLegendList;
+      this.inspectMethodList = subject.inspectMethodList;
+      this.inspectBoolean = subject.inspectMethodList ? true : false;
+
+      this.$nextTick(function() {
+        this.meetBoolean && this.workChart1();
+        this.meansBoolean && this.workChart2();
+        this.inspectBoolean && this.workChart3();
+      });
+    },
+    async getTipInfo() {
+      const reponse = await homeTipInfo({
+        ...this.queryParams,
+        ...this.tipParams
+      });
+      const subject = reponse.data;
+      const tipObj = {
+        tipTypeCountList: subject.tipTypeCountList,
+        pollutionTypeCountList: subject.pollutionTypeCountList,
+        industryLegendList: subject.industryLegendList,
+        industryCountList: subject.industryCountList
+      };
+      this.tipObj = tipObj;
+      if (subject.stateNumberCountData) {
+        this.stateNumberCountData.num1 =
+          subject.stateNumberCountData["登记信息"] || 0;
+        this.stateNumberCountData.num2 =
+          subject.stateNumberCountData["受理信息"] || 0;
+        this.stateNumberCountData.num3 =
+          subject.stateNumberCountData["转办信息"] || 0;
+        this.stateNumberCountData.num4 =
+          subject.stateNumberCountData["办理信息"] || 0;
+      } else {
+        this.stateNumberCountData.num1 = 0;
+        this.stateNumberCountData.num2 = 0;
+        this.stateNumberCountData.num3 = 0;
+        this.stateNumberCountData.num4 = 0;
+      }
+      this.tipTypeCountBoolean = subject.tipTypeCountList ? true : false;
+      this.pollutioCountBoolean = subject.pollutionTypeCountList ? true : false;
+      this.industryCountBoolean = subject.industryCountList ? true : false;
+      this.$nextTick(function() {
+        this.tipTypeCountBoolean && this.tipChart1();
+        this.pollutioCountBoolean && this.tipChart2();
+        this.industryCountBoolean && this.tipChart3();
+      });
+    },
+    handleTabItemClick(e) {
+      const tabs = document.getElementsByClassName("tab-item");
+      for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+      }
+      e.target.classList.add("active");
+      this.tipParams.state = e.target.getAttribute("state");
+      const number = this.stateNumberCountData["num" + this.tipParams.state];
+      if (number == 0) {
+        this.tipTypeCountBoolean = false;
+        this.pollutioCountBoolean = false;
+        this.industryCountBoolean = false;
+        return;
+      }
+      this.getTipInfo();
+    },
+    handleCheckAllChange(val) {
+      this.checkedCities = val ? this.getAllCitys() : [];
+      this.isIndeterminate = false;
+      if (this.checkedCities.length > 0) {
+        const cityCode = this.checkedCities.join(",");
+        this.tipParams.cityCode = cityCode;
+      } else {
+        this.tipParams.cityCode = undefined;
+      }
+      this.getTipInfo();
+    },
+    getAllCitys() {
+      const checkedCities = [];
+      for (const item in this.areaArry) {
+        checkedCities.push(this.areaArry[item].id);
+      }
+      return checkedCities;
+    },
+    handleCheckedCitiesChange(value) {
+      let checkedCount = value.length;
+      this.checkAll = checkedCount === this.areaArry.length;
+      this.isIndeterminate =
+        checkedCount > 0 && checkedCount < this.areaArry.length;
+      if (checkedCount > 0) {
+        const cityCode = value.join(",");
+        this.tipParams.cityCode = cityCode;
+      } else {
+        this.tipParams.cityCode = undefined;
+      }
+      this.getTipInfo();
+    },
+    workChart1() {
+      let myChart = this.$echarts.init(document.getElementById("workEchart1"));
+      let option = {
+        xAxis: {
+          type: "category",
+          data: this.meetLegendList
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            data: this.meetCountList,
+            type: "bar"
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    workChart2() {
+      let myChart = this.$echarts.init(document.getElementById("workEchart2"));
+      let option = {
+        xAxis: {
+          type: "category",
+          data: this.meetLegendList
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            data: this.meetCountList,
+            type: "bar"
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    workChart3() {
+      let myChart = this.$echarts.init(document.getElementById("workEchart3"));
+      let option = {
+        tooltip: {
+          trigger: "item"
+        },
+        legend: {
+          top: "5%",
+          left: "center"
+        },
+        series: [
+          {
+            name: "访问来源",
+            type: "pie",
+            radius: ["40%", "70%"],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: "#fff",
+              borderWidth: 2
+            },
+            label: {
+              show: false,
+              position: "center"
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: "40",
+                fontWeight: "bold"
+              }
+            },
+            labelLine: {
+              show: false
+            },
+            data: this.inspectMethodList
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    tipChart1() {
+      let myChart = this.$echarts.init(document.getElementById("tipEchart1"));
+      let option = {
+        tooltip: {
+          trigger: "item"
+        },
+        legend: {
+          orient: "vertical",
+          left: "left"
+        },
+        series: [
+          {
+            name: "访问来源",
+            type: "pie",
+            radius: "50%",
+            data: this.tipObj.tipTypeCountList,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)"
+              }
+            }
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    tipChart2() {
+      let myChart = this.$echarts.init(document.getElementById("tipEchart2"));
+      let option = {
+        xAxis: {
+          type: "category",
+          data: [
+            "水",
+            "大气",
+            "土壤",
+            "海洋",
+            "生态",
+            "辐射",
+            "噪音",
+            "其他污染"
+          ]
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            data: this.tipObj.pollutionTypeCountList,
+            type: "bar"
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    tipChart3() {
+      let myChart = this.$echarts.init(document.getElementById("tipEchart3"));
+      let option = {
+        xAxis: {
+          type: "category",
+          data: this.tipObj.industryLegendList
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            data: this.tipObj.industryCountList,
+            type: "bar"
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    async getSinkTeamList() {
+      this.teamLoading = true;
+      const reponse = await homeSinkTeamList(this.queryParams);
+      this.teamList = reponse.data;
+      this.teamLoading = false;
+    }
+  },
+  activated() {
+    this.getBatchInfo();
+    this.getDate();
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.burg-home {
+  width: 100%;
+  padding: 0 10px 10px 10px;
+  background-color: #f6f8fb;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  .burg-home-left {
+    width: 39%;
+    .bulletin-box {
+      height: 480px;
+      .bulletin-section {
+        margin: 0px;
+        margin-bottom: 10px;
+        text-indent: 2em;
+      }
+    }
+  }
+  .burg-home-right {
+    width: 60%;
+  }
+  .home-box {
+    border-radius: 6px;
+    background-color: #fff;
+    box-shadow: 1px 1px 10px rgba(244, 244, 244, 0.8);
+    margin-top: 10px;
+    &.condition-box {
+      height: 400px;
+    }
+    .home-box-top {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #dddddd;
+      padding: 0 10px;
+      .home-box-top-title {
+        border-left: 4px solid #3393cf;
+        font-size: 16px;
+        margin: 0;
+        font-weight: normal;
+        padding-left: 6px;
+      }
+      .home-box-top-time {
+        display: flex;
+        align-items: center;
+        .time-label {
+          font-weight: normal;
+          font-size: 14px;
+        }
+        /deep/.el-date-editor {
+          width: 108px;
+          .el-input__inner {
+            height: 30px;
+            line-height: 30px;
+            padding-left: 4px;
+          }
+          .el-input__prefix {
+            display: none;
+          }
+          .el-input__icon {
+            line-height: 30px;
+          }
+        }
+        .time-line {
+          margin: 0 6px;
+        }
+        .el-button {
+          margin-left: 10px;
+        }
+      }
+    }
+    .home-box-bottom {
+      padding: 10px;
+    }
+  }
+  .work-box {
+    .home-box-bottom {
+      display: flex;
+      padding: 0 10px;
+      justify-content: space-between;
+      .work-echart {
+        width: 100%;
+        height: 176px;
+      }
+    }
+  }
+  .tip-box {
+    .tip-city {
+      display: flex;
+      margin-left: 10px;
+      /deep/.el-checkbox {
+        width: 94px;
+        margin-right: 10px;
+      }
+    }
+    .tip-tab {
+      height: 30px;
+      line-height: 30px;
+      display: inline-block;
+      border: 1px solid #3393cf;
+      font-size: 0px;
+      border-radius: 4px;
+      margin-top: 6px;
+      .tab-item {
+        display: inline-block;
+        font-size: 14px;
+        color: #222222;
+        cursor: pointer;
+        padding: 0 6px 0 10px;
+        &.active {
+          background-color: #3393cf;
+          color: #fff;
+        }
+      }
+    }
+    .tip-echart-box {
+      display: flex;
+      margin-top: 10px;
+      justify-content: space-between;
+      .tip-echart {
+        width: 100%;
+        height: 136px;
+      }
+    }
+  }
+  .sink-box {
+    height: 270px;
+  }
+  .work-echart-box {
+    width: 33.3%;
+    .work-echart-title {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    .work-echart-content {
+      height: 176px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+  .tip-echart-box {
+    .work-echart-content {
+      height: 136px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+</style>

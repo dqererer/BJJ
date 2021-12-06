@@ -1,0 +1,173 @@
+<template>
+  <div class="amend-content">
+    <el-form ref="form" :model="form" label-width="140px">
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="上级区域：" prop="parentId">
+            <treeselect
+              v-model="form.parentId"
+              :options="areaListOptions"
+              :load-options="loadOptions"
+              :disable-branch-nodes="true"
+              noChildrenText="无"
+              :autoLoadRootOptions="false"
+              :searchable="false"
+              :disableBranchNodes="false"
+              placeholder="请选择上级区域"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="区域名称：" prop="name">
+            <el-input v-model="form.name"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="区域编码：" prop="code">
+            <el-input v-model="form.code"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="区域类型：" prop="type">
+            <el-select v-model="form.type">
+              <el-option
+                v-for="item in areaTypeData"
+                :key="item.id"
+                :label="item.label"
+                :value="item.value"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :span="20">
+        <el-form-item label="备注：" prop="remarks">
+          <el-input type="textarea" v-model="form.remarks"></el-input>
+        </el-form-item>
+      </el-row>
+      <el-row>
+        <el-form-item class="tab-list-state">
+          <el-button type="primary" @click="onSubmit">保存</el-button>
+          <el-button @click="handleBackClick">返回</el-button>
+        </el-form-item>
+      </el-row>
+    </el-form>
+  </div>
+</template>
+
+<script>
+import { dictListType } from "@/api/styem/dict/type.js";
+import { areaTreeNew, areaSave, areaGetOfficeById } from "@/api/styem/dept";
+import { LOAD_CHILDREN_OPTIONS } from "@riophae/vue-treeselect";
+import { userTreeData } from "@/api/styem/user";
+import Bus from "@/utils/vueBus";
+export default {
+  data() {
+    return {
+      form: {
+        id: undefined,
+        parentId: undefined,
+        name: undefined,
+        code: undefined,
+        type: undefined,
+        remarks: undefined
+      },
+      normalizer(node) {
+        return {
+          label: node.label
+        };
+      },
+      areaTypeData: undefined,
+      areaListOptions: undefined
+    };
+  },
+  created() {
+    Bus.$off("outComeId");
+    this.getInstitutionDict();
+    this.getAreaList();
+  },
+  mounted() {
+    Bus.$on("outComeId", obj => {
+      this.resetFieldsTap("form");
+      if (obj == "" || obj == undefined) {
+        this.form.id = undefined;
+        this.form.parentId = 100001;
+      } else if (obj.state == "amend") {
+        this.form.id = obj.id;
+        this.getOfficeGetOffice(obj.id);
+      } else if (obj.state == "addNext") {
+        this.form.parentId = obj.id;
+      }
+    });
+  },
+  methods: {
+    async getAreaList() {
+      const reponse = await areaTreeNew();
+      const areaListOptions = [];
+
+      for (const item in reponse.data) {
+        const subject = reponse.data[item];
+        const temp = {
+          id: subject.id,
+          label: subject.label,
+          children: null
+        };
+        areaListOptions.push(temp);
+      }
+      this.areaListOptions = areaListOptions
+    },
+    loadOptions({ action, parentNode, callback }) {
+      if (action === LOAD_CHILDREN_OPTIONS) {
+        areaTreeNew({ parentId: parentNode.id }).then(reponse => {
+          const userOptions = [];
+          for (const item in reponse.data) {
+            const subject = reponse.data[item];
+            const temp = {
+              id: subject.id,
+              label: subject.label,
+              children: null
+            };
+            userOptions.push(temp);
+          }
+          parentNode.children = userOptions;
+          callback();
+        });
+      }
+    },
+    async getInstitutionDict() {
+      const areaTypeReponse = await dictListType({ type: "sys_area_type" });
+      this.areaTypeData = areaTypeReponse.data;
+    },
+    async getOfficeGetOffice(id) {
+      const reponse = await areaGetOfficeById({ id });
+      this.form = reponse.data;
+      if (reponse.data.parentId == "0") {
+        this.form.parentId = null;
+      }
+    },
+    onSubmit() {
+      areaSave(this.form).then(reponse => {
+        if (reponse.code == 200) {
+          this.resetFieldsTap("form");
+          this.$emit("backHandle", "update");
+        }
+      });
+    },
+    handleBackClick() {
+      this.$emit("backHandle", "back");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/.el-form-item__content {
+  line-height: 34px;
+}
+</style>

@@ -1,0 +1,280 @@
+<template>
+  <div class="amend-content">
+    <el-form ref="form" :model="form" :rules="rules" label-width="140px">
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="上级菜单：" prop="parentId">
+            <treeselect
+              v-model="form.parentId"
+              :options="menuListArry"
+              :disableBranchNodes="false"
+              :normalizer="normalizer"
+              noChildrenText="无"
+              placeholder="请选择上级菜单"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="名称：" prop="name">
+            <el-input v-model="form.name"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="路由地址：" prop="href">
+            <el-input v-model="form.href"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="路由名称：" prop="router">
+            <el-input v-model="form.router"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="路由组件：" prop="component">
+            <el-input v-model="form.component"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="重定向：" prop="redirect">
+            <el-input v-model="form.redirect"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="目标：" prop="target">
+            <el-input v-model="form.target"></el-input>
+            <span class="help-inline" style="color: #aaa;"
+              >链接打开的目标窗口，默认：mainFrame</span
+            >
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="图标：">
+            <el-popover
+              placement="bottom-start"
+              width="460"
+              trigger="click"
+              @show="$refs['iconSelect'].reset()"
+            >
+              <IconSelect ref="iconSelect" @selected="selected" />
+              <el-input
+                slot="reference"
+                v-model="form.icon"
+                placeholder="点击选择图标"
+                readonly
+              >
+                <svg-icon
+                  v-if="form.icon"
+                  slot="prefix"
+                  :icon-class="form.icon"
+                  class="el-input__icon"
+                  style="height: 32px;width: 16px;"
+                />
+                <i v-else slot="prefix" class="el-icon-search el-input__icon" />
+              </el-input>
+            </el-popover>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="排序：" prop="sort">
+            <el-input v-model="form.sort"></el-input>
+            <span class="help-inline" style="color: #aaa;">排列顺序，升序</span>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="可见：" prop="isShow">
+            <el-radio-group v-model="form.isShow">
+              <el-radio
+                v-for="item in hideTypeData"
+                :key="item.id"
+                :label="item.value"
+                >{{ item.label }}</el-radio
+              >
+            </el-radio-group>
+            <span class="help-inline" style="color: #aaa;margin-left:20px;"
+              >改菜单或操作是否显示到系统中</span
+            >
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row>
+        <el-col :span="20">
+          <el-form-item label="权限标识符：" prop="permission">
+            <el-input v-model="form.permission"></el-input>
+            <span class="help-inline" style="color: #aaa;"
+              >控制器中定义的权限标识，如：@RequiresPermissions("权限标识")</span
+            >
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row :span="20">
+        <el-form-item label="备注：" prop="remarks">
+          <el-input type="textarea" v-model="form.remarks"></el-input>
+        </el-form-item>
+      </el-row>
+      <el-row>
+        <el-form-item class="tab-list-state">
+          <el-button type="primary" @click="onSubmit('form')">保存</el-button>
+          <el-button @click="handleBackClick">返回</el-button>
+        </el-form-item>
+      </el-row>
+    </el-form>
+  </div>
+</template>
+
+<script>
+import {
+  menuTree,
+  menuSave,
+  menuGetMenuById,
+  menuFormView
+} from "@/api/styem/menu";
+import { dictListType } from "@/api/styem/dict/type";
+import Bus from "@/utils/vueBus";
+import IconSelect from "@/components/IconSelect";
+export default {
+  props: {
+    menuListData: {
+      type: Array,
+      default: () => []
+    }
+  },
+  components: {
+    IconSelect
+  },
+  data() {
+    return {
+      rules: {
+        name: [{ required: true, message: "请输入名称", trigger: "blur" }],
+        href: [{ required: true, message: "请输入路由地址", trigger: "blur" }],
+        sort: [{ required: true, message: "请输入排序", trigger: "blur" }]
+      },
+      hideTypeData: undefined,
+      menuListArry: undefined,
+      form: {
+        id: undefined,
+        parentId: undefined,
+        name: undefined,
+        href: undefined,
+        router: undefined,
+        component: undefined,
+        redirect: undefined,
+        target: undefined,
+        icon: undefined,
+        sort: undefined,
+        isShow: "1",
+        permission: undefined,
+        remarks: undefined
+      },
+      normalizer(node) {
+        return {
+          label: node.name
+        };
+      }
+    };
+  },
+  created() {
+    Bus.$off("outComeId");
+    this.getHideType();
+  },
+  watch: {
+    menuListData: {
+      immediate: true,
+      deep: true,
+      handler(newValue) {
+        if (newValue) {
+          const menuListArry = [
+            {
+              id: 1,
+              name: "功能菜单",
+              children: newValue
+            }
+          ];
+          this.menuListArry = menuListArry;
+        }
+      }
+    }
+  },
+  mounted() {
+    Bus.$on("outComeId", obj => {
+      this.resetFieldsTap("form");
+      if (obj == "" || obj == undefined) {
+        this.form.id = undefined;
+        this.form.parentId = 1;
+        this.getMenuFormView();
+      } else if (obj.state == "amend") {
+        this.form.id = obj.id;
+        this.getOfficeGetOffice(obj.id);
+      } else if (obj.state == "addNext") {
+        this.form.parentId = obj.id;
+        this.getMenuFormView();
+      }
+    });
+  },
+  methods: {
+    selected(name) {
+      this.form.icon = name;
+    },
+    async getHideType() {
+      const reponse = await dictListType({ type: "show_hide" });
+      this.hideTypeData = reponse.data;
+    },
+    async getOfficeGetOffice(id) {
+      const reponse = await menuGetMenuById({ id });
+      this.form = reponse.data;
+    },
+    async getMenuFormView() {
+      const reponse = await menuFormView({ parentId: this.form.parentId });
+      if (reponse.code === 200) {
+        this.form.sort = reponse.data.sort;
+      }
+    },
+    onSubmit(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          menuSave(this.form).then(reponse => {
+            if (reponse.code == 200) {
+              this.resetFieldsTap("form");
+              this.$emit("backHandle", "update");
+            }
+          });
+        } else {
+          return false;
+        }
+      });
+    },
+    handleBackClick() {
+      this.$emit("backHandle", "back");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/.el-form-item__content {
+  line-height: 34px;
+}
+/deep/.el-input__icon {
+  line-height: 34px;
+}
+</style>

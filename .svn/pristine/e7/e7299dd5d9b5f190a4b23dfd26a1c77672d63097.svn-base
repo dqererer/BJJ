@@ -1,0 +1,70 @@
+<template>
+  <div class="information-inner information-change" ref="informationInner">
+    <div class="information-tab" @click="handleTabClick">
+      <h1 class="information-title active" name="list">
+        案件清单
+      </h1>
+      <h1 class="information-title" name="order">转办单</h1>
+    </div>
+    <div class="tab-list-content">
+      <national-info></national-info>
+      <detailed-list
+        :finishArry="finishArry"
+        :pollutantArry="pollutantArry"
+        v-if="tabName === 'list'"
+      ></detailed-list>
+      <detailed-order
+        :finishArry="finishArry"
+        :pollutantArry="pollutantArry"
+        v-else
+      ></detailed-order>
+    </div>
+  </div>
+</template>
+
+<script>
+import nationalInfo from "@/components/nationalInfo";
+import detailedList from "../detailed/detailedList";
+import detailedOrder from "../detailed/detailedOrder";
+import { dictListType } from "@/api/styem/dict/type";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    nationalInfo,
+    detailedList,
+    detailedOrder
+  },
+  data() {
+    return {
+      tabName: "list",
+      finishArry: [],
+      pollutantArry: [],
+    };
+  },
+  created() {
+    this.getDictFinish();
+    this.getDictPollutant();
+  },
+  methods: {
+    async getDictFinish() {
+      const reponse = await dictListType({ type: "finish_flag" });
+      this.finishArry = reponse.data;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    handleTabClick(e) {
+      const tabs = document.getElementsByClassName("information-title");
+      for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+      }
+      e.target.classList.add("active");
+      this.tabName = e.target.getAttribute("name");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

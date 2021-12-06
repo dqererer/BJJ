@@ -1,0 +1,98 @@
+<template>
+  <div class="information-inner information-styem" ref="informationInner">
+    <el-tabs v-model="activeName" type="card" @tab-click="tabClick" ref="tabs" class="information-styem-tab">
+      <el-tab-pane label="角色列表" name="list">
+        <role-manage-list
+          ref="dataList"
+          @handleSeeAmend="handleSeeAmend"
+          @backHandle="backHandle"
+        ></role-manage-list>
+      </el-tab-pane>
+      <el-tab-pane
+        :label="tabState == 'add' ? '角色添加' : '角色修改'"
+        name="add"
+      >
+        <role-manage-amend :officeListData="officeListData" @backHandle="backHandle"></role-manage-amend>
+      </el-tab-pane>
+      <el-tab-pane label="角色分配" name="see">
+        <role-manage-allot
+          :officeListData="officeListData"
+          @backHandle="backHandle"
+        ></role-manage-allot>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script>
+import roleManageList from "./roleManageList";
+import roleManageAmend from "./roleManageAmend";
+import roleManageAllot from "./roleManageAllot";
+import { officeList } from "@/api/styem/dept";
+import bus from "@/utils/vueBus";
+
+export default {
+  components: {
+    roleManageList,
+    roleManageAmend,
+    roleManageAllot
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+      officeListData: []
+    };
+  },
+  created() {
+    this.tabControlHide(2);
+    this.getOfficeList();
+  },
+  methods: {
+    async getOfficeList() {
+      const reponse = await officeList();
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.officeListData = menu;
+    },
+    tabClick(tab) {
+      if (tab.name === "list") {
+        this.tabState = "add";
+        this.tabControlShow(1);
+        this.tabControlHide(2);
+      } else if (tab.name === "add") {
+        bus.$emit("outComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      const tabState = stateObj.tabState;
+      const name = stateObj.name;
+      if (tabState == "amend" && name == "add") {
+        this.tabState = tabState;
+        this.activeName = name;
+      } else if (tabState == "see" && name == "see") {
+        this.tabState = tabState;
+        this.activeName = name;
+        this.tabControlHide(1);
+        this.tabControlShow(2);
+      }
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      this.tabState = "add";
+      this.tabControlShow(1);
+      if (name == "update") {
+        this.$refs.dataList.getRoleList();
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

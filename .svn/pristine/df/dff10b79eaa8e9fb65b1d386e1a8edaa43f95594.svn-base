@@ -1,0 +1,152 @@
+<template>
+  <section>
+    <div class="wenti">
+      <div class="title">整改方案（{{ tableData.length }}条）</div>
+      <el-table :data="tableData" border>
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="title" label="督察类型">
+          <template v-slot="scope">
+            <span>{{ scope.row.superviseTypeName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="督察轮次、批次">
+          <template v-slot="scope">
+            <span>{{ scope.row.roundName }}、{{ scope.row.batchName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="督察地区">
+          <template v-slot="scope">
+            <span>{{ scope.row.cityName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="方案名称">
+          <template v-slot="scope">
+            <span>{{ scope.row.planName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="方案电子件">
+          <template slot-scope="scope">
+            <a
+              v-if="scope.row.planFile"
+              @click="checkFile(scope.row.planFile, scope.column.label)"
+              >方案电子件</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="方案上传时间"
+          ><template v-slot="scope">
+            <span>{{
+              scope.row.planTime && scope.row.planTime.split(" ")[0]
+            }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <el-dialog
+      :title="fileTitle"
+      :visible.sync="check"
+      width="80%"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div v-for="(item, index) in fileList" v-bind:key="index">
+        <span 
+          >{{ item.name
+          }}<a
+            href="#"
+            @click="preview(item.id)"
+            style="margin-left: 10px; color: #409eff"
+            >预览</a
+          ><a
+            href="#"
+            style="margin-left: 10px; color: #409eff"
+            @click="downloadFile(item.id)"
+            >下载</a
+          ></span
+        >
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { getRectifyPlanByTeamId } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getSingleInfo, filePreview } from "@/utils/styem";
+
+export default {
+  data() {
+    return {
+      id: "",
+      tableData: [],
+      check: false,
+      fileList: [],
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getRectifyPlanByTeamId();
+  },
+  methods: {
+        preview(ids) {
+      filePreview(ids);
+    },
+    downloadFile: function (ids) {
+      getSingleInfo(ids);
+    },
+    getRectifyPlanByTeamId: function () {
+      getRectifyPlanByTeamId({
+        id: this.id,
+      }).then((res) => {
+        this.tableData = res.data;
+      });
+    },
+    checkFile: function (fileIds, title) {
+      this.fileTitle = title;
+      let fileIdList = [];
+      if (fileIds) {
+        fileIdList = fileIds.split(",");
+      }
+      fileIdList.forEach((item) => {
+        item && this.getFileInfo(item);
+      });
+      this.check = true;
+    },
+    getFileInfo: function (id) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+          id,
+        };
+        this.fileList.push(obj);
+      });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.wenti {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  a {
+    color: #2196f3;
+  }
+}
+</style>
+
+
+
+

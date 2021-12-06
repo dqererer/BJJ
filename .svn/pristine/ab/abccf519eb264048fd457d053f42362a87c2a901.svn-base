@@ -1,0 +1,45 @@
+<template>
+  <div>
+    <div class="examineInfo" v-if="inspectInfo.suite">
+      <h1 class="examineInfo-title">督察信息</h1>
+      <div class="examineInfo-box">
+        <div class="examine-top">
+          <div class="examine-item examine-item-sort">督察类型</div>
+          <div class="examine-item examine-item-turn">督察轮次批次</div>
+          <div class="examine-item examine-item-name">督察组名称</div>
+          <div class="examine-item examine-item-start">开始时间</div>
+          <div class="examine-item examine-item-end">结束时间</div>
+        </div>
+        <div class="examine-bottom">
+          <div class="examine-item examine-item-sort">
+            {{ inspectInfo.suite.superviseName }}
+          </div>
+          <div class="examine-item examine-item-turn">
+            {{ inspectInfo.suite.roundName }}{{ inspectInfo.suite.batchName }}
+          </div>
+          <div class="examine-item examine-item-name">
+            {{ examInfo.teamName }}
+          </div>
+          <div class="examine-item examine-item-start">
+            {{ inspectInfo.suite.startDate }}
+          </div>
+          <div class="examine-item examine-item-end">
+            {{ inspectInfo.suite.endDate }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import { mapGetters } from "vuex";
+import { getTeamInfo } from "@/api/support/search";
+export default {
+  computed: {
+    ...mapGetters(["inspectInfo", "examInfo"]),
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

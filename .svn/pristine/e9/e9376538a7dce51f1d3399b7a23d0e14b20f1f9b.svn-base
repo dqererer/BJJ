@@ -1,0 +1,313 @@
+<template>
+  <section>
+    <div class="wenti">
+      <div class="title">问题案卷（{{ total }}条）</div>
+      <el-table :data="tableData" border style="width: 100%">
+        <el-table-column type="index" label="序号" width="60"></el-table-column>
+        <el-table-column prop="archiveName" label="案卷标题"> </el-table-column>
+        <el-table-column prop="archiveCode" label="案卷编号"> </el-table-column>
+        <el-table-column label="案卷说明">
+          <template slot-scope="scope">
+            <a
+              v-if="scope.row.archiveExplain"
+              @click="checkFile(scope.row.archiveExplain, scope.column.label)"
+              >案件说明</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="问题数量">
+          <template slot-scope="scope">
+            <p>
+              {{ scope.row.problemId && scope.row.problemId.split(",").length }}
+            </p>
+          </template></el-table-column
+        >
+        <el-table-column label="书证">
+          <template v-slot="scope">
+            <span
+              v-if="scope.row.detailMap && scope.row.detailMap.szList"
+              class="accounChunk"
+              @click="handleFileDialog(scope.row.detailMap.szList, '2')"
+              >书证</span
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="问询笔录" width="80px">
+          <template v-slot="scope">
+            <span
+              v-if="scope.row.detailMap && scope.row.detailMap.wxList"
+              class="accounChunk"
+              @click="handleFileDialog(scope.row.detailMap.wxList, '3')"
+              >问询笔录</span
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="勘察笔录" width="80px">
+          <template v-slot="scope">
+            <span
+              v-if="scope.row.detailMap && scope.row.detailMap.kcList"
+              class="accounChunk"
+              @click="handleFileDialog(scope.row.detailMap.kcList, '4')"
+              >勘察笔录</span
+            ><span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="多媒体记录" width="100px">
+          <template v-slot="scope">
+            <span
+              v-if="scope.row.detailMap && scope.row.detailMap.mtList"
+              class="accounChunk"
+              @click="handleFileDialog(scope.row.detailMap.mtList, '5')"
+              >多媒体记录</span
+            ><span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="pageNo"
+        :limit.sync="pageSize"
+        @pagination="getArchive"
+      />
+    </div>
+    <el-dialog
+      :title="fileTitle"
+      :visible.sync="check"
+      width="80%"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div v-for="(item, index) in fileList" v-bind:key="index">
+        <a href="#" @click="downloadFile(item.path)">{{ item.name }}</a>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="fileOpen"
+      width="80%"
+      append-to-body
+      :before-close="handleFileDialogClose"
+    >
+      <div>
+        <span
+          class="accounChunk file-item"
+          v-for="item in seeData"
+          :key="item.id"
+          @click="handleFileShow(item.id, item.sort)"
+          >{{ item.text }}</span
+        >
+      </div>
+    </el-dialog>
+    <inspect-index-preview
+      ref="inspectIndexRef"
+      @handleInspectIndexPreviewClose="handleInspectIndexPreviewClose"
+      :previewIndexOpen="previewIndexOpen"
+      v-if="previewIndexOpen"
+      :previewIndexOpenId="previewIndexOpenId"
+    ></inspect-index-preview>
+    <spot-index-preview
+      ref="spotIndexRef"
+      v-if="spotIndexOpen"
+      @handleSpotIndexPreviewClose="handleSpotIndexPreviewClose"
+      :spotIndexOpen="spotIndexOpen"
+      :spotIndexOpenId="spotIndexOpenId"
+    ></spot-index-preview>
+    <media-index-preview
+      ref="mediaIndexRef"
+      :mediaIndexOpen="mediaIndexOpen"
+      :mediaIndexId="mediaIndexId"
+      @handleMediaIndexClose="handleMediaIndexClose"
+    ></media-index-preview>
+  </section>
+</template>
+<script>
+import { getArchive } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { issueDetail } from "@/api/burg/garrison";
+import inspectIndexPreview from "../../../burg/garrison/sink/sinkIssue/inspectIndexPreview.vue";
+import spotIndexPreview from "../../../burg/garrison/sink/sinkIssue/spotIndexPreview";
+import mediaIndexPreview from "../../../burg/garrison/sink/sinkIssue/mediaIndexPreview";
+
+export default {
+  data() {
+    return {
+      pageNo: 1,
+      pageSize: 10,
+      total: 0,
+      id: "",
+      tableData: [],
+      check: false,
+      fileList: [],
+      fileOpen: false,
+      previewIndexOpen: undefined,
+      previewIndexOpenId: undefined,
+      spotIndexOpenId: undefined,
+      spotIndexOpen: undefined,
+      mediaInfoIndex: undefined,
+      mediaIndexId: undefined,
+      mediaIndexOpen: undefined,
+    };
+  },
+  components: {
+    inspectIndexPreview,
+    spotIndexPreview,
+    mediaIndexPreview,
+  },
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getArchive();
+  },
+  methods: {
+    handleMediaIndexClose() {
+      this.mediaIndexOpen = false;
+    },
+    handleSpotIndexPreviewClose() {
+      this.spotIndexOpen = false;
+    },
+    handleInspectIndexPreviewClose() {
+      this.previewIndexOpen = false;
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    },
+    async handleFileShow(id, sort) {
+      if (sort == "书证") {
+        this.handleDownLoadDoc(id);
+      } else if (sort == "取证笔录") {
+        this.previewIndexOpenId = id;
+        this.previewIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.inspectIndexRef.handleEdit();
+        });
+      } else if (sort == "勘察笔录") {
+        this.spotIndexOpenId = id;
+        this.spotIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.spotIndexRef.handleEdit();
+        });
+      } else if (sort == "多媒体记录") {
+        this.mediaIndexId = id;
+        this.mediaIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.mediaIndexRef.handleEdit();
+        });
+      }
+    },
+    async handleFileDialog(arr, selectType) {
+      if (!arr || !arr.length) {
+        return;
+      }
+      let ids = arr.join(",");
+      let res = [];
+      if (selectType == 2) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.attachmentId,
+            text: subject.name,
+            sort: "书证",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 3) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.theme + "询问笔录",
+            sort: "取证笔录",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 4) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.actualCityName + "勘察笔录",
+            sort: "勘察笔录",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 5) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.mediaExplain + "现场多媒体证据",
+            sort: "多媒体记录",
+          };
+          res.push(temp);
+        }
+      }
+      this.fileOpen = true;
+      this.seeData = res;
+    },
+    handleFileDialogClose() {
+      this.fileOpen = false;
+    },
+    getArchive: function () {
+      getArchive({
+        pageNo: this.pageNo,
+        pageSize: this.pageSize,
+        teamId: this.id,
+      }).then((res) => {
+        this.tableData = res.data.list;
+        this.total = res.data.count;
+      });
+    },
+    checkFile: function (fileIds, title) {
+      this.fileTitle = title;
+      let fileIdList = [];
+      if (fileIds) {
+        fileIdList = fileIds.split(",");
+      }
+      fileIdList.forEach((item) => {
+        item && this.getFileInfo(item);
+      });
+      this.check = true;
+    },
+    getFileInfo: function (id) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this.fileList.push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.wenti {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  span {
+    color: #2196f3;
+  }
+}
+</style>
+
+
+
+

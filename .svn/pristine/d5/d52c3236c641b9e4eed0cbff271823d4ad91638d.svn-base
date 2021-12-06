@@ -1,0 +1,28 @@
+<template>
+  <div class="styem-content">
+    <div class="styem-content-left">
+      <div class="styem-ctop">
+        <h1 class="styem-ctop-title">举报类型</h1>
+        <div class="styem-ctop-content">
+          
+        </div>
+      </div>
+    </div>
+    <div class="styem-content-center">
+
+    </div>
+    <div class="styem-content-right">
+
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    
+  }
+</script>
+
+<style lang="scss" scoped>
+
+</style>

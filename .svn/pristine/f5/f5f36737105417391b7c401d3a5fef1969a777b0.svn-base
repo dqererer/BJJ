@@ -1,0 +1,11 @@
+import { getAction, postAction } from './manage'
+const path = process.env.VUE_APP_BASE_API;
+//菜单
+const findSysByUser = params => getAction(`${path}/center/syssub/sysSub/findSysByUser`);//获取当前用户授权菜单
+const getUserSysMenu = params => getAction(`${path}/center/sys/menu/getUserSysMenu`,params);//获取当前用户授权菜单
+const getSubSystem = params => getAction(`${path}/center/analyse/getWorkTypeInfo`);//获取当前用户授权菜单
+export {
+    findSysByUser,
+    getUserSysMenu,
+    getSubSystem
+}

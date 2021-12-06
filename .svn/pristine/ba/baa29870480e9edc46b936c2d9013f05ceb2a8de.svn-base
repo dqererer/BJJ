@@ -1,0 +1,14 @@
+//督查准备
+import { getAction, postAction, postForm } from './manage'
+const path = process.env.VUE_APP_BASE_API;
+
+// 线索管理
+const threadList = params => getAction(path + `/center/clue/main/tClueMain/list`, params);
+const threadSave = params => postForm(path + `/center/clue/main/tClueMain/save`, params);
+const threadDelete = params => postAction(path + `/center/clue/main/tClueMain/delete`, params);
+
+export {
+  threadList,
+  threadSave,
+  threadDelete
+}

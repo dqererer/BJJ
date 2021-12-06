@@ -1,0 +1,2138 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">整改任务</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="16">
+              <div class="line">
+                <el-form-item label="督察信息：">
+                  <el-select
+                    placeholder="请选择督察级别"
+                    @change="changeSuperviseLevel(1)"
+                    v-model="queryParams.levelType"
+                  >
+                    <el-option
+                      v-for="item in superviseLevelArry"
+                      :key="item.id"
+                      :label="item.name"
+                      :value="item.value"
+                    >
+                    </el-option>
+                  </el-select>
+                  <el-select
+                    v-model="queryParams.inspectType"
+                    placeholder="请选择督察类型"
+                    @change="changeinspectType(1)"
+                  >
+                    <el-option
+                      v-for="item in inspectTypeArry"
+                      :key="item.id"
+                      :label="item.name"
+                      :value="item.value"
+                    >
+                    </el-option>
+                  </el-select>
+                  <el-select
+                    v-model="queryParams.roundId"
+                    placeholder="请选择督察轮次"
+                    @change="changeSuperviseRound(1)"
+                  >
+                    <el-option
+                      v-for="item in superviseRoundArry"
+                      :key="item.id"
+                      :label="item.batchName"
+                      :value="item.batchId"
+                    >
+                    </el-option>
+                  </el-select>
+                  <el-select
+                    v-model="queryParams.batchId"
+                    placeholder="请选择督察批次"
+                    @change="changeSuperviseBatch(1)"
+                  >
+                    <el-option
+                      v-for="item in superviseBatchArry"
+                      :key="item.id"
+                      :label="item.batchName"
+                      :value="item.batchId"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="方案名称：">
+                <el-select
+                  v-model="queryParams.planId"
+                  placeholder="请选择方案名称"
+                  filterable
+                >
+                  <el-option
+                    v-for="item in superviseNameArry"
+                    :key="item.id"
+                    :label="item.planName"
+                    :value="item.id"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <div class="line3">
+                <el-form-item label="任务内容：">
+                  <el-input
+                    placeholder="请输入任务内容"
+                    v-model="queryParams.rectifyContent"
+                  >
+                  </el-input>
+                </el-form-item>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="line3">
+                <el-form-item label="整改目标：">
+                  <el-input
+                    placeholder="请输入整改目标"
+                    v-model="queryParams.rectifyTarget"
+                  >
+                  </el-input>
+                </el-form-item>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="line3">
+                <el-form-item label="完成情况：">
+                  <el-select
+                    v-model="queryParams.finishSituation"
+                    placeholder="请选择完成情况"
+                  >
+                    <el-option
+                      v-for="item in finishSituationArry"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <div class="line3">
+                <el-form-item label="地区搜索：">
+                  <el-select
+                    v-model="queryParams.writeCityCode"
+                    placeholder="请选择地区搜索"
+                  >
+                    <el-option
+                      v-for="item in writeCityArry"
+                      :key="item.code"
+                      :label="item.name"
+                      :value="item.code"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+            </el-col>
+            <el-col :span="16">
+              <el-form-item class="pull-right">
+                <el-button type="primary" @click="onQuery">查询</el-button>
+                <el-button type="primary" @click="onClear">清空</el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button
+          size="small"
+          @click="handleNewly"
+          type="primary"
+          v-if="buttonAuthority"
+          >新增</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getChangeTaskList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column prop="title" label="督察信息" min-width="300px">
+          <template v-slot="scope">
+            <span
+              >{{ scope.row.levelTypeName }}-{{ scope.row.inspectTypeName }}-{{
+                scope.row.roundName
+              }}-{{ scope.row.batchName }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="地区" min-width="160px">
+          <template v-slot="scope">
+            <span>{{ scope.row.writeCity }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="方案名称" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.planName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="整改任务内容" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.rectifyContent }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="整改目标" width="160px"
+          ><template v-slot="scope">
+            <span>{{ scope.row.rectifyTarget }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="完成情况" width="160px"
+          ><template v-slot="scope">
+            <span>{{ scope.row.finishSituationName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="完成时限" width="160px"
+          ><template v-slot="scope">
+            <span v-if="scope.row.deadline == 'now'">立即立改</span>
+            <span v-else-if="scope.row.deadline == 'longtime'">长期坚持</span>
+            <span v-else>{{ scope.row.deadline }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="是否重点" width="120px"
+          ><template v-slot="scope">
+            <span>{{ scope.row.isKeyTaskName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="大概位置" width="160px"
+          ><template v-slot="scope">
+            <span
+              >{{ scope.row.taskCityName }}{{ scope.row.taskCountyName
+              }}{{ scope.row.taskAddress }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="320"
+          v-if="buttonAuthority"
+          fixed="right"
+        >
+          <template v-slot="scope">
+            <el-button size="mini" @click="handleSee(scope.row, 'view')"
+              >查看</el-button
+            >
+            <!-- <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            > -->
+            <el-button
+              size="mini"
+              type="primary"
+              @click="handleSee(scope.row, 'report')"
+              >进度填报</el-button
+            >
+            <el-button
+              size="mini"
+              type="primary"
+              @click="handleSee(scope.row, 'check')"
+              >现场核实</el-button
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" v-else>
+          <template v-slot="scope">
+            <el-button size="mini" @click="handleSee(scope.row, 'view')"
+              >查看</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getChangeTaskList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      v-if="open"
+      :visible="true"
+      fullscreen="true"
+      :before-close="handleDialogClose"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        :class="{ other: curStatus != 'new' }"
+      >
+        <div class="wrap">
+          <div class="card left">
+            <div class="title">任务来源信息</div>
+            <section style="padding-top: 10px">
+              <el-form-item label="督察级别：" prop="levelType">
+                <el-select
+                  :disabled="curStatus != 'new'"
+                  placeholder="请选择督察级别"
+                  @change="changeSuperviseLevel(2)"
+                  v-model="dialogParams.levelType"
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in superviseLevelArry"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="督察类型：" prop="inspectType">
+                <el-select
+                  :disabled="curStatus != 'new'"
+                  v-model="dialogParams.inspectType"
+                  placeholder="请选择督察类型"
+                  @change="changeinspectType(2)"
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in inspectTypeArry2"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="督察轮次：" prop="roundId">
+                <el-select
+                  :disabled="curStatus != 'new'"
+                  v-model="dialogParams.roundId"
+                  placeholder="请选择督察轮次"
+                  @change="changeSuperviseRound(2)"
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in superviseRoundArry2"
+                    :key="item.id"
+                    :label="item.batchName"
+                    :value="item.batchId"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="督察批次：" prop="batchId">
+                <el-select
+                  :disabled="curStatus != 'new'"
+                  v-model="dialogParams.batchId"
+                  placeholder="请选择督察批次"
+                  size="small"
+                  @change="changeSuperviseBatch(2)"
+                >
+                  <el-option
+                    v-for="item in superviseBatchArry2"
+                    :key="item.id"
+                    :label="item.batchName"
+                    :value="item.batchId"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="方案名称：" prop="planId">
+                <el-select
+                  :disabled="curStatus != 'new'"
+                  v-model="dialogParams.planId"
+                  placeholder="请选择方案名称"
+                  size="small"
+                  filterable
+                >
+                  <el-option
+                    v-for="item in superviseNameArry2"
+                    :key="item.id"
+                    :label="item.planName"
+                    :value="item.id"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="督察地区：" prop="city">
+                <el-input
+                  class="inputWidth"
+                  v-model.trim="dialogParams.writeCity"
+                  disabled
+                  size="small"
+                ></el-input>
+              </el-form-item>
+            </section>
+          </div>
+          <div class="card center">
+            <div class="title">整改任务信息</div>
+            <section style="padding-top: 10px">
+              <div
+                class="line-row"
+                style="display: flex; justify-content: space-between"
+              >
+                <el-form-item label="任务分类：" prop="rectifyClass">
+                  <el-input
+                    class="inputWidth"
+                    v-model.trim="dialogParams.rectifyClass"
+                    :disabled="curStatus != 'new'"
+                    size="small"
+                  ></el-input>
+                </el-form-item>
+                <el-form-item label="任务标题：" prop="rectifyTitle">
+                  <el-input
+                    class="inputWidth"
+                    v-model.trim="dialogParams.rectifyTitle"
+                    :disabled="curStatus != 'new'"
+                    size="small"
+                  ></el-input>
+                </el-form-item>
+              </div>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="整改任务内容：" prop="rectifyContent">
+                    <el-input
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入整改任务内容"
+                      v-model.trim="dialogParams.rectifyContent"
+                      :disabled="curStatus != 'new'"
+                    >
+                    </el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="整改目标：" prop="rectifyTarget">
+                    <el-input
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入整改目标"
+                      v-model.trim="dialogParams.rectifyTarget"
+                      :disabled="curStatus != 'new'"
+                    >
+                    </el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="任务类型：" prop="taskTypeTwo">
+                    <div class="pollute-box">
+                      <div
+                        class="pollute-item"
+                        v-for="(item, index) in pollutantArryTwo"
+                        :key="index"
+                      >
+                        <span class="pollute-item-text"
+                          >{{ item.label }}：</span
+                        >
+                        <el-checkbox-group
+                          v-model="dialogParams.taskTypeTwo"
+                          v-for="(itemb, indexb) in item.children"
+                          @change="handlePollutionChange"
+                          :key="indexb"
+                          size="small"
+                          :disabled="curStatus != 'new'"
+                        >
+                          <el-checkbox-button :label="itemb.value">{{
+                            itemb.label
+                          }}</el-checkbox-button>
+                        </el-checkbox-group>
+                        <el-input
+                          v-model.trim="dialogParams[sortNameArry[index]]"
+                          size="small"
+                          :disabled="curStatus != 'new'"
+                          v-show="
+                            handleCheckShow(
+                              item.children[item.children.length - 1].value
+                            )
+                          "
+                          placeholder=""
+                        ></el-input>
+                      </div>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <div
+                class="line-row"
+                style="display: flex; justify-content: space-between"
+              >
+                <el-form-item label="配合单位：">
+                  <el-select
+                    v-model="dialogParams.leadUnit"
+                    placeholder="请选择任务类型"
+                    @change="handleLeadUnitChange"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                    <el-option
+                      v-for="item in leadUnitArry"
+                      :key="item.id"
+                      :label="item.name"
+                      :value="item.id"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="监管单位：" prop="supervisionUnit">
+                  <el-select
+                    v-model="dialogParams.supervisionUnit"
+                    placeholder="请选择监管单位"
+                    @change="handleSupervisionUnitChange"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                    <el-option
+                      v-for="item in supervisionUnitArry"
+                      :key="item.id"
+                      :label="item.name"
+                      :value="item.id"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+
+              <div
+                class="line-row"
+                style="display: flex; justify-content: space-between"
+              >
+                <el-form-item label="责任单位：">
+                  <el-select
+                    v-model="dialogParams.responsibleUnit"
+                    placeholder="请选择责任单位"
+                    @change="handleResponsibleUnitChange"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                    <el-option
+                      v-for="item in responsibleUnitArry"
+                      :key="item.id"
+                      :label="item.name"
+                      :value="item.id"
+                    >
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="重点任务：" prop="isKeyTask">
+                  <el-radio-group
+                    v-model="dialogParams.isKeyTask"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                    <el-radio-button
+                      v-for="item in KeyTaskArry"
+                      :key="item.id"
+                      :label="item.value"
+                      >{{ item.label }}</el-radio-button
+                    >
+                  </el-radio-group>
+                </el-form-item>
+              </div>
+              <div class="line2">
+                <el-form-item label="完成时限：" prop="deadline">
+                  <el-date-picker
+                    v-model="dialogParams.deadline"
+                    format="yyyy-MM"
+                    value-format="yyyy-MM"
+                    type="month"
+                    placeholder="选择完成时限"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                  </el-date-picker>
+                  <el-radio-group
+                    v-model="dialogParams.deadline"
+                    size="small"
+                    :disabled="curStatus != 'new'"
+                  >
+                    <el-radio
+                      :label="item.value"
+                      v-for="item in deadlineList"
+                      v-bind:key="item.value"
+                      >{{ item.label }}</el-radio
+                    >
+                  </el-radio-group>
+                </el-form-item>
+              </div>
+              <el-form-item
+                label="任务所在地："
+                class="meet-address"
+                prop="address"
+              >
+                <el-select
+                  v-model="dialogParams.taskCityCode"
+                  filterable
+                  placeholder="所在市"
+                  @change="handleCityChange"
+                  size="small"
+                  :disabled="curStatus != 'new'"
+                >
+                  <el-option
+                    v-for="item in areaArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  >
+                  </el-option>
+                </el-select>
+                <el-select
+                  v-model="dialogParams.taskCountyCode"
+                  filterable
+                  placeholder="所在县"
+                  @change="handleCountyChange"
+                  size="small"
+                  :disabled="curStatus != 'new'"
+                >
+                  <el-option
+                    v-for="item in countyArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  >
+                  </el-option>
+                </el-select>
+                <el-input
+                  v-model.trim="dialogParams.taskAddress"
+                  maxlength="200"
+                  show-word-limit
+                  placeholder="请输入详细地址"
+                  size="small"
+                  :disabled="curStatus != 'new'"
+                ></el-input>
+              </el-form-item>
+            </section>
+          </div>
+          <div class="right">
+            <div class="card top">
+              <el-form-item label="完成情况：" prop="finishSituation">
+                <el-radio-group
+                  v-model="dialogParams.finishSituation"
+                  size="small"
+                  :disabled="curStatus == 'view'"
+                  @change="changeStatus"
+                >
+                  <el-radio-button
+                    v-for="item in finishSituationArry"
+                    :key="item.id"
+                    :label="item.value"
+                    >{{ item.label }}</el-radio-button
+                  >
+                </el-radio-group>
+              </el-form-item>
+            </div>
+            <div class="card middle">
+              <div class="title">
+                整改措施（共{{ dialogParams.measureDTOList.length }}条）
+              </div>
+              <section style="padding-top: 10px">
+                <el-tabs
+                  v-model="editableTabsValue"
+                  type="card"
+                  @edit="handleTabsEdit"
+                  :editable="curStatus == 'new'"
+                  :addable="curStatus == 'new'"
+                  @tab-click="toggleTab"
+                >
+                  <el-tab-pane
+                    :key="item.id"
+                    v-for="item in dialogParams.measureDTOList"
+                    :label="item.title.substr(0, 5)"
+                    :name="item.name"
+                  >
+                    <el-row :gutter="24">
+                      <el-col :span="24">
+                        <el-form-item label="措施标题：" prop="title">
+                          <el-input
+                            v-model.trim="item.title"
+                            size="small"
+                            :disabled="curStatus != 'new'"
+                          >
+                          </el-input>
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                    <el-row :gutter="24">
+                      <el-col :span="24">
+                        <el-form-item label="措施内容：" prop="messure">
+                          <el-input
+                            type="textarea"
+                            :rows="2"
+                            placeholder="请输入措施内容"
+                            v-model.trim="item.measure"
+                            :disabled="curStatus != 'new'"
+                          >
+                          </el-input>
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                    <el-row :gutter="24">
+                      <el-col :span="24">
+                        <el-form-item label="完成情况：" prop="finishState">
+                          <el-radio
+                            v-for="i in finishStateArry"
+                            :key="i.value"
+                            :value="i.value"
+                            :label="i.value"
+                            v-model="item.finishState"
+                            :disabled="curStatus != 'new'"
+                            >{{ i.label }}</el-radio
+                          >
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                  </el-tab-pane>
+                </el-tabs>
+              </section>
+            </div>
+            <div class="card bottom" v-if="curStatus != 'new'">
+              <div class="title">措施-推进情况</div>
+              <section style="padding-top: 10px; display: flex">
+                <div class="steps">
+                  <Step
+                    :list="
+                      dialogParams.measureDTOList[tabIndex].progressDTOList
+                    "
+                    @toggleStep="toggleStep"
+                  >
+                  </Step>
+                </div>
+                <div
+                  class="content"
+                  v-if="
+                    dialogParams.measureDTOList[tabIndex]['progressDTOList']
+                      .length
+                  "
+                >
+                  <el-form-item label="进展情况：" prop="progress">
+                    <el-input
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入整改任务内容"
+                      v-model.trim="
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].progress
+                      "
+                      @change="handleContentChange"
+                      :disabled="
+                        curStatus != 'report' ||
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].reportableDateShow != curMounth
+                      "
+                    >
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item label="存在问题：" prop="problem">
+                    <el-input
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入整改目标"
+                      @change="handleContentChange"
+                      v-model.trim="
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].problem
+                      "
+                      :disabled="
+                        curStatus != 'report' ||
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].reportableDateShow != curMounth
+                      "
+                    >
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item label="下一步计划：" prop="nextPlan">
+                    <el-input
+                      type="textarea"
+                      @change="handleContentChange"
+                      :rows="2"
+                      placeholder="请输入整改目标"
+                      v-model.trim="
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].nextPlan
+                      "
+                      :disabled="
+                        curStatus != 'report' ||
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].reportableDateShow != curMounth
+                      "
+                    >
+                    </el-input>
+                  </el-form-item>
+                  <el-form-item
+                    :label="'证明材料（共' + curFileNum + '份）：'"
+                    prop="nextPlan"
+                  >
+                    <upload
+                      :uneditable="
+                        curStatus != 'report' ||
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].reportableDateShow != curMounth
+                      "
+                      ref="uploadFile"
+                      :limit="3"
+                      :fileId="
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].file
+                      "
+                      fromKey="file"
+                      @setUrlPath="
+                        (file) => {
+                          setUrlPath(file);
+                        }
+                      "
+                      @deleteServeFile="deleteServeFile"
+                    ></upload>
+                  </el-form-item>
+                  <el-form-item label="完成情况：" prop="finishState">
+                    <el-radio-group
+                      v-model="
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].finishState
+                      "
+                      size="small"
+                      :disabled="
+                        curStatus != 'report' ||
+                        dialogParams.measureDTOList[tabIndex][
+                          'progressDTOList'
+                        ][proIndex].reportableDateShow != curMounth
+                      "
+                      @change="handleFinishStauts"
+                    >
+                      <el-radio-button
+                        v-for="item in finishStateArry"
+                        :key="item.value"
+                        :label="item.value"
+                        >{{ item.label }}</el-radio-button
+                      >
+                    </el-radio-group>
+                  </el-form-item>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card check"
+          v-if="curStatus == 'check' || curStatus == 'view'"
+        >
+          <div class="title">核实信息</div>
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="核实人：">
+                <el-input
+                  class="inputWidth"
+                  v-model.trim="dialogParams.rectifyVerify.verifiername"
+                  disabled
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="核实时间：">
+                <el-input
+                  class="inputWidth"
+                  v-model.trim="dialogParams.rectifyVerify.verfityTime"
+                  disabled
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item
+                label="核实内容："
+                prop="rectifyVerify.verfityContent"
+              >
+                <el-input
+                  class="inputWidth"
+                  type="textarea"
+                  v-model.trim="dialogParams.rectifyVerify.verfityContent"
+                  :disabled="curStatus == 'view'"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item
+                label="核实意见："
+                prop="rectifyVerify.verfitySuggestion"
+              >
+                <el-input
+                  class="inputWidth"
+                  type="textarea"
+                  v-model.trim="dialogParams.rectifyVerify.verfitySuggestion"
+                  :disabled="curStatus == 'view'"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          {{ dialogParams.rectifyVerify.verfitySituation }}
+          <el-form-item
+            label="核实情况："
+            prop="rectifyVerify.verfitySituation"
+          >
+            <el-radio-group
+              v-model="dialogParams.rectifyVerify.verfitySituation"
+              size="small"
+              :disabled="curStatus == 'view'"
+            >
+              <el-radio-button
+                v-for="item in verfitySituationArry"
+                :key="item.value"
+                :label="item.value"
+                >{{ item.label }}</el-radio-button
+              >
+            </el-radio-group>
+          </el-form-item>
+        </div>
+        <div class="dialogFormFooter" v-if="curStatus != 'view'">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  getChangeTaskList,
+  saveChangeTask,
+  getRoundOrBatchList,
+  getSpectTypeList,
+  getCityList,
+  getTaskDetail,
+  getAllChangeProgramList,
+  getProgressList,
+  getUnitList,
+  deleteProgress,
+} from "@/api/change/dispatch";
+import { getAreaList } from "@/api/support/analyse";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { areaTreeNew } from "@/api/styem/dept";
+import { dictListType } from "@/api/styem/dict/type";
+import { mapGetters } from "vuex";
+import { getCurrentTime } from "@/utils/date";
+import Step from "@/components/Step";
+const initMeasureDTOList = {
+  measure: "",
+  finishState: "",
+  filler: "",
+  fillerName: "",
+  title: "措施1",
+  name: "0",
+  content: "Tab 1 content",
+  progressDTOList: [],
+};
+const initRectifyVerify = {
+  verfityTime: "",
+  verifier: "",
+  verifiername: "",
+  verfitySuggestion: "",
+  verfityContent: "",
+  verfitySituation: "",
+};
+const initData = {
+  id: "",
+  levelType: undefined,
+  levelTypeName: "",
+  inspectType: undefined,
+  inspectTypeName: "",
+  roundName: "",
+  roundId: "",
+  batchId: undefined,
+  batchName: "",
+  planId: undefined,
+  planName: "",
+  writeCityCode: "",
+  writeCity: "",
+  rectifyContent: "",
+  rectifyTarget: "",
+  leadUnit: "", //配合单位
+  leadUnitName: "",
+  supervisionUnit: "", //监管单位
+  supervisionUnitName: "",
+  responsibleUnit: "", //责任单位
+  responsibleUnitName: "",
+  taskTypeOne: [],
+  taskTypeOneName: "",
+  taskTypeTwo: [],
+  taskTypeTwoName: "",
+  otherWater: "",
+  otherAir: "",
+  otherSoil: "",
+  otherOcean: "",
+  otherEcology: "",
+  otherRadiation: "",
+  otherNoise: "",
+  other: "",
+  finishSituation: "",
+  finishSituationName: "",
+  deadline: "",
+  isKeyTask: "",
+  isKeyTaskName: "",
+  measureDTOList: [{ ...initMeasureDTOList }],
+  rectifyVerify: { ...initRectifyVerify },
+  taskCityCode: "",
+  taskCityName: "",
+  taskCountyCode: "",
+  taskCountyName: "",
+  taskAddress: "",
+  rectifyClass: "",
+  rectifyTitle: "",
+};
+export default {
+  data() {
+    var validAddress = (rule, value, callback) => {
+      const { taskCityCode, taskCountyCode, taskAddress } = this.dialogParams;
+      if (taskCityCode && taskCountyCode && taskAddress) {
+        callback();
+        return;
+      }
+      if (!taskCityCode) {
+        callback(new Error("请选择所在市"));
+        return;
+      }
+      if (!taskCountyCode) {
+        callback(new Error("请选择所在县"));
+        return;
+      }
+      if (!taskAddress) {
+        callback(new Error("请填写详细地址"));
+        return;
+      }
+    };
+    return {
+      curFileNum: 0,
+      top: "top",
+      taskText: "",
+      isHandleChange: false,
+      curMounth: 0,
+      buttonAuthority: true,
+      curStatus: "",
+      showSearch: true,
+      queryParams: {
+        levelType: undefined,
+        inspectType: undefined,
+        roundId: undefined,
+        batchId: undefined,
+        pageNo: 1,
+        pageSize: 10,
+        planId: undefined,
+        writeCityCode: undefined,
+        finishSituation: undefined,
+        rectifyContent: undefined,
+        rectifyTarget: undefined,
+      },
+      superviseLevelArry: [], //督察级别
+      inspectTypeArry: [], // 督察类型字典
+      superviseRoundArry: [], //轮次下拉
+      superviseBatchArry: [], //批次下拉
+      inspectTypeArry2: [], // 督察类型字典-弹框
+      superviseRoundArry2: [], //轮次下拉 --弹框
+      superviseBatchArry2: [], //批次下拉 --弹框
+      superviseNameArry: [], //方案名称下拉
+      superviseNameArry2: [], //方案名称下拉--弹框
+      pollutantArryTwo: [],
+      cityArry: [],
+      finishSituationArry: [],
+      writeCityArry: [],
+      KeyTaskArry: [],
+      finishStateArry: [],
+      leadUnitArry: [],
+      responsibleUnitArry: [],
+      supervisionUnitArry: [],
+      verfitySituationArry: [],
+      deadlineList: [],
+      List: [],
+      total: 0,
+      loading: true,
+      dialogTitle: "整改方案",
+      open: false,
+      dialogParams: { ...initData },
+      dialogRules: {
+        levelType: [
+          { required: true, message: "请选择督察级别", trigger: "blur" },
+        ],
+        inspectType: [
+          { required: true, message: "请选择督察类型", trigger: "blur" },
+        ],
+        roundId: [
+          { required: true, message: "请选择督察轮次", trigger: "blur" },
+        ],
+        batchId: [
+          { required: true, message: "请选择督察批次", trigger: "blur" },
+        ],
+        planId: [
+          { required: true, message: "请选择方案名称", trigger: "change" },
+        ],
+        rectifyClass: [
+          { required: true, message: "请输入任务分类", trigger: "change" },
+        ],
+        rectifyTitle: [
+          { required: true, message: "请输入任务标题", trigger: "change" },
+        ],
+        rectifyContent: [
+          { required: true, message: "请输入整改任务内容", trigger: "change" },
+        ],
+        rectifyTarget: [
+          { required: true, message: "请输入整改目标", trigger: "change" },
+        ],
+        taskTypeTwo: [
+          { required: true, message: "请选择任务类型", trigger: "change" },
+        ],
+        // leadUnit: [
+        //   { required: true, message: "请选择配合单位", trigger: "blur" },
+        // ],
+        deadline: [
+          { required: true, message: "请选择完成时限", trigger: "blur" },
+        ],
+        finishSituation: [
+          { required: true, message: "请选择完成时限", trigger: "blur" },
+        ],
+        isKeyTask: [
+          { required: true, message: "请选择重点任务", trigger: "change" },
+        ],
+        "rectifyVerify.verfityContent": [
+          { required: true, message: "请输入核实内容", trigger: "change" },
+        ],
+        "rectifyVerify.verfitySuggestion": [
+          { required: true, message: "请输入核实意见", trigger: "change" },
+        ],
+        "rectifyVerify.verfitySituation": [
+          { required: true, message: "请选择核实情况", trigger: "blur" },
+        ],
+        address: [{ required: true, validator: validAddress, trigger: "blur" }],
+      },
+      sortNameArry: [
+        "otherWater",
+        "otherAir",
+        "otherSoil",
+        "otherOcean",
+        "otherEcology",
+        "otherRadiation",
+        "otherNoise",
+        "other",
+      ],
+      check: false,
+      editableTabsValue: "0",
+      now: "",
+      countyArry: [],
+      tabIndex: 0,
+      proIndex: 0,
+    };
+  },
+  components: {
+    Step,
+  },
+  computed: {
+    ...mapGetters(["userInfo", "areaArry"]),
+    handleCheckShow() {
+      return function (value) {
+        return this.dialogParams.taskTypeTwo.indexOf(value) > -1 ? true : false;
+      };
+    },
+  },
+
+  watch: {
+    "dialogParams.finishSituation": {
+      immediate: false,
+      deep: true,
+      handler: function (newV, oldV) {
+        if (!this.isHandleChange) {
+          this.isHandleChange = true;
+          return;
+        }
+        if (newV == "1") {
+          let isAllFinished = true;
+          this.dialogParams.measureDTOList.forEach((item) => {
+            if (item.finishState != "1") {
+              isAllFinished = false;
+            }
+          });
+          if (!isAllFinished) {
+            this.$alert("还有未完成的措施，请先完成所有措施", {
+              confirmButtonText: "确定",
+              callback: (action) => {
+                this.$set(this.dialogParams, "finishSituation", "");
+                this.$set(this.dialogParams, "finishSituationName", "");
+              },
+            });
+          }
+        }
+      },
+    },
+  },
+  created() {
+    if (this.userInfo.weatherRectify) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+    }
+    this.getChangeTaskList();
+    this.getSuperviseLevelList();
+    this.getCityList();
+    this.getDictPollutantTwo();
+    this.getfinishSituationList();
+    this.getKeyTaskList();
+    this.getFinishStateArry();
+    this.getFinishStatusList();
+    this.getWriteCityArry();
+    this.curMounth = getCurrentTime().substr(0, 7);
+  },
+  methods: {
+    handleContentChange: function () {
+      this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+        this.proIndex
+      ].actualReportDate = getCurrentTime();
+    },
+    toggleStep: function (idx) {
+      this.proIndex = idx;
+      let str =
+        this.dialogParams.measureDTOList[index].progressDTOList[this.proIndex]
+          .file;
+      let arr = str.split(",");
+      this.curFileNum = arr.length;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    getFinishStatusList: function () {
+      dictListType({
+        type: "finish_status",
+      }).then((res) => {
+        this.deadlineList = res.data;
+      });
+    },
+
+    handleFinishStauts: function (v) {
+      if (v == "1") {
+        this.$confirm(
+          "本措施完成后，对应措施也将变更为已完成，次月将不能再进行任务填报，是否确认修改",
+          "提示",
+          {
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            type: "warning",
+          }
+        )
+          .then(() => {
+            this.handleContentChange();
+            this.$set(
+              this.dialogParams.measureDTOList[this.tabIndex],
+              "finishState",
+              "1"
+            );
+            this.$set(
+              this.dialogParams.measureDTOList[this.tabIndex],
+              "finishStateName",
+              "已完成"
+            );
+            this.$set(
+              this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+                this.proIndex
+              ],
+              "finishStateName",
+              "已完成"
+            );
+          })
+          .catch(() => {
+            this.$set(
+              this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+                this.proIndex
+              ],
+              "finishState",
+              ""
+            );
+          });
+      } else {
+        if (
+          this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+            this.proIndex
+          ].remarks
+        ) {
+          this.$alert("当前为补填进度，不能设置为未完成", {
+            confirmButtonText: "确定",
+            callback: () => {
+              this.$set(
+                this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+                  this.proIndex
+                ],
+                "finishState",
+                ""
+              );
+              this.$set(
+                this.dialogParams.measureDTOList[this.tabIndex].progressDTOList[
+                  this.proIndex
+                ],
+                "finishStateName",
+                ""
+              );
+            },
+          });
+        } else {
+          if (
+            this.dialogParams.measureDTOList[this.tabIndex].finishState == "1"
+          ) {
+            this.$confirm(
+              "本措施未完成后，对应措施也将修改为未完成, 是否确定未完成?",
+              "提示",
+              {
+                confirmButtonText: "确定",
+                cancelButtonText: "取消",
+                type: "warning",
+              }
+            )
+              .then(() => {
+                this.handleContentChange();
+                this.$set(
+                  this.dialogParams.measureDTOList[this.tabIndex],
+                  "finishState",
+                  "2"
+                );
+                this.$set(
+                  this.dialogParams.measureDTOList[this.tabIndex],
+                  "finishStateName",
+                  "未完成"
+                );
+                this.$set(
+                  this.dialogParams.measureDTOList[this.tabIndex]
+                    .progressDTOList[this.proIndex],
+                  "finishStateName",
+                  "未完成"
+                );
+              })
+              .catch(() => {
+                this.$set(
+                  this.dialogParams.measureDTOList[this.tabIndex]
+                    .progressDTOList[this.proIndex],
+                  "finishState",
+                  ""
+                );
+              });
+          }
+        }
+      }
+    },
+    async getChangeTaskList() {
+      this.loading = true;
+      const reponse = await getChangeTaskList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    handleNewly() {
+      this.curStatus = "new";
+      this.dialogParams.measureDTOList[0].filler = this.userInfo.id;
+      this.dialogParams.measureDTOList[0].fillerName = this.userInfo.name;
+      this.dialogTitle = "新增任务";
+      this.getCityList();
+      this.open = true;
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear();
+      this.clearDialog();
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    onQuery() {
+      this.getChangeTaskList();
+      this.queryParams.pageNo = 1;
+    },
+    clearDialog: function () {
+      for (let i in this.dialogParams) {
+        if (i != "writeCityCode" && i != "writeCity") {
+          this.$set(this.dialogParams, i, initData[i]);
+        }
+        if (i == "measureDTOList") {
+          this.$set(this.dialogParams, "measureDTOList", []);
+          this.dialogParams.measureDTOList.push({
+            ...initMeasureDTOList,
+            progressDTOList: [],
+          });
+        }
+      }
+      this.editableTabsValue = "0";
+      this.tabIndex = 0;
+    },
+    onClear() {
+      this.queryParams.levelType = undefined;
+      this.queryParams.inspectType = undefined;
+      this.queryParams.roundId = undefined;
+      this.queryParams.batchId = undefined;
+      this.queryParams.planId = undefined;
+      this.inspectTypeArry = [];
+      this.superviseRoundArry = [];
+      this.superviseBatchArry = [];
+    },
+    async dailogSubmit() {
+      debugger;
+      let isReturn = false;
+      this.dialogParams.measureDTOList.forEach((item) => {
+        if (item.title == "") {
+          this.$message.warning(`措施标题不能为空`);
+          isReturn = true;
+        }
+        if (item.messure == "") {
+          this.$message.warning(`措施内容不能为空`);
+          isReturn = true;
+        }
+        if (item.finishState == "") {
+          this.$message.warning(`措施完成情况不能为空`);
+          isReturn = true;
+        }
+      });
+      if (isReturn) {
+        return;
+      }
+      this.$refs.dialogForm.validate(async (valid) => {
+        if (valid) {
+          let str1 = this.dialogParams.taskTypeOne.join(",");
+          let str2 = this.dialogParams.taskTypeTwo.join(",");
+          this.$set(this.dialogParams, "taskTypeOne", str1);
+          this.$set(this.dialogParams, "taskTypeTwo", str2);
+          this.dialogParams.meetingMinutesFileIds = saveChangeTask(
+            this.dialogParams
+          ).then((res) => {
+            this.getChangeTaskList();
+            this.open = false;
+            this.check = false;
+            this.handleformClear();
+            this.clearDialog();
+            this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+          });
+        }
+      });
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+      this.handleCheckClear();
+      this.handleformClear();
+      this.clearDialog();
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleSee(info, type) {
+      this.isHandleChange = false;
+      if (type == "check") {
+        this.now = getCurrentTime();
+        this.getVerfitySituationArry();
+        this.dialogTitle = "现场核实";
+      }
+      if (type == "report") {
+        this.dialogTitle = "进度填报";
+      }
+      if (type == "view") {
+        this.dialogTitle = "查看";
+      }
+
+      this.curStatus = type;
+      this.getDialogInfo(info);
+      this.getTaskDetail(info.id);
+      this.changeSuperviseLevel(2, 1);
+      this.changeinspectType(2, 1);
+      this.changeSuperviseRound(2, 1);
+      this.open = true;
+    },
+    getTaskDetail: function (id) {
+      getTaskDetail({
+        id,
+      }).then((res) => {
+        this.$set(this.dialogParams, "measureDTOList", res.data.taskMeasure);
+        if (res.data.verify) {
+          this.$set(this.dialogParams, "rectifyVerify", res.data.verify);
+        }
+        if (this.curStatus == "check") {
+          this.dialogParams.rectifyVerify.verfityTime = this.now;
+          this.dialogParams.rectifyVerify.verifiername = this.userInfo.name;
+          this.dialogParams.rectifyVerify.verifier = this.userInfo.id;
+        }
+        this.$nextTick(() => {
+          this.getProgressList(this.dialogParams.measureDTOList[0].id, 0);
+        });
+      });
+    },
+
+    async handleEdit(info) {
+      this.dialogTitle = "修改";
+      this.getDialogInfo(info);
+      this.changeSuperviseLevel(2, 1);
+      this.changeinspectType(2, 1);
+      this.changeSuperviseRound(2, 1);
+      this.open = true;
+    },
+    getDialogInfo(info) {
+      for (let key in this.dialogParams) {
+        if (info[key]) {
+          if (["levelType"].includes(key)) {
+            this.$set(this.dialogParams, key, info[key].toString());
+          }
+          if (["taskTypeOne", "taskTypeTwo"].includes(key)) {
+            this.$set(this.dialogParams, key, info[key].split(","));
+          } else {
+            this.$set(this.dialogParams, key, info[key]);
+          }
+        }
+        console.log("!!!!", this.dialogParams);
+      }
+    },
+    handleformClear() {
+      this.resetFieldsTap("dialogForm");
+      this.dialogParams.id = undefined;
+    },
+    handleCheckClear() {
+      this.dialogParams.id = undefined;
+      this.dialogParams.title = undefined;
+      this.dialogParams.fileId = undefined;
+      this.dialogParams.reportDate = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginReportDate = undefined;
+        this.queryParams.endReportDate = undefined;
+      } else {
+        this.queryParams.beginReportDate = picker[0];
+        this.queryParams.endReportDate = picker[1];
+      }
+    },
+    setUrlPath(file) {
+      this.handleContentChange();
+      let arr =
+        this.dialogParams["measureDTOList"][this.tabIndex].progressDTOList[
+          this.proIndex
+        ][file.fromKey].split(",");
+      arr.push(file.fileId);
+      let str = arr.join(",");
+      this.$set(
+        this.dialogParams["measureDTOList"][this.tabIndex].progressDTOList[
+          this.proIndex
+        ],
+        "file",
+        str
+      );
+    },
+    deleteServeFile(file) {
+      debugger;
+      let arr =
+        this.dialogParams["measureDTOList"][this.tabIndex].progressDTOList[
+          this.proIndex
+        ].file.split(",");
+      arr.forEach((item, index) => {
+        if (item == file.fileId) {
+          arr.splice(index, 1);
+        }
+      });
+      let str = arr.join(",");
+      this.$set(
+        this.dialogParams["measureDTOList"][this.tabIndex].progressDTOList[
+          this.proIndex
+        ],
+        "file",
+        str
+      );
+    },
+    handleDownLoadDoc(path) {
+      getdownLoadZip(path);
+    },
+    handleDownloadClick(fileId) {
+      getSingleInfo(fileId);
+    },
+    //   dq
+
+    getSuperviseLevelList: function () {
+      getSpectTypeList({ parentId: 0 }).then((res) => {
+        this.superviseLevelArry = res.data;
+      });
+    },
+    getCityList: function () {
+      getCityList().then((res) => {
+        this.dialogParams.writeCity = res.data.teamInfo.areaName;
+        this.dialogParams.writeCityCode = res.data.teamInfo.areaCode;
+        this.getUnitArry(res.data.teamInfo.areaCode, "1");
+        this.getUnitArry(res.data.teamInfo.areaCode, "2");
+        this.getUnitArry(res.data.teamInfo.areaCode, "3");
+      });
+    },
+    changeSuperviseLevel: function (type, isreshow) {
+      let value, relatedArr, id;
+      this.getSuperviseNameList(type);
+      if (type == "2") {
+        value = this.dialogParams.levelType;
+        relatedArr = "inspectTypeArry2";
+        //清空关联表单
+        this.inspectTypeArry2 = [];
+        this.superviseRoundArry2 = [];
+        this.superviseBatchArry2 = [];
+        this.superviseNameArry2 = [];
+        if (!isreshow) {
+          this.dialogParams.inspectType = undefined;
+          this.dialogParams.roundId = undefined;
+          this.dialogParams.batchId = undefined;
+          this.dialogParams.planId = undefined;
+        }
+      } else {
+        value = this.queryParams.levelType;
+        relatedArr = "inspectTypeArry";
+        this.inspectTypeArry = [];
+        this.superviseRoundArry = [];
+        this.superviseBatchArry = [];
+        this.superviseNameArry = [];
+        this.queryParams.inspectType = undefined;
+        this.queryParams.roundId = undefined;
+        this.queryParams.batchId = undefined;
+        this.queryParams.planId = undefined;
+      }
+      this.superviseLevelArry.forEach((item) => {
+        if (item.value == value) {
+          id = item.id;
+        }
+      });
+      getSpectTypeList({ parentId: id })
+        .then((res) => {
+          this[relatedArr] = res.data;
+        })
+        .catch((res) => {});
+    },
+    changeinspectType: function (type, isreshow) {
+      let value, relatedArr;
+      this.getSuperviseNameList(type);
+      if (type == "2") {
+        value = this.dialogParams.inspectType;
+        relatedArr = "superviseRoundArry2";
+        //清空关联表单
+        this.superviseRoundArry2 = [];
+        this.superviseBatchArry2 = [];
+        this.superviseNameArry2 = [];
+        if (!isreshow) {
+          this.dialogParams.roundId = undefined;
+          this.dialogParams.batchId = undefined;
+          this.dialogParams.planId = undefined;
+        }
+      } else {
+        value = this.queryParams.inspectType;
+        relatedArr = "superviseRoundArry";
+        this.superviseRoundArry = [];
+        this.superviseBatchArry = [];
+        this.superviseNameArry = [];
+        this.queryParams.roundId = undefined;
+        this.queryParams.batchId = undefined;
+        this.queryParams.planId = undefined;
+      }
+      getRoundOrBatchList({ superviseType: value }).then((res) => {
+        res.data.forEach((item) => {
+          item.batchId = item.batchId.toString();
+        });
+        this[relatedArr] = res.data;
+      });
+    },
+    changeSuperviseRound: function (type, isreshow) {
+      let value, relatedArr;
+      this.getSuperviseNameList(type);
+      if (type == "2") {
+        value = this.dialogParams.roundId;
+        relatedArr = "superviseBatchArry2";
+        //清空关联表单
+        this.superviseBatchArry2 = [];
+        this.superviseNameArry2 = [];
+        if (!isreshow) {
+          this.dialogParams.batchId = undefined;
+          this.dialogParams.planId = undefined;
+        }
+      } else {
+        value = this.queryParams.roundId;
+        relatedArr = "superviseBatchArry";
+        this.superviseBatchArry = [];
+        this.superviseNameArry = [];
+        this.queryParams.batchId = undefined;
+        this.queryParams.planId = undefined;
+      }
+      getRoundOrBatchList({ id: value }).then((res) => {
+        res.data.forEach((item) => {
+          item.batchId = item.batchId.toString();
+        });
+        this[relatedArr] = res.data;
+      });
+    },
+    changeSuperviseBatch: function (type, isreshow) {
+      if (type == "2") {
+        this.superviseNameArry2 = [];
+        this.dialogParams.planId = undefined;
+      } else {
+        this.superviseNameArry = [];
+        this.queryParams.planId = undefined;
+      }
+      this.getSuperviseNameList(type);
+    },
+    getSuperviseNameList: function (type) {
+      let source, relatedArr;
+      if (type == "2") {
+        source = "dialogParams";
+        relatedArr = "superviseNameArry2";
+      } else {
+        source = "queryParams";
+        relatedArr = "superviseNameArry";
+      }
+      let parmas = {
+        levelType: this[source].levelType,
+        inspectType: this[source].inspectType,
+        roundId: this[source].roundId,
+        batchId: this[source].batchId,
+      };
+      getAllChangeProgramList(parmas).then((res) => {
+        this[relatedArr] = res.data;
+      });
+    },
+    getfinishSituationList: function () {
+      dictListType({
+        type: "execution",
+      }).then((res) => {
+        this.finishSituationArry = res.data;
+      });
+    },
+    getWriteCityArry: function () {
+      getAreaList().then((res) => {
+        this.writeCityArry = res.data;
+      });
+    },
+
+    getFinishStateArry: function () {
+      dictListType({
+        type: "check_success",
+      }).then((res) => {
+        this.finishStateArry = res.data;
+      });
+    },
+    getKeyTaskList: function () {
+      dictListType({
+        type: "yes_no",
+      })
+        .then((res) => {
+          this.KeyTaskArry = res.data;
+        })
+        .catch();
+    },
+    handlePollutionChange() {
+      const itemIndexArry = [];
+      for (const item in this.pollutantArryTwo) {
+        const subject = this.pollutantArryTwo[item];
+        for (const itemb in subject.children) {
+          const subjectb = subject.children[itemb];
+          if (this.dialogParams.taskTypeTwo.indexOf(subjectb.value) > -1) {
+            itemIndexArry.push(Number(item) + 1);
+          }
+        }
+      }
+      this.dialogParams.taskTypeOne = [...new Set(itemIndexArry)];
+    },
+    async getDictPollutantTwo() {
+      const reponse = await dictListType({
+        type: "clue_pollution_type",
+        next: 1,
+      });
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.pollutantArryTwo = menu;
+    },
+    handleTabsEdit(targetName, action) {
+      if (action === "add") {
+        let len = this.dialogParams.measureDTOList.length;
+        let newTabName = "措施" + (len + 1);
+        this.dialogParams.measureDTOList.push({
+          measure: "",
+          finishState: "",
+          filler: this.userInfo.id,
+          fillerName: this.userInfo.name,
+          title: newTabName,
+          name: len.toString(),
+          content: "New Tab content",
+          progressDTOList: [],
+        });
+        this.tabIndex = len;
+        this.editableTabsValue = this.tabIndex.toString();
+      }
+      if (action === "remove") {
+        let tabs = this.dialogParams.measureDTOList;
+        let activeName = this.editableTabsValue;
+        if (activeName === targetName) {
+          tabs.forEach((tab, index) => {
+            if (tab.name === targetName) {
+              let nextTab = tabs[index + 1] || tabs[index - 1];
+              if (nextTab) {
+                activeName = nextTab.name;
+              }
+            }
+          });
+        }
+        this.editableTabsValue = activeName.toString();
+        this.dialogParams.measureDTOList = tabs.filter(
+          (tab) => tab.name !== targetName
+        );
+      }
+    },
+    toggleTab: function (tab) {
+      this.tabIndex = tab.index;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+      this.getProgressList(
+        this.dialogParams.measureDTOList[tab.index].id,
+        tab.index
+      );
+    },
+    getProgressList: function (id, index) {
+      //请求详情
+      getProgressList({
+        measureId: id,
+      }).then((res) => {
+        if (res.code == "200") {
+          let arr = res.data || [];
+          arr.forEach((item) => {
+            if (!item.progress) {
+              item.progress = "";
+            }
+            if (!item.problem) {
+              item.problem = "";
+            }
+            if (!item.nextPlan) {
+              item.nextPlan = "";
+            }
+            if (!item.finishState) {
+              item.finishState = "";
+            }
+          });
+          if (!this.dialogParams.measureDTOList[index].progressDTOList) {
+            this.$set(
+              this.dialogParams.measureDTOList[index],
+              "progressDTOList",
+              arr
+            );
+          }
+          this.proIndex = arr.length - 1;
+
+          this.$forceUpdate();
+          this.$nextTick(() => {
+            this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+            let str =
+              this.dialogParams.measureDTOList[index].progressDTOList[
+                this.proIndex
+              ].file;
+            let arr = str.split(",");
+            this.curFileNum = arr.length;
+          });
+        }
+      });
+    },
+    getUnitArry: function (city, type) {
+      getUnitList({
+        type,
+        city,
+      })
+        .then((res) => {
+          if (type == "1") {
+            this.leadUnitArry = res.data;
+          }
+          if (type == "2") {
+            this.responsibleUnitArry = res.data;
+          }
+          if (type == "3") {
+            this.supervisionUnitArry = res.data;
+          }
+        })
+        .catch();
+    },
+    getVerfitySituationArry: function () {
+      dictListType({
+        type: "zg_execution",
+      })
+        .then((res) => {
+          this.verfitySituationArry = res.data;
+        })
+        .catch();
+    },
+    handleLeadUnitChange: function (code) {
+      this.leadUnitArry.forEach((item) => {
+        if (item.id == code) {
+          this.dialogParams.leadUnitName = item.name;
+        }
+      });
+    },
+    handleSupervisionUnitChange: function (code) {
+      this.supervisionUnitArry.forEach((item) => {
+        if (item.id == code) {
+          this.dialogParams.supervisionUnitName = item.name;
+        }
+      });
+    },
+    handleResponsibleUnitChange: function (code) {
+      this.responsibleUnitArry.forEach((item) => {
+        if (item.id == code) {
+          this.dialogParams.responsibleUnitName = item.name;
+        }
+      });
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.areaArry.forEach((item) => {
+        if (item.id == code) {
+          this.dialogParams.taskCityName = item.label;
+        }
+      });
+      this.dialogParams.countyCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCountyChange(code) {
+      this.countyArry.forEach((item) => {
+        if (item.id == code) {
+          this.dialogParams.taskCountyName = item.label;
+        }
+      });
+    },
+  },
+};
+</script>
+<style lang="scss" scoped>
+.line {
+  .el-form-item__content {
+    .el-select {
+      width: 25% !important;
+      padding-right: 10px;
+    }
+    .el-input {
+      width: 50% !important;
+    }
+  }
+}
+.line2 {
+  .el-form-item__content {
+    .el-select {
+      width: 25% !important;
+      padding-right: 10px;
+    }
+    .el-input {
+      width: 25% !important;
+    }
+    .el-radio-group {
+      margin-left: 30px;
+    }
+  }
+}
+.line3 {
+  .el-form-item__content {
+    .el-select {
+      width: 100% !important;
+      padding-right: 10px;
+    }
+    .el-input {
+      width: 100% !important;
+      padding-right: 10px;
+    }
+  }
+}
+.line-row {
+  .el-form-item {
+    width: 100%;
+  }
+  .el-form-item__content {
+    width: 100%;
+    .el-select {
+      width: 98% !important;
+    }
+    .el-input {
+      width: 98% !important;
+    }
+    .el-radio-group {
+      width: 98% !important;
+    }
+  }
+}
+.meet-address {
+  .el-form-item__content {
+    .el-select {
+      width: 25% !important;
+      padding-right: 10px;
+    }
+    .el-input {
+      width: 50% !important;
+    }
+  }
+}
+
+.inline {
+  display: inline-block !important;
+}
+
+.pollute-box {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  vertical-align: bottom;
+  font-size: 14px;
+  .pollute-item {
+    display: flex;
+    align-items: center;
+    .pollute-item-text {
+      font-size: 14px;
+      text-align: right;
+      margin-right: 0px;
+      width: 70px;
+    }
+    /deep/ .el-input {
+      width: 120px;
+    }
+  }
+}
+.addRecord {
+  height: 50px;
+  line-height: 50px;
+  border: 1px solid #ebeef5;
+  background: #ebf2f6;
+  color: gray;
+  text-align: center;
+}
+.dialogFormFooter {
+  padding-top: 30px;
+  margin-top: 30px;
+  border-top: 1px solid #8d9096;
+  display: flex;
+  justify-content: center;
+}
+.card {
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  background-color: #fff;
+  overflow: hidden;
+  color: #303133;
+  transition: 0.3s;
+  box-shadow: 0 2px 12px 0 #8d9096;
+  padding: 10px 20px;
+  .title {
+    height: 20px;
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+.wrap {
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  /deep/ .el-form-item__label {
+    width: 100%;
+    float: none;
+  }
+
+  .left {
+    width: 14%;
+    min-height: 100%;
+  }
+  .center {
+    width: 59%;
+    min-height: 100%;
+  }
+  .right {
+    width: 25%;
+    .top {
+      margin-bottom: 10px;
+      /deep/ .el-radio-button {
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+      /deep/ .el-radio-button__inner {
+        border: 1px solid #dcdfe6 !important;
+        box-shadow: none !important;
+      }
+    }
+    .middle {
+      margin-bottom: 10px;
+    }
+    .bottom {
+      height: 666px;
+      .steps {
+        height: 518px;
+        padding: 20px 0;
+        margin-right: 20px;
+        overflow: auto;
+      }
+      .content {
+        flex: 1;
+      }
+    }
+  }
+}
+.check {
+  margin-top: 10px;
+}
+/deep/ .el-checkbox-button.is-disabled.is-checked .el-checkbox-button__inner {
+  color: black;
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+  -webkit-box-shadow: -1px 0 0 0 #e4e7ed;
+  box-shadow: -1px 0 0 0 #e4e7ed;
+}
+/deep/ .el-input.is-disabled .el-input__inner {
+  color: #757373;
+}
+/deep/ .el-textarea.is-disabled .el-textarea__inner {
+  color: #757373;
+}
+/deep/ .el-checkbox-button.is-disabled .el-checkbox-button__inner {
+  color: #757373;
+}
+/deep/ .el-radio-button__orig-radio:disabled + .el-radio-button__inner {
+  color: #757373;
+}
+/deep/ .el-radio__input.is-disabled + span.el-radio__label {
+  color: #757373;
+}
+/deep/ .el-upload-list {
+  max-height: 80px;
+  overflow: auto;
+}
+.other /deep/ .el-form-item {
+  margin-bottom: 0;
+}
+.other .right .bottom {
+  height: 592px !important;
+}
+</style>
+
+
+
+
+
+

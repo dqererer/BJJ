@@ -1,0 +1,140 @@
+<template>
+  <div class="list-add-group">
+    <el-upload
+      ref="upload"
+      multiple
+      :limit="limit"
+      :action="upload.url"
+      :accept="accept"
+      :headers="upload.headers"
+      :uploadPath="upload.uploadPath"
+      :disabled="upload.isUploading"
+      :on-progress="handleFileUploadProgress"
+      :on-success="handleFileSuccess"
+      :on-remove="handleFileRemove"
+      :on-exceed="handleExceed"
+      :auto-upload="true"
+      :on-preview="handelPreviewClick"
+      :file-list="fileList"
+    >
+      <el-button size="small" type="primary">点击上传</el-button>
+    </el-upload>
+  </div>
+</template>
+
+<script>
+import { getToken } from "@/utils/auth";
+import { deletefile, getFileInfo } from "@/api/file";
+import { downLoadZip } from "@/utils/zipdownload";
+import { getSingleInfo, getdownLoadZip } from "@/utils/styem";
+export default {
+  props: {
+    limit: {
+      type: Number
+    },
+    accept: {
+      type: String,
+      default: () => ".xlsx,.xls,.doc,.docx,.zip,.pdf"
+    },
+    fileId: {
+      type: [String, Array]
+    },
+    fromKey: {
+      type: String,
+      default: () => ""
+    }
+  },
+  data() {
+    return {
+      upload: {
+        headers: { Authorization: getToken() },
+        isUploading: false,
+        uploadPath: "hzx",
+        url: process.env.VUE_APP_BASE_API + "/center/file/uploadFile"
+      },
+      fileList: []
+    };
+  },
+  methods: {
+    handleExceed(files, fileList) {
+      if (files.length >= this.limit) {
+        alert(1);
+        this.$message.warning(
+          `上传个数超过限制个数，最多上传${this.limit}个！！！`
+        );
+      }
+    },
+    async getFileMessageInfo() {
+      if (this.fileId) {
+        let ids;
+        if (Array.isArray(this.fileId)) {
+          ids = this.fileId.join(",");
+        } else {
+          ids = this.fileId;
+        }
+        const reponse = await getFileInfo({ ids });
+        let fileList = [];
+        for (const item in reponse.data) {
+          const subjet = reponse.data[item];
+          const temp = {
+            name: subjet.file_name,
+            url: subjet.save_path,
+            id: subjet.id
+          };
+          fileList.push(temp);
+        }
+        this.fileList = fileList;
+      }
+    },
+    handleFileUploadProgress(event, file, fileList) {
+      this.upload.isUploading = true;
+    },
+    async handleFileSuccess(response) {
+      this.upload.isUploading = false;
+      this.$message.success("上传成功");
+      this.$emit("setUrlPath", {
+        fromKey: this.fromKey,
+        fileId: response.data.fileId
+      });
+    },
+    async handleFileRemove(file) {
+      const fileId =
+        file.response == undefined ? file.id : file.response.data.fileId;
+      this.$emit("deleteServeFile", {
+        fromKey: this.fromKey,
+        fileId
+      });
+    },
+    handelPreviewClick(file) {
+      if (file.response) {
+        const fileId = file.response.data.fileId;
+        getSingleInfo(fileId);
+      } else {
+        getdownLoadZip(file.url);
+      }
+    },
+    handleClear() {
+      this.$refs.upload.clearFiles();
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.list-add-group {
+  display: flex;
+  line-height: 30px;
+  margin: 0px;
+  label {
+    font-weight: normal;
+    text-align: right;
+    font-size: 14px;
+  }
+  .list-add-label {
+    width: 80px;
+  }
+}
+/deep/.el-upload-list__item {
+  transition: none !important;
+}
+</style>

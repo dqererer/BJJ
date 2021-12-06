@@ -1,0 +1,319 @@
+<template>
+  <div class="amend-content">
+    <el-form ref="amendForm" :rules="rules" :model="form" label-width="160px">
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="parentId" label="上级菜单：">
+            <treeselect
+              v-model="form.parentId"
+              :options="bSysOptions"
+              :disable-branch-nodes="true"
+              :disableBranchNodes="false"
+              :normalizer="normalizer"
+              noChildrenText="无"
+              placeholder="请选择父id"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="whetherChild" label="是否有下级系统：">
+            <el-select v-model="form.whetherChild" placeholder="是否有下级系统">
+              <el-option label="否" value="0"> </el-option>
+              <el-option label="是" value="1"> </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="name" label="分系统名称：">
+            <el-input
+              v-model="form.name"
+              placeholder="请输入分系统名称"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="type" label="分系统类型：">
+            <el-select v-model="form.type" placeholder="分系统类型：">
+              <el-option label="督察" value="0"> </el-option>
+              <el-option label="辅助" value="1"> </el-option>
+              <el-option label="整改" value="2"> </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="code" label="分系统编码：">
+            <el-input
+              v-model="form.code"
+              placeholder="请输入分系统编码"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="sort" label="排序：">
+            <el-input v-model="form.sort" placeholder="请输入排序"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="href" label="path：">
+            <el-input v-model="form.href" placeholder="请输入连接"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="router" label="name：">
+            <el-input v-model="form.router" placeholder="请输入路由"></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="redirect" label="redirect：">
+            <el-input
+              v-model="form.redirect"
+              placeholder="请输入重定向"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="component" label="component：">
+            <el-input
+              v-model="form.component"
+              placeholder="请输入组件"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="20">
+          <el-form-item prop="remarks" label="备注：">
+            <el-input
+              type="textarea"
+              v-model="form.remarks"
+              placeholder="请输入内容"
+            ></el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="12">
+          <el-form-item label="菜单授权：">
+            <el-tree
+              empty-text
+              :data="menuListData"
+              :default-checked-keys="menuListSelectData"
+              :show-checkbox="true"
+              default-expand-all
+              node-key="id"
+              ref="menuTree"
+              highlight-current
+              :props="defaultProps"
+              @check="nodeClick"
+            >
+            </el-tree>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="角色：">
+            <el-checkbox-group v-model="form.roleIds" class="basy-group">
+              <el-checkbox v-for="item in roleListData" :key="item.id" :label="item.id" >{{item.name}}</el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-form-item class="tab-list-state">
+          <el-button type="primary" @click="onSubmit">保存</el-button>
+          <el-button @click="handleBackClick">返回</el-button>
+        </el-form-item>
+      </el-row>
+    </el-form>
+  </div>
+</template>
+
+<script>
+import { dictListType } from "@/api/styem/dict/type.js";
+import { roleList } from "@/api/styem/role";
+import { menuList } from "@/api/styem/menu";
+import { sysSubSave, sysSubSee, sysSubTreeData } from "@/api/support/bRoleSys";
+import Bus from "@/utils/vueBus";
+export default {
+  data() {
+    return {
+      form: {
+        parentId: null,
+        whetherChild: undefined,
+        name: undefined,
+        type: undefined,
+        code: undefined,
+        sort: undefined,
+        href: undefined,
+        router: undefined,
+        redirect: undefined,
+        component: undefined,
+        remarks: undefined,
+        menuIds: undefined,
+        roleIds: []
+      },
+      bSysOptions: [],
+      delFlagArry: [],
+      roleListData: [],
+      rules: {
+        sort: [{ required: true, message: "请输入排序", trigger: "blur" }]
+      },
+      normalizer(node) {
+        return {
+          label: node.name
+        };
+      },
+      menuListData: undefined,
+      menuListSelectData: undefined,
+      defaultProps: {
+        children: "children",
+        label: "name"
+      }
+    };
+  },
+  created() {
+    Bus.$off("outComeId");
+    this.getDictList();
+    this.getbSys();
+    this.getMenuList();
+    this.getRoleList();
+  },
+  mounted() {
+    Bus.$on("outComeId", obj => {
+      this.resetFieldsTap("amendForm");
+      if (obj == "" || obj == undefined) {
+        this.form.id = undefined;
+        this.form.parentId = null;
+      } else if (obj.state == "amend") {
+        this.form.id = obj.id;
+        this.menuListSelectData = undefined;
+        this.getListSee(obj.id);
+      } else if (obj.state == "addNext") {
+        this.form.parentId = obj.id;
+      }
+    });
+  },
+  methods: {
+    async getDictList() {
+      const delFlagReponse = await dictListType({ type: "del_flag" });
+      this.delFlagArry = delFlagReponse.data;
+    },
+    async getRoleList() {
+      const reponse = await roleList();
+      this.roleListData = reponse.data;
+      this.loading = false;
+    },
+    async getbSys() {
+      const reponse = await sysSubTreeData();
+      if (!reponse.data) {
+        this.bSysOptions = [];
+        return;
+      }
+      const menu = this.handleTree(
+        reponse.data,
+        "id",
+        "parentId",
+        "children",
+        "0"
+      );
+      this.bSysOptions = menu;
+    },
+    async getListSee(id) {
+      this.menuListSelectData = undefined;
+      const reponse = await sysSubSee({ id });
+      const subject = reponse.data;
+      this.form.parentId = subject.parentId == "0" ? null : subject.parentId;
+      this.form.whetherChild = subject.whetherChild;
+      this.form.name = subject.name;
+      this.form.type = subject.type;
+      this.form.code = subject.code;
+      this.form.sort = subject.sort;
+      this.form.href = subject.href;
+      this.form.router = subject.router;
+      this.form.redirect = subject.redirect;
+      this.form.component = subject.component;
+      this.form.remarks = subject.remarks;
+      this.menuListSelectData = subject.menuIdList||undefined;
+      this.form.menuIds = subject.menuIdList&&subject.menuIdList.join(",");
+      this.form.roleIds = subject.roleIdList||undefined;
+    },
+    async getMenuList() {
+      const reponse = await menuList();
+      const menuListData = [
+        {
+          name: "功能菜单",
+          id: "1",
+          children: reponse.data
+        }
+      ];
+      this.menuListData = menuListData;
+    },
+    nodeClick(data, node, e) {
+      let menuIdsArry = [];
+      this.$refs.menuTree.getCheckedNodes().forEach(item => {
+        menuIdsArry.push(item.id);
+      });
+      this.form.menuIds = menuIdsArry.join(",");
+    },
+    onSubmit() {
+      this.$refs.amendForm.validate(async valid => {
+        if (valid) {
+          this.form.roleIds = this.form.roleIds.join(",");
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await sysSubSave(this.form);
+          if (reponse.code == 200) {
+            this.resetFieldsTap("amendForm");
+            this.$emit("backHandle", "update");
+            loading.close();
+          } else {
+            loading.close();
+          }
+        } else {
+          return false;
+        }
+      });
+    },
+    handleBackClick() {
+      this.$emit("backHandle", "back");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/.el-form-item__content {
+  justify-content: flex-end;
+}
+/deep/.el-link--inner {
+  font-weight: bold;
+  color: red;
+}
+.basy-group{
+  display:flex;
+  flex-direction:column;
+  line-height: 30px!important;
+      margin-top: 4px;
+}
+</style>

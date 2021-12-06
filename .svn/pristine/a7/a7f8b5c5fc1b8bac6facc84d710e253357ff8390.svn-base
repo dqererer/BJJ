@@ -1,0 +1,208 @@
+<template>
+  <div class="provincialPlatform">
+    <el-container>
+      <el-header>
+        <div class="provincial-title">生态环境保护督察省级督察平台</div>
+        <div>
+          <el-button icon="el-icon-back" size="mini" @click="goback"
+            >返回</el-button
+          >
+          <el-button icon="el-icon-switch-button" size="mini" @click="logout"
+            >退出</el-button
+          >
+        </div>
+      </el-header>
+      <el-main>
+        <ul class="provincial-ul">
+          <li
+            class="provincial-li"
+            v-for="(item, index) in superviseList"
+            :key="index"
+          >
+            <img class="liImg" :src="icon0" alt="" />
+            <div class="licenter">
+              <h3>{{ item.title }}</h3>
+              <p>
+                目前本次督察进行了<span class="red">{{ item.roundNum }}</span
+                >轮，包含<span class="red">{{ item.batchNum }}</span
+                >批。
+              </p>
+              <p>
+                目前正在进行中的督察为<span class="red">{{
+                  item.roundName
+                }}</span
+                >，<span class="red">{{ item.batchName }}</span
+                >，包含以下督察组：{{ item.teamName }}
+              </p>
+              <div class="btn">
+                <button @click="goSystem(index)">进入系统</button>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </el-main>
+    </el-container>
+  </div>
+</template>
+
+<script>
+import { getSubSystem } from "@/api/findeSystem";
+import { getStorageRouters,setItem } from "../../utils/storage";
+import router from "../../router";
+export default {
+  name: "provincialPlatform",
+  data() {
+    return {
+      icon0: require("../../assets/images/platform/shengji.png"),
+      superviseList: [],
+    };
+  },
+  created: function () {
+    this.handelSuperviseList();
+  },
+  methods: {
+    // 返回
+    goback() {
+this.$router.push({ path: "/platform" });
+    },
+    async logout() {
+      this.$confirm("确定注销并退出系统吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }).then(() => {
+        this.$store.dispatch("LogOut").then(() => {
+          location.reload();
+        });
+      });
+    },
+    goSystem(index) {
+      setItem('superviseItem',JSON.stringify(this.superviseList[index]))
+      let key = this.superviseList[index].id;
+      let code = this.superviseList[index].code;
+      let obj = getStorageRouters("topbar_router") || {};
+      if (!obj.hasOwnProperty(key)) {
+        this.$store
+          .dispatch("InspectUserInfo", { code })
+          .then((res) => {
+            this.$store
+              .dispatch("getSystemMenu", key)
+              .then((res) => {
+                router.addRoutes(res);
+                this.$router.push({ path: res[0].path });
+              })
+              .catch((err) => {});
+          })
+      }
+    },
+    getSubSystemRoutes: function () {
+      return JSON.parse(localStorage.getItem("subSystemRouters"));
+    },
+    handelSuperviseList: function () {
+      let baseList = this.getSubSystemRoutes();
+
+      getSubSystem()
+        .then((res) => {
+          if (res.code == "200") {
+            baseList.forEach((item) => {
+              Object.assign(item, res.data[item.code]);
+            });
+            this.superviseList = baseList;
+          } else {
+          }
+        })
+        .catch();
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.provincialPlatform {
+  width: 100%;
+  height: 100%;
+  .el-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #3e52c1 url();
+    padding: 0 20px !important;
+    .provincial-title {
+      font-weight: 500;
+      font-size: 28px;
+      color: #fff;
+    }
+    .el-button {
+      border: none;
+      outline: none;
+      color: #ccc;
+      font-size: 14px;
+      background-color: #3e52c1;
+    }
+  }
+  .el-main {
+    .provincial-ul {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      width: 100%;
+      .provincial-li {
+        position: relative;
+        width: 23%;
+        height: auto;
+        margin-left: 2%;
+        margin-bottom: 2%;
+        list-style: none;
+        .liImg {
+          position: absolute;
+          top: -14px;
+          left: 50%;
+          width: 70px;
+          height: 70px;
+          margin-left: -30px;
+        }
+        .licenter {
+          width: 100%;
+          height: 350px;
+          margin-top: 20px;
+          padding: 40px 38px;
+          // background: url(../../../assets/images/platform/roundedRectangle.png)
+          background: url("../../assets/images/platform/roundedRectangle.png")
+            no-repeat;
+          background-size: 100% 100%;
+          background-position: 6px 0;
+          box-sizing: border-box;
+          position: relative;
+          h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 26px;
+          }
+          p {
+            font-size: 17px;
+            margin: 0;
+            .red {
+              color: red;
+            }
+          }
+          .btn {
+            position: absolute;
+            bottom: 30px;
+            display: block;
+            left: 38%;
+            button {
+              outline: none;
+              border: none;
+              padding: 6px 18px;
+              font-weight: 600;
+              color: #fff;
+              background-color: #6476d8;
+              border-radius: 4px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</style>

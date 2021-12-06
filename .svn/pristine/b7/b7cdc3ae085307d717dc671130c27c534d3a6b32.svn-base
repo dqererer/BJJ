@@ -1,0 +1,84 @@
+<template>
+  <div>
+    <el-button type="primary" size="mini" @click="handClick1">登记</el-button>
+    <el-button type="primary" size="mini" @click="handClick2">审核</el-button>
+    <el-button type="primary" size="mini" @click="handClick3">不受理</el-button>
+    <el-button type="primary" size="mini" @click="handClick4"
+      >同意转办</el-button
+    >
+    <el-button type="primary" size="mini" @click="handClick5"
+      >暂不转办</el-button
+    >
+    <el-button type="primary" size="mini" @click="handClick6">办理</el-button>
+    <el-button type="primary" size="mini">办督办改情况</el-button>
+    <el-button type="primary" size="mini" @click="handClick8">信访查询</el-button>
+    <register v-if="tabName == 1"></register>
+    <check v-if="tabName == 2"></check>
+    <no-accpet v-if="tabName == 3"></no-accpet>
+    <agree-page v-if="tabName == 4"></agree-page>
+    <no-manage v-if="tabName == 5"></no-manage>
+    <case-transact v-if="tabName == 6"></case-transact>
+    <letter-query v-if="tabName == 8"></letter-query>
+  </div>
+</template>
+
+<script>
+import register from "./register";
+import check from "./check";
+import noAccpet from "./noAccpet";
+import agreePage from "./agreePage";
+import noManage from "./noManage";
+import caseTransact from "./caseTransact";
+import letterQuery from "./letterQuery"
+export default {
+  components: {
+    register,
+    check,
+    noAccpet,
+    agreePage,
+    noManage,
+    caseTransact,
+    letterQuery
+  },
+  data() {
+    return {
+      tabName: 1
+    };
+  },
+  created() {},
+  methods: {
+    handClick1() {
+      this.tabName = 1;
+    },
+    handClick2() {
+      this.tabName = 2;
+    },
+    handClick3() {
+      this.tabName = 3;
+    },
+    handClick4() {
+      this.tabName = 4;
+    },
+    handClick5() {
+      this.tabName = 5;
+    },
+    handClick6() {
+      this.tabName = 6;
+    },
+    handClick8() {
+      this.tabName = 8;
+    },
+    handleTabClick(e) {
+      const tabs = document.getElementsByClassName("information-title");
+      for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+      }
+      e.target.classList.add("active");
+      this.tabName = e.target.getAttribute("name");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

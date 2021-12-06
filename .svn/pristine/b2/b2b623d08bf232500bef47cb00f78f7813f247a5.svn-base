@@ -1,0 +1,78 @@
+<template>
+  <div class="step">
+    <div
+      class="item"
+      v-for="(i, index) in list"
+      v-bind:key="index"
+      @click="toggleItem(index)"
+    >
+      <div class="left">
+        <div class="cirle" :class="{ curCirle: curIndex == index }"></div>
+        <div class="line" v-if="index != list.length - 1"></div>
+      </div>
+      <div class="right" :class="{ curText: curIndex == index }">
+        <p>{{ i.reportableDate }}</p>
+        <p>{{ i.reportLateStateName }}</p>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import { constantRoutes } from "@/router";
+export default {
+  data() {
+    return {
+      curIndex: 0,
+    };
+  },
+  props: {
+    list: Array,
+  },
+  watch: {
+    list: function (newV) {
+      this.curIndex = newV.length - 1;
+    },
+  },
+  methods: {
+    toggleItem: function (index) {
+      this.curIndex = index;
+      this.$emit("toggleStep", index);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.step {
+  .item {
+    display: flex;
+    height: 80px;
+
+    .left {
+      width: 20px;
+    }
+    .cirle {
+      width: 12px;
+      height: 12px;
+      border: 2px solid #dcdfe6;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .curCirle {
+      border: 2px solid #409eff;
+    }
+    .line {
+      height: calc(100% - 12px);
+      border-left: #dcdfe6 solid 1px;
+      position: relative;
+      left: 5px;
+    }
+    .curText {
+      color: #409eff;
+    }
+    p {
+      margin: 0;
+    }
+  }
+}
+</style>

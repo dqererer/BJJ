@@ -1,0 +1,56 @@
+<template>
+  <div>
+    <el-dialog title="视频播放" :visible.sync="open" :before-close="handleDialogClick" append-to-body>
+      <video id="video1" :src="videoSrc" controls="controls"></video>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { imgShow } from "@/utils/imgShow";
+import { getFileInfo } from "@/api/file";
+export default {
+  props: {
+    fileId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      videoSrc: undefined,
+      open: false
+    };
+  },
+  methods: {
+    async handleVideoPreview() {
+      this.open = true;
+      const reponse = await getFileInfo({ ids: this.fileId });
+      const subject = reponse.data;
+      const fileUrl = subject[0].save_path;
+      const state = subject[0].object_id;
+      if (state === "FASTDFS") {
+        const fastInfo = localStorage.getItem("fastInfo");
+        const fastSubject = JSON.parse(fastInfo);
+        const path = fastSubject.downloadUrl + fileUrl;
+        this.videoSrc = path;
+      } else {
+        imgShow("/center/file/downloadFile", fileUrl).then(path => {
+          this.videoSrc = path;
+        });
+      }
+    },
+    handleDialogClick() {
+      this.open = false;
+      const myVideo = document.getElementById("video1");
+      myVideo.stop();
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+#video1 {
+  width: 100%;
+  height: 368px;
+}
+</style>

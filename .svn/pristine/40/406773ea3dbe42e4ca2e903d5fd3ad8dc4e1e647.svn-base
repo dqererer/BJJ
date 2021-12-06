@@ -1,0 +1,396 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">线索跟踪</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察组名称：">
+                <el-input
+                  v-model="queryParams.inspectTeamName"
+                  placeholder="请输入督察组名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="线索名称：">
+                <el-input
+                  v-model="queryParams.clueName"
+                  placeholder="请输入线索名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          prop="clueName"
+          label="线索名称"
+          min-width="200px"
+          class="column-left"
+        ></el-table-column>
+        <el-table-column
+          prop="clueNum"
+          label="线索编号"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="inspectTeamName"
+          label="督察组名称"
+          width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="inspectTeamAreaName"
+          label="督察地区"
+          width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="address"
+          label="线索所在地"
+          width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="pollutionTypeName"
+          label="污染类型"
+          width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="clueSource"
+          label="线索来源"
+          width="200px"
+        ></el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template slot-scope="scope">
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="新增线索"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">线索信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索名称：" prop="clueName">
+              <el-select
+                v-model="dialogParams.clueName"
+                filterable
+                @change="handleClueNameChange"
+                placeholder="请选择线索名称"
+              >
+                <el-option
+                  v-for="item in nameList"
+                  :key="item.id"
+                  :label="item.clueName"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索编号：" prop="clueNum">
+              <el-input readonly v-model="dialogParams.clueNum"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="线索来源：" prop="clueSource">
+              <el-input readonly v-model="dialogParams.clueSource"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="污染类型：" prop="pollutionType">
+              <el-input
+                readonly
+                v-model="dialogParams.pollutionTypeName"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="问题属性：" prop="problemType">
+              <el-input readonly v-model="dialogParams.problemType"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="线索所在地："
+              class="meet-address"
+              prop="title"
+            >
+              <el-input readonly v-model="dialogParams.city"></el-input>
+              <el-input readonly v-model="dialogParams.county"></el-input>
+              <el-input readonly v-model="dialogParams.town"></el-input>
+              <el-input readonly v-model="dialogParams.address"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索内容：" prop="clueContent">
+              <el-input
+                readonly
+                type="textarea"
+                v-model="dialogParams.clueContent"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索相关资料：" prop="clueContent">
+              <span
+                class="check-text accounChunk"
+                @click="handleDownLoadDoc(dialogParams.attachementPath)"
+                >{{ dialogParams.attachementName }}</span
+              >
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  threadRelationList,
+  threadRelationPull,
+  threadSee,
+  threadRelationSave,
+  threadRelationDelete
+} from "@/api/burg/prepare";
+import { dictListType } from "@/api/styem/dict/type";
+import examineInfo from "@/components/examineInfo";
+import { getdownLoadZip } from "@/utils/styem";
+import { mapGetters } from "vuex";
+import { getFileInfo } from "@/api/file";
+export default {
+  components: {
+    examineInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        inspectTeamName: undefined,
+        clueName: undefined
+      },
+      List: [],
+      nameList: [],
+      nameParams: {
+        pageNo: 1,
+        pageSize: 20,
+        clueName: undefined
+      },
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSource: undefined,
+        pollutionTypeName: undefined,
+        problemType: undefined,
+        city: undefined,
+        county: undefined,
+        town: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentId: undefined,
+        attachementPath: undefined,
+        attachementName: undefined
+      },
+      dialogRules: {
+        clueName: [{ required: true, message: "请输入线索名称" }]
+      }
+    };
+  },
+  created() {
+    this.getList();
+    this.getNameList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await threadRelationList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getNameList() {
+      const reponse = await threadRelationPull(this.nameParams);
+      this.nameList = reponse.data.list;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.inspectTeamName = undefined;
+      this.queryParams.clueName = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+      this.handleformClear("dialogForm");
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.dialogParamsClear();
+    },
+    async handleClueNameChange(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.clueNum = subject.clueNum;
+      this.dialogParams.clueSource = subject.clueSource;
+      this.dialogParams.pollutionTypeName = subject.pollutionTypeName;
+      this.dialogParams.problemType = subject.problemType;
+      this.dialogParams.city = subject.city;
+      this.dialogParams.county = subject.county;
+      this.dialogParams.town = subject.town;
+      this.dialogParams.address = subject.address;
+      this.dialogParams.clueContent = subject.clueContent;
+      subject.attachmentId && this.getSingleMessagInfo(subject.attachmentId);
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      if (reponse.data && reponse.data.length) {
+        const subject = reponse.data;
+        this.dialogParams.attachementName = subject[0].file_name;
+        this.dialogParams.attachementPath = subject[0].save_path;
+      }
+    },
+    dialogParamsClear() {
+      this.dialogParams.id = undefined;
+      this.dialogParams.clueName = undefined;
+      this.dialogParams.clueNum = undefined;
+      this.dialogParams.clueSource = undefined;
+      this.dialogParams.pollutionTypeName = undefined;
+      this.dialogParams.problemType = undefined;
+      this.dialogParams.city = undefined;
+      this.dialogParams.county = undefined;
+      this.dialogParams.town = undefined;
+      this.dialogParams.address = undefined;
+      this.dialogParams.clueContent = undefined;
+      this.dialogParams.attachmentId = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await threadRelationSave({
+            id: this.dialogParams.id,
+            inspectTeamId: this.inspectInfo.id,
+            relationId: this.dialogParams.id,
+            relationName: "TClueName"
+          });
+          this.open = false;
+          this.dialogParamsClear();
+          loading.close();
+          this.getList();
+          this.getNameList();
+        }
+      });
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id, inspectTeamId } = data;
+        const reponse = await threadRelationDelete({ id, inspectTeamId });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    handleDownLoadDoc(path) {
+      getdownLoadZip(path);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-input {
+        width: 25%;
+      }
+    }
+  }
+}
+</style>

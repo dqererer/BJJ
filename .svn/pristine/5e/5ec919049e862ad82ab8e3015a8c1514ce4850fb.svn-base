@@ -1,0 +1,539 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">信访问责</h1>
+    <div class="tab-list-content">
+      <national-info :teamId.sync="queryParams.teamId" @nameChange="getList"></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="受理编号：">
+                <el-input placeholder="请输入受理编号" v-model="queryParams.acceptNum"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="姓名：">
+                <el-input placeholder="请输入姓名" v-model="queryParams.name"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="单位：">
+                <el-input placeholder="请输入单位" v-model="queryParams.unit"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="级别：">
+                <el-select v-model="queryParams.level" placeholder="请选择级别">
+                  <el-option
+                    v-for="item in levelArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="处理方式：">
+                <el-select v-model="queryParams.accountWay" placeholder="请选择处理方式">
+                  <el-option
+                    v-for="item in accountWayArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="人员分类：">
+                <el-select v-model="queryParams.staffType" placeholder="请选择人员分类">
+                  <el-option
+                    v-for="item in staffTypeArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item class="pull-right marginLeft0">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary">新增</el-button>
+        <el-button size="small" @click="handleExport" type="primary">导出</el-button>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column type="index" label="序号" width="50">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="areaName" label="督察地市" min-width="120px"></el-table-column>
+        <el-table-column prop="acceptNum" label="受理编号" width="160px"></el-table-column>
+        <el-table-column prop="name" label="姓名" width="160px"></el-table-column>
+        <el-table-column prop="unit" label="单位" min-width="160px"></el-table-column>
+        <el-table-column prop="levelName" label="级别" width="120px"></el-table-column>
+        <el-table-column prop="accountTime" label="责任追究时间" width="160px"></el-table-column>
+        <el-table-column prop="accountWayName" label="处理方式" width="120px"></el-table-column>
+        <el-table-column prop="staffTypeName" label="人员分类" width="120px"></el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template slot-scope="scope">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button size="mini" type="danger " @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      :title="title"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="督察信息：">
+              <span>
+                {{inspectInfoNameText}}
+                <b class="info-item-interval" v-if="dialogParams.areaName">|</b>
+                {{ dialogParams.areaName }}
+              </span>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="信访件受理编号：">
+              <el-select
+                v-model="dialogParams.acceptNum"
+                filterable
+                default-first-option
+                placeholder="请选择信访件受理编号"
+                v-if="title == '信访问责添加'"
+                @change="handleAcceptNumChange"
+              >
+                <el-option
+                  v-for="item in acceptNumArry"
+                  :key="item.id"
+                  :label="item.acceptNum"
+                  :value="item.acceptNum"
+                ></el-option>
+              </el-select>
+              <template v-else>{{ dialogParams.acceptNum }}</template>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="事由：" prop="reason">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.reason"
+                placeholder="请输入事由"
+                maxlength="240"
+                show-word-limit
+                rows="4"
+                class="textarea-limt-padding"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="姓名：" prop="name">
+              <el-input
+                v-model="dialogParams.name"
+                placeholder="请输入姓名"
+                maxlength="10"
+                show-word-limit
+                class="input-limit width220"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="单位：" prop="unit">
+              <el-input
+                v-model="dialogParams.unit"
+                placeholder="请输入单位"
+                maxlength="20"
+                show-word-limit
+                class="input-limit width220"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="职务：" prop="post">
+              <el-input
+                v-model="dialogParams.post"
+                placeholder="请输入职务"
+                maxlength="10"
+                show-word-limit
+                class="input-limit width220"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="级别：" prop="level">
+              <el-select v-model="dialogParams.level" placeholder="请选择级别">
+                <el-option
+                  v-for="item in levelArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="人员分类：" prop="staffType">
+              <el-select v-model="dialogParams.staffType" placeholder="请选择人员分类">
+                <el-option
+                  v-for="item in typeArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="责任追究时间：" prop="accountTime">
+              <el-date-picker
+                v-model="dialogParams.accountTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择日期责任追究时间"
+                class="input-limit width220"
+              ></el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="处理方式：" prop="accountWay">
+              <el-select v-model="dialogParams.accountWay" placeholder="请选择处理方式">
+                <el-option
+                  v-for="item in wayArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import nationalInfo from "@/components/nationalInfo";
+import {
+  letterList,
+  letterSave,
+  letterDelete,
+  letterAccpetNum,
+  letterSee
+} from "@/api/national/transact";
+import { dictListType } from "@/api/styem/dict/type";
+import { mapGetters } from "vuex";
+import { downLoadZip } from "@/utils/zipdownload";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      levelArry: [],
+      accountWayArry: [],
+      staffTypeArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        type: 1,
+        acceptNum: undefined,
+        name: undefined,
+        unit: undefined,
+        level: undefined,
+        accountWay: undefined,
+        staffType: undefined,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        teamId: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      title: "",
+      dialogParams: {
+        type: 1,
+        id: undefined,
+        accountSourceId: undefined,
+        areaCode: undefined,
+        areaName: undefined,
+        acceptNum: undefined,
+        reason: undefined,
+        name: undefined,
+        unit: undefined,
+        post: undefined,
+        level: undefined,
+        staffType: undefined,
+        accountTime: undefined,
+        accountWay: undefined,
+        inspectType: undefined
+      },
+      dialogRules: {
+        reason: [{ required: true, message: "请输入事由" }],
+        name: [{ required: true, message: "请输入姓名" }],
+        unit: [{ required: true, message: "请输入单位" }],
+        post: [{ required: true, message: "请输入职务" }],
+        level: [{ required: true, message: "请选择级别" }],
+        staffType: [{ required: true, message: "请选择人员分类" }],
+        accountTime: [{ required: true, message: "请选择日期责任追究时间" }],
+        accountWay: [{ required: true, message: "请选择处理方式" }]
+      },
+      typeArry: [],
+      wayArry: [],
+      acceptNumArry: [],
+      inspectInfoNameText: undefined
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.queryParams.inspectType = this.inspectInfo.suite.superviseType;
+      const superviseName = this.inspectInfo.suite.superviseName;
+      const roundName = this.inspectInfo.suite.roundName;
+      const batchName = this.inspectInfo.suite.batchName;
+      this.inspectInfoNameText = superviseName + roundName + batchName;
+    } else {
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.code;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+      this.inspectInfoNameText =
+        superviseSubject.superviseName +
+        superviseSubject.roundName +
+        superviseSubject.batchName;
+    }
+    this.getDictLevel();
+    this.getDictAccountWay();
+    this.getDictStaffType();
+    this.getDictType();
+    this.getDictWay();
+    this.getLetterAccpetNum();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await letterList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictLevel() {
+      const reponse = await dictListType({ type: "staff_level" });
+      this.levelArry = reponse.data;
+    },
+    async getDictAccountWay() {
+      const reponse = await dictListType({ type: "account_way" });
+      this.accountWayArry = reponse.data;
+    },
+    async getDictStaffType() {
+      const reponse = await dictListType({ type: "staff_type" });
+      this.staffTypeArry = reponse.data;
+    },
+    async getDictType() {
+      const reponse = await dictListType({ type: "staff_type" });
+      this.typeArry = reponse.data;
+    },
+    async getDictWay() {
+      const reponse = await dictListType({ type: "account_way" });
+      this.wayArry = reponse.data;
+    },
+    async getLetterAccpetNum() {
+      const reponse = await letterAccpetNum({
+        acceptNum: this.dialogParams.acceptNum
+      });
+      this.acceptNumArry = reponse.data;
+    },
+    onQuery() {
+      this.queryParams.pageNo = 1;
+      this.getList();
+    },
+    onClear() {
+      this.queryParams.acceptNum = undefined;
+      this.queryParams.name = undefined;
+      this.queryParams.unit = undefined;
+      this.queryParams.level = undefined;
+      this.queryParams.accountWay = undefined;
+      this.queryParams.staffType = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+      this.title = "信访问责添加";
+      this.handleformClear();
+      this.dialogParams.inspectType = this.queryParams.inspectType;
+    },
+    handleEdit({ id }) {
+      this.title = "信访问责修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await letterSee({ id, type: 1 });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.inspectType = subject.inspectType;
+      this.dialogParams.accountSourceId = subject.accountSourceId;
+      this.dialogParams.areaCode = subject.areaCode;
+      this.dialogParams.areaName = subject.areaName;
+      this.dialogParams.acceptNum = subject.acceptNum;
+      this.dialogParams.reason = subject.reason;
+      this.dialogParams.name = subject.name;
+      this.dialogParams.unit = subject.unit;
+      this.dialogParams.post = subject.post;
+      this.dialogParams.level = subject.level;
+      this.dialogParams.staffType = subject.staffType;
+      this.dialogParams.accountTime = subject.accountTime;
+      this.dialogParams.accountWay = subject.accountWay;
+    },
+    handleAcceptNumChange(e) {
+      for (const item in this.acceptNumArry) {
+        const subject = this.acceptNumArry[item];
+        if (subject.acceptNum == e) {
+          this.dialogParams.accountSourceId = subject.id;
+        }
+      }
+    },
+    dailogSubmit() {
+      if (!this.dialogParams.acceptNum) {
+        this.$message.warning(`请选择受理编号`);
+        return;
+      }
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await letterSave(this.dialogParams);
+          this.$message({
+            message: "保存成功",
+            type: "success"
+          });
+          loading.close();
+          this.handleformClear();
+          this.open = false;
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear();
+    },
+    handleDialogEmpty() {
+      this.dialogParams.reason = undefined;
+      this.dialogParams.name = undefined;
+      this.dialogParams.unit = undefined;
+      this.dialogParams.post = undefined;
+      this.dialogParams.level = undefined;
+      this.dialogParams.staffType = undefined;
+      this.dialogParams.accountTime = undefined;
+      this.dialogParams.accountWay = undefined;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await letterDelete({ id });
+        this.getList();
+      });
+    },
+    handleExport() {
+      const queryParams = this.queryParams;
+      this.$confirm("是否确认导出所有用户数据项?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(function() {
+        downLoadZip(
+          "/center/tcommon/account/tCommonAccount/export",
+          queryParams
+        );
+      });
+    },
+    handleformClear() {
+      this.resetFieldsTap("dialogForm");
+      this.dialogParams.id = undefined;
+      this.dialogParams.accountSourceId = undefined;
+      this.dialogParams.acceptNum = undefined;
+      this.dialogParams.areaCode = this.userInfo.cityCode;
+      this.dialogParams.areaName = this.userInfo.cityName;
+    }
+  },
+  activated() {
+    this.getList();
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

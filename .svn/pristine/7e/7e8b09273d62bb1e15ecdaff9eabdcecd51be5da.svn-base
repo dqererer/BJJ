@@ -1,0 +1,55 @@
+<template>
+  <div>
+    <el-dialog title="音频播放" :visible.sync="open" :before-close="handleDialogClick" append-to-body>
+      <audio id="music1" :src="aduioSrc"  controls="controls"></audio>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { imgShow } from "@/utils/imgShow";
+import { getFileInfo } from "@/api/file";
+export default {
+  props: {
+    fileId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      aduioSrc: undefined,
+      open: false
+    };
+  },
+  methods: {
+    async handleAudioPreview() {
+      this.open = true;
+      const reponse = await getFileInfo({ ids: this.fileId });
+      const subject = reponse.data;
+      const fileUrl = subject[0].save_path;
+      const state = subject[0].object_id;
+      if (state === "FASTDFS") {
+        const fastInfo = localStorage.getItem("fastInfo");
+        const fastSubject = JSON.parse(fastInfo);
+        const path = fastSubject.downloadUrl + fileUrl;
+        this.aduioSrc = path;
+      } else {
+        imgShow("/center/file/downloadFile", fileUrl).then(path => {
+          this.aduioSrc = path;
+        });
+      }
+    },
+    handleDialogClick() {
+      this.open = false;
+      const audio = document.getElementById("music1");
+      audio.pause();
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/.el-dialog__body {
+  text-align: center;
+}
+</style>

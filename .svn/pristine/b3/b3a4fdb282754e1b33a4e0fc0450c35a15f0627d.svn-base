@@ -1,0 +1,360 @@
+<template>
+  <div>
+    <div class="title">走访问询信息</div>
+    <div class="clue-info">
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>督察信息：
+          </span>
+          <span class="clue-item-input">{{teamInfo}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label" style="margin:0">
+            <i class="clue-import">*</i>走访问询信息：
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>问询时间：
+          </span>
+          <span class="clue-item-input">{{manageInfo.time}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>问询主题：
+          </span>
+          <span class="clue-item-input">{{manageInfo.theme}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>问询人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualSpeaker}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>记录人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualRecord}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>被询问人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualInterviewee}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>被询问单位：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweeUnit}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>被询问职务：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweePost}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>被询问手机：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweePhone}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>其他参与人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.otherHander}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>问询地点：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualAddress}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>问询内容
+          </span>
+          <span class="clue-question">
+            <div class="question-item" v-for="(item,index) in manageInfo.recordList" :key="index">
+              <div class="question-top">
+                <label class="question-label">问题：</label>
+                <span class="clue-item-input">{{item.question}}</span>
+              </div>
+              <div class="question-bottom">
+                <label class="question-label">回答：</label>
+                <span class="clue-item-input">{{item.answer}}</span>
+              </div>
+            </div>
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>电子件：
+          </span>
+          <span
+            class="clue-item-file accounChunk"
+            @click="handleDownLoadDoc(manageInfo.attachmentId)"
+          >{{manageInfo.attachmentName}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>录音文件：
+          </span>
+          <span
+            class="clue-item-file accounChunk"
+            @click="handleDownLoadDocPath(manageInfo.audioPath)"
+          >{{manageInfo.audioName}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>其他相关线索：
+          </span>
+          <span class="clue-item-file accounChunk" v-for="(item,index) in manageInfo.clueList" :key="index">
+            {{item.clueName}}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getSingleInfo } from "@/utils/styem";
+import { severalSee } from "@/api/burg/garrison";
+import { getdownLoadZip } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { threadTeamInfo } from "@/api/InspectorClues";
+export default {
+  props: {
+    tailId: {
+      type: String
+    },
+    teamId: {
+      type: String
+    },
+  },
+  data() {
+    return {
+      teamInfo:undefined,
+      manageInfo:{
+        theme:undefined,
+        time:undefined,
+        actualSpeaker:undefined,
+        actualRecord:undefined,
+        actualInterviewee:undefined,
+        actualIntervieweeUnit:undefined,
+        actualIntervieweePost:undefined,
+        actualIntervieweePhone:undefined,
+        actualAddress:undefined,
+        otherHander:undefined,
+        recordList:undefined,
+        attachmentId:undefined,
+        attachmentName:undefined,
+        audioPath:undefined,
+        audioName:undefined,
+        clueList:[]
+      }
+    };
+  },
+  methods: {
+    async getTeamInfo(){
+      const reponse = await threadTeamInfo({id:this.teamId});
+      const subject = reponse.data;
+      this.teamInfo = subject.superviseName + subject.roundName + subject.batchName + subject.name
+    },
+    async getInfo() {
+      const reponse = await severalSee({ id: this.tailId });
+      const subject = reponse.data;
+      this.manageInfo.theme = subject.theme;
+      this.manageInfo.time = subject.startTime+'至'+ subject.endTime;
+      this.manageInfo.actualSpeaker = subject.actualSpeaker;
+      this.manageInfo.actualRecord = subject.actualRecord;
+      this.manageInfo.actualInterviewee = subject.actualInterviewee;
+      this.manageInfo.actualIntervieweeUnit = subject.actualIntervieweeUnit;
+      this.manageInfo.actualIntervieweePost = subject.actualIntervieweePost;
+      this.manageInfo.actualIntervieweePhone = subject.actualIntervieweePhone;
+      this.manageInfo.actualAddress = subject.actualCityName + subject.actualCountyName + subject.actualAddress;
+      this.manageInfo.otherHander = subject.otherHander;
+      this.manageInfo.recordList = subject.recordList;
+      this.manageInfo.attachmentId = subject.attachmentId;
+      this.manageInfo.attachmentName = subject.attachmentName;
+      if (subject.audioId) {
+        const {audioPath,audioName}  = await this.getSingleMessagInfo(subject.audioId);
+        this.manageInfo.audioPath = audioPath;
+        this.manageInfo.audioName = audioName;
+      }
+      if(subject.existClueList){
+        this.manageInfo.clueList.push(...subject.existClueList)
+      }
+      if(subject.newClueList){
+        this.manageInfo.clueList.push(...subject.newClueList)
+      }
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      let audioName, audioPath;
+      if (reponse.data && reponse.data.length) {
+        const subject = reponse.data;
+        audioName = subject[0].file_name;
+        audioPath = subject[0].save_path;
+      }
+      return {
+        audioPath,
+        audioName
+      };
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    },
+    handleDownLoadDocPath(path) {
+      getdownLoadZip(path);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.title {
+  height: 20px;
+  border-left: 3px solid #2196f3;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.clue-info {
+  width: 100%;
+  .clue-item {
+    display: flex;
+    margin-top: 16px;
+    &.two-clue-item {
+      .clue-item-quare {
+        &:first-child {
+          margin-right: 16px;
+        }
+      }
+    }
+    .clue-item-quare {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      &.clue-item-inspect {
+        flex-direction: row;
+        align-items: center;
+
+        .clue-item-label {
+          width: 110px;
+          text-align: right;
+          margin-bottom: 0;
+        }
+      }
+      .clue-item-file {
+        padding-left: 10px;
+      }
+      .clue-item-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        .clue-import {
+          display: inline-block;
+          margin-right: 4px;
+          color: #f56c6c;
+        }
+      }
+      .clue-item-input {
+        width: 100%;
+        min-height: 32px;
+        line-height: 32px;
+        font-size: 14px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding-left: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+        flex:1;
+      }
+      .clue-item-select {
+        display: flex;
+        .clue-item-select-city {
+          width: 11%;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          margin-right: 16px;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+        .clue-item-select-address {
+          flex: 1;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}
+.clue-question{
+  display: flex;
+  flex-direction: column;
+  .question-item{
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    .question-top{
+      display: flex;
+      align-items: center;
+      .question-label{
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+    .question-bottom{
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      .question-label{
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+  }
+
+}
+</style>

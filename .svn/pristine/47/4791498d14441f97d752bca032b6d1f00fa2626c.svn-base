@@ -1,0 +1,674 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">下沉方案</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.parentId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="下沉旗县：">
+                <el-select v-model="queryParams.areaCode" placeholder="请选择下沉旗县">
+                  <el-option
+                    v-for="item in townArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="下沉名称" min-width="200px"></el-table-column>
+        <el-table-column prop="areaName" label="下沉旗县" width="200px"></el-table-column>
+        <el-table-column prop="xcStartDate" label="开始时间" width="100px"></el-table-column>
+        <el-table-column prop="xcEndDate" label="结束时间" width="100px"></el-table-column>
+        <el-table-column label="下沉方案" width="240px" :show-overflow-tooltip="true">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              v-if="scope.row.attachementId"
+              @click="handlePreviewClick(scope.row.attachementId)"
+            >{{ scope.row.xcFileName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="80" fixed="right">
+          <template slot-scope="scope" v-if="buttonAuthority">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="修改"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">下沉组信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="下沉组名称：" prop="name">
+              <el-input readonly v-model="dialogParams.name" placeholder="请输入下沉组名称"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="开始时间：" prop="xcStartDate">
+              <el-date-picker
+                v-model="dialogParams.xcStartDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择开始时间"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="结束时间：" prop="xcEndDate">
+              <el-date-picker
+                v-model="dialogParams.xcEndDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择结束时间"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="下沉旗县：" prop="areaCode">
+              <el-select multiple v-model="dialogParams.areaCode" placeholder="请选择下沉旗县">
+                <el-option
+                  v-for="item in townArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="下沉方案：" prop="attachementId">
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                accept=".doc, .docx, .pdf"
+                :fileId="dialogParams.attachementId"
+                fromKey="attachementId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="主要任务：" prop="duty">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.duty"
+                placeholder="请输入主要任务"
+                maxlength="240"
+                show-word-limit
+                rows="4"
+                class="textarea-limt-padding"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="主要督察问题：">
+              <el-button @click="handleQuestionClick" type="primary" size="mini">选择需关联问题</el-button>
+              <ul class="info-item-list">
+                <li class="info-item-item" v-for="(item, index) in problemList" :key="index">
+                  <el-tooltip
+                    class="item"
+                    effect="dark"
+                    :content="item.problemDescript"
+                    placement="top"
+                  >
+                    <span
+                      @click.stop="handleQuestionClewClick(item.id)"
+                      class="info-item-text accounChunk"
+                    >{{ index + 1 }}、{{ item.problemDescript }}</span>
+                  </el-tooltip>
+                  <span class="clue-close" @click="handleClueClose(index)">X</span>
+                </li>
+              </ul>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="添加问题"
+      :visible.sync="questionOpen"
+      :before-close="handleDialogQuestionClose"
+      class="information-inner"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-table
+        v-loading="questionLoading"
+        :data="questionList"
+        border
+        :stripe="true"
+        @selection-change="handleSelectionChange"
+        ref="multipleTable"
+      >
+        <el-table-column type="selection" width="50"></el-table-column>
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="problemDescript" label="问题名称" min-width="200px"></el-table-column>
+        <el-table-column prop="problemContent" label="问题内容" width="120px"></el-table-column>
+        <el-table-column
+          prop="workArrangeName"
+          label="工作安排"
+          min-width="180px"
+          :show-overflow-tooltip="true"
+        ></el-table-column>
+        <el-table-column prop="lineNum" label="线索数" width="70px"></el-table-column>
+        <el-table-column prop="evidenceNum" label="书证" width="70px"></el-table-column>
+        <el-table-column prop="inquiryNum" label="取证笔录" width="80px"></el-table-column>
+        <el-table-column prop="surveyNum" label="勘察笔录" width="80px"></el-table-column>
+        <el-table-column prop="mediaNum" label="多媒体记录" width="100px"></el-table-column>
+      </el-table>
+      <div class="dialogQueryFormFooter" style="margin-top:22px;text-align:center;">
+        <el-button type="primary" @click="dailogConfirm">确定</el-button>
+        <el-button type="primary" @click="handleDialogQuestionClose">关闭</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="check"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+      class="manage-dialog"
+    >
+      <examineInfo />
+      <div class="manage-box">
+        <div class="manage-info">
+          <div class="examineInfo" style="margin-top:30px">
+            <h1 class="examineInfo-title">问题聚焦信息</h1>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">问题名称：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.problemDescript
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">问题描述：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.problemContent
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">督察要求：</span>
+              <span class="info-item-content">
+                {{
+                checkInfo.requirements
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item" v-if="checkInfo.clueTrackDTOList.length>0">
+            <div class="info-item-quare">
+              <span class="info-item-title">已有线索信息：</span>
+              <div class="info-item-content">
+                <ul class="info-item-list">
+                  <li
+                    class="info-item-item"
+                    v-for="(item, index) in checkInfo.clueTrackDTOList"
+                    :key="item.clueId"
+                  >
+                    <el-tooltip class="item" effect="dark" :content="item.clueName" placement="top">
+                      <span
+                        class="info-item-text accounChunk"
+                        @click.stop="handleClewClick(item.clueId)"
+                      >{{ index + 1 }}、{{ item.clueName }}</span>
+                    </el-tooltip>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+  </div>
+</template>
+
+<script>
+import {
+  schemeList,
+  schemeSee,
+  schemeDelete,
+  schemeSave,
+  logFindToLinkList,
+  logSaveForXC,
+  schemeXCSee,
+  issueSee
+} from "@/api/burg/garrison";
+import { dictListType } from "@/api/styem/dict/type";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import { areaTreeNew } from "@/api/styem/dept";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo,
+    clewInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        level: 6,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        parentId: undefined,
+        areaCode: undefined,
+        inspectAreaCode: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        parentId: undefined,
+        batchId: undefined,
+        level: 6,
+        name: undefined,
+        xcStartDate: undefined,
+        xcEndDate: undefined,
+        areaCode: [],
+        attachementId: [],
+        duty: undefined,
+        delQuestionIds: undefined,
+        questionIds: undefined
+      },
+      dialogRules: {
+        name: [{ required: true, message: "请输入下沉组名称" }],
+        xcStartDate: [{ required: true, message: "请选择开始时间" }],
+        xcEndDate: [{ required: true, message: "请选择结束时间" }],
+        areaCode: [{ required: true, message: "请选择下沉旗县" }],
+        attachementId: [{ required: true, message: "请上传下沉方案" }],
+        duty: [{ required: true, message: "请输入主要任务" }]
+      },
+      townArry: [],
+      buttonAuthority: true,
+      questionOpen: false,
+      questionLoading: false,
+      questionList: [],
+      multipleSelection: [],
+      problemList: [],
+      basicProblemList: [],
+      delProblemList: [],
+      dialogTitle: "新增",
+      check: false,
+      checkInfo: {
+        problemDescript: undefined,
+        problemContent: undefined,
+        requirements: undefined,
+        clueTrackDTOList: []
+      },
+      clewId:undefined,
+      lookOpen:false
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.code;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "userInfo"])
+  },
+  activated() {
+    this.getList();
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await schemeList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+      this.handleCountyChange();
+      this.getLogFindToLinkList();
+    },
+    async handleCountyChange() {
+      const reponse = await areaTreeNew({
+        parentId: this.queryParams.inspectAreaCode
+      });
+      this.townArry = reponse.data;
+    },
+    async getLogFindToLinkList() {
+      const reponse = await logFindToLinkList({
+        inspectId: this.queryParams.parentId
+      });
+      this.questionList = reponse.data;
+    },
+    handleQuestionClick() {
+      this.questionOpen = true;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.areaCode = undefined;
+    },
+    async handleEdit(data) {
+      this.open = true;
+      console.log(data);
+      const { id, name, areaName } = data;
+      this.dialogParams.id = id;
+      const reponse = await schemeXCSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.parentId = this.queryParams.parentId;
+      this.dialogParams.batchId = this.inspectInfo.batchId;
+      this.dialogParams.name = name;
+      if (areaName == "" || areaName === undefined) {
+        return;
+      }
+      this.dialogParams.xcStartDate = data.xcStartDate;
+      this.dialogParams.xcEndDate = data.xcEndDate;
+      this.dialogParams.areaCode = data.areaCode.split(",");
+      this.dialogParams.attachementId = data.attachementId
+        ? data.attachementId.split(",")
+        : [];
+      this.dialogParams.duty = subject.teamInfo.duty;
+      if (subject.problemList) {
+        this.dialogTitle = "修改";
+        console.log(subject.problemList);
+        this.problemList = subject.problemList;
+        this.basicProblemList = subject.problemList;
+      } else {
+        this.dialogTitle = "新增";
+        this.problemList = undefined;
+      }
+      if (data.attachementId) {
+        this.$nextTick(() => {
+          this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+        });
+      }
+    },
+
+    handleDialogQuestionClose() {
+      this.questionOpen = false;
+      this.$refs.multipleTable.clearSelection();
+    },
+    handleSelectionChange(data) {
+      this.multipleSelection = data;
+    },
+    dailogConfirm() {
+      this.questionOpen = false;
+      if (this.dialogTitle == "修改") {
+        console.log(this.basicProblemList);
+        this.problemList = [];
+        this.problemList.push(
+          ...this.basicProblemList,
+          ...this.multipleSelection
+        );
+      } else {
+        this.problemList = this.multipleSelection;
+      }
+      this.$refs.multipleTable.clearSelection();
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.areaCode = this.dialogParams.areaCode.join(",");
+          this.dialogParams.attachementId = this.dialogParams.attachementId.join(
+            ","
+          );
+          if (this.problemList.length > 0) {
+            let problemIdArry = [];
+            for (const item in this.problemList) {
+              const subject = this.problemList[item];
+              problemIdArry.push(subject.id);
+            }
+            this.dialogParams.questionIds = problemIdArry.join(",");
+          }
+          if (this.delProblemList.length > 0) {
+            let delProblemIdArry = [];
+            for (const item in this.delProblemList) {
+              const subject = this.delProblemList[item];
+              delProblemIdArry.push(subject.id);
+            }
+            this.dialogParams.delQuestionIds = delProblemIdArry.join(",");
+          }
+          const reponse = await logSaveForXC(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+      this.dialogParams.xcStartDate = undefined;
+      this.dialogParams.xcEndDate = undefined;
+      this.dialogParams.areaCode = [];
+      this.dialogParams.attachementId = undefined;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+      this.multipleSelection = [];
+      this.problemList = [];
+      this.delProblemList = [];
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await schemeDelete({ id });
+        this.getList();
+      });
+    },
+    async handleClueClose(index) {
+      const delProblem = this.problemList.splice(index, 1);
+      if (this.dialogTitle == "修改") {
+        this.delProblemList.push(...delProblem);
+      }
+    },
+    handleQuestionClewClick(id) {
+      this.check = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await issueSee({ id });
+      const subject = reponse.data;
+      this.checkInfo.problemDescript = subject.problem.problemDescript;
+      this.checkInfo.problemContent = subject.problem.problemContent;
+      this.checkInfo.requirements = subject.problem.requirements;
+      if (subject.mainList) {
+        const clewArry = [];
+        const mainList = subject.mainList;
+        for (const item in mainList) {
+          const subject = mainList[item];
+          clewArry.push({
+            clueName: subject.clueName,
+            clueId: subject.id,
+            teamId: this.dialogParams.inspectId
+          });
+        }
+        this.checkInfo.clueTrackDTOList = clewArry;
+      }
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+    },
+    async handleClewClick(id) {
+      this.clewId = id;
+      this.lookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.clewRef.handleEdit();
+      });
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleformClear(formName) {
+      this.$nextTick(() => {
+        this.resetFieldsTap(formName);
+      });
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey].push(file.fileId);
+    },
+    deleteServeFile(file) {
+      const fromKeyVal = this.dialogParams[file.fromKey];
+      const fileId = file.fileId;
+      const fromKey = file.fromKey;
+      const index = fromKeyVal.indexOf(fileId);
+      this.dialogParams[file.fromKey].splice(index, 1);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 33%;
+      }
+      .el-input {
+        width: 34%;
+      }
+    }
+  }
+}
+.file-item {
+  display: block;
+  margin-top: 10px;
+}
+.info-item-list {
+  margin: 0px;
+  padding: 0px;
+  .info-item-item {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    width: 300px;
+    .info-item-text {
+      max-width: 268px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+.clue-close {
+  color: red;
+  margin-left: 20px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  text-align: center;
+  line-height: 20px;
+}
+</style>

@@ -1,0 +1,320 @@
+<template>
+  <section>
+    <div class="wenti">
+      <div class="title">问题聚焦（{{ total }}条）</div>
+      <el-table :data="tableData" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="60"
+        ></el-table-column>
+        <el-table-column prop="problemDescript" label="问题名称" width="180">
+        </el-table-column>
+        <el-table-column prop="problemContent" label="问题内容" width="180">
+        </el-table-column>
+        <el-table-column prop="workArrangeName" label="工作安排">
+        </el-table-column>
+        <el-table-column prop="lineNum" label="线索数"> </el-table-column>
+        <el-table-column label="书证" width="70px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="
+                handleFileDialog(
+                  scope.row.evidenceId,
+                  scope.row.evidenceNum,
+                  '2'
+                )
+              "
+              >{{ scope.row.evidenceNum }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="问询笔录" width="80px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="
+                handleFileDialog(scope.row.inquiryId, scope.row.inquiryNum, '3')
+              "
+              >{{ scope.row.inquiryNum }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="勘察笔录" width="80px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="
+                handleFileDialog(scope.row.surveyId, scope.row.surveyNum, '4')
+              "
+              >{{ scope.row.surveyNum }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="多媒体记录" width="100px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="
+                handleFileDialog(scope.row.mediaId, scope.row.mediaNum, '5')
+              "
+              >{{ scope.row.mediaNum }}</span
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="pageNo"
+        :limit.sync="pageSize"
+        @pagination="getProblemInfo"
+      />
+    </div>
+    <el-dialog
+      title="查看"
+      :visible.sync="fileOpen"
+      width="80%"
+      append-to-body
+      :before-close="handleFileDialogClose"
+    >
+      <div>
+        <span
+          class="accounChunk file-item"
+          v-for="item in seeData"
+          :key="item.id"
+          @click="handleFileShow(item.id, item.sort)"
+          >{{ item.text }}</span
+        >
+      </div>
+    </el-dialog>
+    <inspect-index-preview
+      ref="inspectIndexRef"
+      @handleInspectIndexPreviewClose="handleInspectIndexPreviewClose"
+      :previewIndexOpen="previewIndexOpen"
+      v-if="previewIndexOpen"
+      :previewIndexOpenId="previewIndexOpenId"
+    ></inspect-index-preview>
+    <spot-index-preview
+      ref="spotIndexRef"
+      v-if="spotIndexOpen"
+      @handleSpotIndexPreviewClose="handleSpotIndexPreviewClose"
+      :spotIndexOpen="spotIndexOpen"
+      :spotIndexOpenId="spotIndexOpenId"
+    ></spot-index-preview>
+    <media-index-preview
+      ref="mediaIndexRef"
+      :mediaIndexOpen="mediaIndexOpen"
+      :mediaIndexId="mediaIndexId"
+      @handleMediaIndexClose="handleMediaIndexClose"
+    ></media-index-preview>
+  </section>
+</template>
+<script>
+import { getProblemInfo } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { issueDetail } from "@/api/burg/garrison";
+import inspectIndexPreview from "../../../burg/garrison/sink/sinkIssue/inspectIndexPreview.vue";
+import spotIndexPreview from "../../../burg/garrison/sink/sinkIssue/spotIndexPreview";
+import mediaIndexPreview from "../../../burg/garrison/sink/sinkIssue/mediaIndexPreview";
+export default {
+  data() {
+    return {
+      pageNo: 1,
+      pageSize: 10,
+      total: 0,
+      id: "",
+      tableData: [],
+      check: false,
+      fileList: [],
+      fileOpen: false,
+      previewIndexOpen: undefined,
+      previewIndexOpenId: undefined,
+      spotIndexOpenId: undefined,
+      spotIndexOpen: undefined,
+      mediaInfoIndex: undefined,
+      mediaIndexId: undefined,
+      mediaIndexOpen: undefined,
+    };
+  },
+  components: {
+    inspectIndexPreview,
+    spotIndexPreview,
+    mediaIndexPreview,
+  },
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getProblemInfo();
+  },
+  methods: {
+    handleMediaIndexClose() {
+      this.mediaIndexOpen = false;
+    },
+    handleSpotIndexPreviewClose() {
+      this.spotIndexOpen = false;
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    },
+    handleInspectIndexPreviewClose() {
+      this.previewIndexOpen = false;
+    },
+    async handleFileShow(id, sort) {
+      if (sort == "线索数") {
+        this.clewId = id;
+        this.lookOpen = true;
+        this.$nextTick(() => {
+          this.$refs.clewRef.handleEdit();
+        });
+      } else if (sort == "书证") {
+        this.handleDownLoadDoc(id);
+      } else if (sort == "取证笔录") {
+        this.previewIndexOpenId = id;
+        this.previewIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.inspectIndexRef.handleEdit();
+        });
+      } else if (sort == "勘察笔录") {
+        this.spotIndexOpenId = id;
+        this.spotIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.spotIndexRef.handleEdit();
+        });
+      } else if (sort == "多媒体记录") {
+        this.mediaIndexId = id;
+        this.mediaIndexOpen = true;
+        this.$nextTick(() => {
+          this.$refs.mediaIndexRef.handleEdit();
+        });
+      }
+    },
+    handleFileDialogClose() {
+      this.fileOpen = false;
+    },
+    async handleFileDialog(ids, num, selectType) {
+      let res = [];
+      if (num == 0 || num == undefined) {
+        return;
+      }
+      if (selectType == 1) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.clueName,
+            sort: "线索数",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 2) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.attachmentId,
+            text: subject.name,
+            sort: "书证",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 3) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.theme + "询问笔录",
+            sort: "取证笔录",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 4) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.actualCityName + "勘察笔录",
+            sort: "勘察笔录",
+          };
+          res.push(temp);
+        }
+      } else if (selectType == 5) {
+        const reponse = await issueDetail({ selectType, ids });
+        for (const item in reponse.data) {
+          const subject = reponse.data[item];
+          const temp = {
+            id: subject.id,
+            text: subject.mediaExplain + "现场多媒体证据",
+            sort: "多媒体记录",
+          };
+          res.push(temp);
+        }
+      }debugger
+      this.fileOpen = true;
+      this.seeData = res;
+    },
+    getProblemInfo: function () {
+      getProblemInfo({
+        pageNo: this.pageNo,
+        pageSize: this.pageSize,
+        inspectId: this.id,
+      }).then((res) => {
+        // res.data.list.forEach((item)=>{
+        //   item.szd = item.city + item.county + item.town + item.address;
+        // })
+        this.tableData = res.data.list;
+        this.total = res.data.count;
+      });
+    },
+    checkFile: function (fileIds, title) {
+      this.fileTitle = title;
+      let fileIdList = [];
+      if (fileIds) {
+        fileIdList = fileIds.split(",");
+      }
+      fileIdList.forEach((item) => {
+        item && this.getFileInfo(item);
+      });
+      this.check = true;
+    },
+    getFileInfo: function (id) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this.fileList.push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.wenti {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  span {
+    color: #2196f3;
+  }
+}
+.file-item {
+  display: block;
+  margin-top: 10px;
+}
+</style>
+
+

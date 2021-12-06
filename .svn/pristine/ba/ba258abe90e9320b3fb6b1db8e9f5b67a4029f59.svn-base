@@ -1,0 +1,101 @@
+import store from '@/store'
+import { getFileInfo } from "@/api/file";
+import { downLoadZip } from "@/utils/zipdownload";
+
+//From表单清除
+export function resetFieldsTap(forName) {
+	const arr = Object.keys(this.$refs)
+	if(arr.indexOf(forName)>-1&&this.$refs[forName]){
+		this.$refs[forName].resetFields();
+	}else{
+		return
+	}
+}
+
+export function tabControlShow(num) {
+	this.$nextTick(function () {
+		this.$refs.tabs.$children[0].$refs.tabs[num].style.display = "inline-block";
+	});
+}
+export function tabControlHide(num) {
+	this.$nextTick(function () {
+		this.$refs.tabs.$children[0].$refs.tabs[num].style.display = "none";
+	});
+}
+
+/**
+ * 构造树型结构数据
+ * @param {*} data 数据源
+ * @param {*} id id字段 默认 'id'
+ * @param {*} parentId 父节点字段 默认 'parentId'
+ * @param {*} children 孩子节点字段 默认 'children'
+ * @param {*} rootId 根Id 默认 0
+ */
+export function handleTree(data, id, parentId, children, rootId) {
+	id = id || 'id'
+	parentId = parentId || 'pId'
+	children = children || 'children'
+	rootId = rootId || '0'
+
+	//对源数据深度克隆
+	const cloneData = JSON.parse(JSON.stringify(data))
+	//循环所有项
+	const treeData = cloneData.filter(father => {
+		const branchArr = cloneData.filter(child => {
+			//返回每一项的子级数组
+			return father[id] === child[parentId]
+		});
+		branchArr.length > 0 ? father.children = branchArr : '';
+
+		//返回第一层
+		return father[parentId] === rootId;
+	});
+	return treeData != '' ? treeData : data;
+}
+
+export function format(time, fmt) {
+	var o = {
+		"M+": time.getMonth() + 1,                 //月份 
+		"d+": time.getDate(),                    //日 
+		"h+": time.getHours(),                   //小时 
+		"m+": time.getMinutes(),                 //分 
+		"s+": time.getSeconds(),                 //秒 
+		"q+": Math.floor((time.getMonth() + 3) / 3), //季度 
+		"S": time.getMilliseconds()             //毫秒 
+	};
+	if (/(y+)/.test(fmt)) {
+		fmt = fmt.replace(RegExp.$1, (time.getFullYear() + "").substr(4 - RegExp.$1.length));
+	}
+	for (var k in o) {
+		if (new RegExp("(" + k + ")").test(fmt)) {
+			fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+		}
+	}
+	return fmt;
+}
+export async function getSingleInfo(fileId) {
+	const reponse = await getFileInfo({ ids: fileId });
+	if (reponse.data && reponse.data.length) {
+		const subject = reponse.data;
+		getdownLoadZip(subject[0].save_path)
+	}
+}
+
+export function getdownLoadZip(path) {
+	downLoadZip("/center/file/downloadFile", {savePath:path});
+}
+
+export function hasPermission(permissionsFlag) {
+	const all_permission = "*:*:*";
+	const permissions = store.getters.permissions;
+	let hasPermission = false;
+	if (permissions) {
+		hasPermission = permissions.some(permissionItem => {
+			return (
+				all_permission === permissionItem ||
+				permissionsFlag.includes(permissionItem)
+			);
+		});
+	}
+	return hasPermission;
+}

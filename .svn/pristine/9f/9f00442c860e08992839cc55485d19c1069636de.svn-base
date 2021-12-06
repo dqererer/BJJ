@@ -1,0 +1,27 @@
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+// 整改方案
+const getChangeProgramList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/list`, params);  //获取方案列表--分页
+const getAllChangeProgramList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/getAllPlanByCon`, params);  //获取方案列表--不分页
+const saveChangeProgram = params => postForm(path + `/center/trectify/plan/tRectifyPlan/save`, params);  //保存方案
+const deleteChangeProgram = params => postForm(path + `/center/trectify/plan/tRectifyPlan/delete`, params);  //删除方案
+const getRoundOrBatchList = params => getAction(path + `/center/tinspect/round/tInspectRound/getInspectRoundList`, params);  //获取轮次/批次列表
+const getSpectTypeList = params => getAction(path + `/center/tinspect/round/tInspectRound/findInspectTypeList`, params);  //获取轮次/批次列表
+const getCityList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/getInfoById`, params);  //获取地区信息
+const getTaskDetail = params => getAction(path + `/center/trectify/taskmain/tRectifyTaskMain/getInfoById`, params);  //获取任务详细信息
+
+// 整改任务
+const getChangeTaskList = params => getAction(path + `/center/trectify/taskmain/tRectifyTaskMain/list`, params);  //获取任务列表
+const saveChangeTask = params => postForm(path + `/center/trectify/taskmain/tRectifyTaskMain/save`, params);  //保存方案
+export {
+  getChangeProgramList,
+  saveChangeProgram,
+  getRoundOrBatchList,
+  getSpectTypeList,
+  getCityList,
+  deleteChangeProgram,
+  getChangeTaskList,
+  saveChangeTask,
+  getAllChangeProgramList,
+  getTaskDetail
+}

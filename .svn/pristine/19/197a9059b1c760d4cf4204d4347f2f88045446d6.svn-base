@@ -1,0 +1,336 @@
+<template>
+  <div class="hy">
+    <section>
+      <header>督察信息</header>
+      <el-descriptions direction="vertical" :column="5" border>
+        <el-descriptions-item label="督察类型"
+          >{{ teamInfo.superviseOneName }} -
+          {{ teamInfo.superviseName }}</el-descriptions-item
+        >
+        <el-descriptions-item label="督察轮次批次"
+          >{{ teamInfo.roundName
+          }}{{ teamInfo.batchName }}</el-descriptions-item
+        >
+        <el-descriptions-item label="督察组名称">{{
+          teamInfo.name
+        }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">{{
+          teamInfo.startDate
+        }}</el-descriptions-item>
+        <el-descriptions-item label="结束时间"
+          >{{ teamInfo.endDate }}
+        </el-descriptions-item>
+      </el-descriptions>
+    </section>
+    <section>
+      <header>下沉组信息</header>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="下沉组名称">{{
+          tInspectProblem.xcTeamInfo && tInspectProblem.xcTeamInfo.name
+        }}</el-descriptions-item>
+        <el-descriptions-item label="下沉时间">
+          {{ tInspectProblem.xcTeamInfo && tInspectProblem.xcTeamInfo.xcStartDate }}至{{
+            tInspectProblem.xcTeamInfo && tInspectProblem.xcTeamInfo.xcEndDate
+          }}
+        </el-descriptions-item>
+        <el-descriptions-item label="下沉旗县">
+          {{ tInspectProblem.xcTeamInfo && tInspectProblem.xcTeamInfo.areaName }}
+        </el-descriptions-item>
+      </el-descriptions>
+    </section>
+    <section>
+      <header>问题聚焦信息</header>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="问题名称">{{
+          tInspectProblem.problem.problemDescript
+        }}</el-descriptions-item>
+        <el-descriptions-item label="问题描述">{{
+          tInspectProblem.problem.problemContent
+        }}</el-descriptions-item>
+        <el-descriptions-item label="已有线索信息" :span="2">
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in clueTrackDTOList"
+                :key="item.clueId"
+              >
+                <span @click.stop="handleClewClick(item.clueId)"
+                  >{{ index + 1 }}、{{ item.clueName }}</span
+                >
+              </li>
+            </ul>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="调取书证" :span="2">
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in clueTrackDTOList"
+                :key="item.clueId"
+              >
+                <span @click.stop="handleClewClick(item.clueId)"
+                  >{{ index + 1 }}、{{ item.clueName }}</span
+                >
+              </li>
+            </ul>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="调查询问" :span="2">
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in inspectArry"
+                :key="item.id"
+              >
+                <span @click.stop="handleInspectInfoClick(item.id, index)"
+                  >{{ index + 1 }}、{{ item.theme }}</span
+                >
+              </li>
+            </ul>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="现场勘查" :span="2">
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in spotArry"
+                :key="item.id"
+              >
+                <span @click.stop="handleSpotInfoClick(item.id)"
+                  >{{ index + 1 }}、{{ item.actualCityName }}</span
+                >
+              </li>
+            </ul>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="多媒体记录" :span="2">
+          <div class="info-item-content">
+            <ul class="info-item-list">
+              <li
+                class="info-item-item accounChunk"
+                v-for="(item, index) in mediaArry"
+                :key="item.id"
+              >
+                <span @click.stop="handleMediaInfoClick(item.id)"
+                  >{{ index + 1 }}、{{ item.mediaExplain }}</span
+                >
+              </li>
+            </ul>
+          </div>
+        </el-descriptions-item>
+      </el-descriptions>
+    </section>
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+    <ssue-inspect
+      ref="inspectRef"
+      :inspectOpen="inspectOpen"
+      :inspectInfoId="inspectInfoId"
+      :inspectArry="inspectArry"
+      :inspectInfoIndex="inspectInfoIndex"
+      @handleInspectClose="handleInspectClose"
+      v-if="buttonAuthority"
+    ></ssue-inspect>
+    <ssue-spot
+      ref="spotRef"
+      :spotOpen="spotOpen"
+      :spotInfoId="spotInfoId"
+      :spotArry="spotArry"
+      :spotInfoIndex="spotInfoIndex"
+      @handleSpotClose="handleSpotClose"
+      v-if="buttonAuthority"
+    ></ssue-spot>
+    <ssue-media
+      ref="mediaRef"
+      :mediaInfoId="mediaInfoId"
+      :mediaInfoIndex="mediaInfoIndex"
+      :mediaOpen="mediaOpen"
+      :mediaArry="mediaArry"
+      @handleMediaClose="handleMediaClose"
+      v-if="buttonAuthority"
+    ></ssue-media>
+  </div>
+</template>
+<script>
+import clewInfo from "../../InspectorClues/components/clewInfo";
+import { getQuestionInfo } from "@/api/support/search";
+import ssueInspect from "@/views/support/search/component/ssueInspect";
+import ssueMedia from "@/views/support/search/component/ssueMedia";
+import ssueSpot from "@/views/support/search/component/ssueSpot";
+export default {
+  components: {
+    clewInfo,
+    ssueInspect,
+    ssueSpot,
+    ssueMedia,
+  },
+  data() {
+    return {
+      id: "",
+      teamInfo: {},
+      tInspectProblem: {},
+      clueTrackDTOList: [],
+      dqszList: [],
+      inspectArry: [],
+      clewId: "",
+      lookOpen: false,
+      inspectOpen: false,
+      inspectInfoId: "",
+      inspectInfoIndex: undefined,
+      buttonAuthority: true,
+      spotArry: [],
+      spotOpen: false,
+      spotInfoId: "",
+      spotInfoIndex: undefined,
+      mediaArry: [],
+      mediaInfoId: "",
+      mediaInfoIndex: undefined,
+      mediaOpen: false,
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getinfo();
+  },
+  methods: {
+    getinfo: async function () {
+      const res = await getQuestionInfo({ id: this.id });
+      this.teamInfo = res.data.teamInfo;
+      this.tInspectProblem = res.data.tInspectProblem;
+      if (res.data.tInspectProblem.dcxwList) {
+        const inspectArry = [];
+        const dcxwList = res.data.tInspectProblem.dcxwList;
+        for (const item in dcxwList) {
+          const subject = dcxwList[item];
+          inspectArry.push({
+            theme: subject.theme + "询问笔录",
+            id: subject.id,
+          });
+        }
+        this.inspectArry = inspectArry;
+      }
+      if (res.data.tInspectProblem.mainList) {
+        const clewArry = [];
+        const mainList = res.data.tInspectProblem.mainList;
+        for (const item in mainList) {
+          debugger;
+          const subject = mainList[item];
+          clewArry.push({
+            clueName: subject.clueName,
+            clueId: subject.id,
+          });
+        }
+        this.clueTrackDTOList = clewArry;
+      }
+      if (res.data.tInspectProblem.kcblList) {
+        const spotArry = [];
+        const kcblList = res.data.tInspectProblem.kcblList;
+        for (const item in kcblList) {
+          const subject = kcblList[item];
+          spotArry.push({
+            actualCityName: subject.actualCityName + "勘察笔录",
+            id: subject.id,
+          });
+        }
+        this.spotArry = spotArry;
+      }
+      if (res.data.tInspectProblem.mediaList) {
+        const mediaArry = [];
+        const mediaList = res.data.tInspectProblem.mediaList;
+        for (const item in mediaList) {
+          const subject = mediaList[item];
+          mediaArry.push({
+            mediaExplain: subject.mediaExplain + "多媒体证据",
+            id: subject.id,
+          });
+        }
+        this.mediaArry = mediaArry;
+      }
+    },
+    handleInspectInfoClick(id, index) {
+      this.inspectInfoId = id;
+      this.inspectInfoIndex = index;
+      this.inspectOpen = true;
+      this.$nextTick(() => {
+        this.$refs.inspectRef.handleEdit();
+      });
+    },
+    async handleClewClick(id) {
+      this.clewId = id;
+      this.lookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.clewRef.handleEdit();
+      });
+    },
+    handleEdit(data) {
+      const { id } = data;
+      this.dialogTitle = "修改问题聚焦";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleSpotInfoClick(id, index) {
+      this.spotInfoId = id;
+      this.spotInfoIndex = index;
+      this.spotOpen = true;
+      this.$nextTick(() => {
+        this.$refs.spotRef.handleEdit();
+      });
+    },
+    handleInspectClose(data) {
+      this.inspectArry = data;
+      this.inspectOpen = false;
+    },
+    handleSpotClose(data) {
+      this.spotArry = data;
+      this.spotOpen = false;
+    },
+    handleMediaInfoClick(id, index) {
+      this.mediaInfoId = id;
+      this.mediaInfoIndex = index;
+      this.mediaOpen = true;
+      this.$nextTick(() => {
+        this.$refs.mediaRef.handleEdit();
+      });
+    },
+    handleMediaClose(data) {
+      this.mediaArry = data;
+      this.mediaOpen = false;
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.hy {
+  padding: 20px;
+  section {
+    margin-bottom: 20px;
+    header {
+      height: 40px;
+      line-height: 40px;
+      background: #409eff;
+      text-align: center;
+      color: white;
+    }
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+}
+</style>
+
+

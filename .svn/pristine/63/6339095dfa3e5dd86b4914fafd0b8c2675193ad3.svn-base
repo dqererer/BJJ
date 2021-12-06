@@ -1,0 +1,232 @@
+<template>
+  <div id="informationPlatform">
+    <!-- 头部标题 -->
+    <header>
+      <div class="left">
+        <span>2021年05月25日</span>
+        <span>欢迎您管理员:</span>
+        <span>张三</span>
+      </div>
+      <div class="right">
+        <span @click="adminExit"
+          ><i class="el-icon-switch-button" />&nbsp;&nbsp;退出</span
+        >
+      </div>
+    </header>
+    <!-- 中间内容 -->
+    <div class="platform-center">
+      <h1>生 态 环 境 保 护 督 察 信 息 化 平 台</h1>
+      <h3>{{ curItem.title }}</h3>
+      <el-button type="warning" size="small" @click="accessPlatform"
+        >进入平台</el-button
+      >
+    </div>
+    <footer>
+      <div class="img-footer">
+        <Swiper
+          @swiperChange="pageSwiper"
+          :slides="sysList"
+          @abc="handleClick"
+        />
+      </div>
+      <div class="page-footer">
+        <ul>
+          <li v-for="item in sysList" :key="item.id">{{ item.title }}</li>
+        </ul>
+      </div>
+    </footer>
+  </div>
+</template>
+
+<script>
+import Swiper from "@/components/Swiper/index.vue";
+import router from "../../router";
+import { getStorageRouters } from "../../utils/storage";
+export default {
+  name: "informationPlatform",
+  data() {
+    return {
+      sysList: [],
+      routersSource: {},
+      curItem: []
+    };
+  },
+  computed: {
+  },
+  components: {
+    Swiper,
+  },
+  created: function () {
+    this.routersSource = getStorageRouters('topbar_router') || {};
+    this.getSystemRoutes();
+  },
+  methods: {
+    // 动态改变标题
+    pageSwiper(ind) {
+      this.curItem = ind;
+    },
+    // 点击进入平台跳转
+    accessPlatform() {
+      this.handleClick()
+    },
+    // 点击退出
+    async adminExit() {
+      this.$store
+        .dispatch("LogOut")
+        .then(() => {
+          location.reload();
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+    // 初始化路由图标
+    routeUIInit: function (routers) {
+      routers.forEach((item, index) => {
+        item.index = index;
+        switch (item.path) {
+          case "/clew":
+            item.coverDeep = require("../../assets/images/platform/platform_s1.png");
+            item.cover = require("../../assets/images/platform/platform1.jpg");
+            break;
+          case "/supervision":
+            item.coverDeep = require("../../assets/images/platform/platform_s2.png");
+            item.cover = require("../../assets/images/platform/platform2.jpg");
+            break;
+          case "/auxiliary":
+            item.coverDeep = require("../../assets/images/platform/platform_s2.png");
+            item.cover = require("../../assets/images/platform/platform2.jpg");
+            break;
+          case "/abarbeitung":
+            item.coverDeep = require("../../assets/images/platform/platform_s4.png");
+            item.cover = require("../../assets/images/platform/platform4.jpg");
+            break;
+          case "/efficiency":
+            item.coverDeep = require("../../assets/images/platform/platform_s5.png");
+            item.cover = require("../../assets/images/platform/platform5.jpg");
+            break;
+          case "/system":
+            item.coverDeep = require("../../assets/images/platform/platform_s5.png");
+            item.cover = require("../../assets/images/platform/platform5.jpg");
+            break;
+          default:
+          // 默认代码块;
+        }
+      });
+      this.sysList = routers;
+      console.log("syslist", this.sysList);
+    },
+    handleClick: function (item) {
+      let clickItem = item ? item:this.curItem;
+      console.log('ssssss',this.clickItem)
+      if (clickItem.child) {
+        let child = JSON.stringify(clickItem.children);
+        localStorage.setItem("subSystemRouters", child);
+        this.$router.push({ path: clickItem.path });
+      } else if (this.routersSource.hasOwnProperty(clickItem.id)) {
+        this.$router.push({ path: this.routersSource[clickItem.id][0].path });
+      } else {
+        this.$store
+          .dispatch("getSystemMenu", clickItem.id)
+          .then((res) => {
+            router.addRoutes(res);
+            this.$router.push({ path: res[0].path });
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      }
+    },
+    getSystemRoutes: function () {
+      let obj = this.routersSource;
+      console.log("this.routersSource", this.routersSource);
+      if (obj.hasOwnProperty("findSysByUser")) {
+        alert(1);
+        this.routeUIInit(JSON.parse(JSON.stringify(obj["findSysByUser"])));
+      }
+      this.$store
+        .dispatch("findSysByUser")
+        .then((res) => {
+          router.addRoutes(res.systemRoutes);
+          this.curItem = res.systemData[0]
+          this.routeUIInit(res.systemData);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+#informationPlatform {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 700px;
+  min-width: 1200px;
+  background: url(../../assets/images/platform/plagformbgc.jpg) no-repeat top
+    center;
+  background-size: 100% 100%;
+  header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    box-sizing: border-box;
+    color: #f1eeee;
+    .left {
+      span {
+        &:nth-of-type(2) {
+          margin-left: 10px;
+        }
+      }
+    }
+    .right {
+      cursor: pointer;
+      font-size: 14px;
+    }
+  }
+
+  .platform-center {
+    flex: 1;
+    text-align: center;
+    color: #f1eeee;
+    h1 {
+      margin-top: 100px;
+    }
+    h3 {
+      margin: 20px 0px;
+    }
+  }
+  footer {
+    width: 100%;
+    min-width: 1148px;
+    .img-footer {
+      padding: 0px 10%;
+
+      box-sizing: border-box;
+    }
+    .page-footer {
+      ul {
+        display: flex;
+        justify-content: center;
+        border-top: 1px dashed #ccc;
+        border-bottom: 1px dashed #ccc;
+
+        li {
+          cursor: pointer;
+          padding: 10px;
+          font-size: 14px;
+          color: #6a6969;
+          list-style: none;
+        }
+      }
+    }
+  }
+}
+</style>

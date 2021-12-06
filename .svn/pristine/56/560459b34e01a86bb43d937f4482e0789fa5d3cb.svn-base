@@ -1,0 +1,144 @@
+<template>
+  <section>
+    <div class="wenti">
+      <div class="title">问题案卷（{{ total }}条）</div>
+      <el-table :data="tableData" border style="width: 100%">
+        <el-table-column
+          type="index"
+          label="序号"
+          width="180"
+        ></el-table-column>
+        <el-table-column prop="archiveName" label="案卷标题" width="180">
+        </el-table-column>
+        <el-table-column prop="archiveCode" label="案卷编号" width="180">
+        </el-table-column>
+        <el-table-column label="案卷说明">
+          <template slot-scope="scope">
+            <a
+              v-if="scope.row.archiveExplain"
+              @click="checkFile(scope.row.evidenceId, scope.column.label)"
+              >书证</a
+            >
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="问题数量">
+          <template slot-scope="scope">
+            <span >{{scope.row.problemId.length}}</span>
+          </template></el-table-column>
+        <el-table-column prop="lineNum" label="相关证书"> </el-table-column>
+        <el-table-column
+          label="问讯笔录"
+          prop="workArrangeName"
+        ></el-table-column>
+        <el-table-column
+          label="勘察笔录"
+          prop="workArrangeName"
+        ></el-table-column>
+        <el-table-column
+          label="多媒体记录"
+          prop="workArrangeName"
+        ></el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="pageNo"
+        :limit.sync="pageSize"
+        @pagination="goSearch"
+      />
+    </div>
+    <el-dialog
+      :title="fileTitle"
+      :visible.sync="check"
+      width="80%"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div v-for="(item, index) in fileList" v-bind:key="index">
+        <a href="#" @click="downloadFile(item.path)">{{ item.name }}</a>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { getArchive } from "@/api/support/search";
+import { getFileInfo } from "@/api/file";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+
+export default {
+  data() {
+    return {
+      pageNo: 1,
+      pageSize: 10,
+      total: 0,
+      id: "",
+      tableData: [],
+      check: false,
+      fileList: [],
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getArchive();
+  },
+  methods: {
+    getArchive: function () {
+      getArchive({
+        pageNo: this.pageNo,
+        pageSize: this.pageSize,
+        teamId: this.id,
+      }).then((res) => {
+        // res.data.list.forEach((item)=>{
+        //   item.szd = item.city + item.county + item.town + item.address;
+        // })
+        this.tableData = res.data.list;
+      });
+    },
+    checkFile: function (fileIds, title) {
+      this.fileTitle = title;
+      let fileIdList = [];
+      if (fileIds) {
+        fileIdList = fileIds.split(",");
+      }
+      fileIdList.forEach((item) => {
+        this.getFileInfo(item);
+      });
+      this.check = true;
+    },
+    getFileInfo: function (id) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this.fileList.push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.wenti {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  a {
+    color: #2196f3;
+  }
+}
+</style>
+
+
+
+

@@ -1,0 +1,734 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">整改方案</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察级别 ：">
+                <el-select
+                  placeholder="请选择督察级别"
+                  @change="changeSuperviseLevel(1)"
+                  v-model="queryParams.superviseLevel"
+                >
+                  <el-option
+                    v-for="item in superviseLevelArry"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="督察类型 ：">
+                <el-select
+                  v-model="queryParams.superviseType"
+                  placeholder="请选择督察类型"
+                  @change="changeSuperviseType(1)"
+                >
+                  <el-option
+                    v-for="item in superviseTypeArry"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="督察轮次：">
+                <el-select
+                  v-model="queryParams.superviseRound"
+                  placeholder="请选择督察轮次"
+                  @change="changeSuperviseRound(1)"
+                >
+                  <el-option
+                    v-for="item in superviseRoundArry"
+                    :key="item.id"
+                    :label="item.batchName"
+                    :value="item.batchId"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察批次：">
+                <el-select
+                  v-model="queryParams.batchId"
+                  placeholder="请选择督察批次"
+                >
+                  <el-option
+                    v-for="item in superviseBatchArry"
+                    :key="item.id"
+                    :label="item.batchName"
+                    :value="item.batchId"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="方案名称：">
+                <el-input
+                  v-model="queryParams.name"
+                  placeholder="请输入方案名称："
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item class="pull-right">
+                <el-button type="primary" @click="onQuery">查询</el-button>
+                <el-button type="primary" @click="onClear">清空</el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getChangeProgramList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column prop="title" label="督察类型" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.superviseTypeName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="督察轮次、批次" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.title }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="督察地区" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.cityName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="方案名称" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.cityName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="方案电子件" min-width="200px">
+          <template v-slot="scope">
+            <span>{{ scope.row.cityName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reportDate" label="方案上传时间" width="160px"
+          ><template v-slot="scope">
+            <span @click="handlePreviewClick(scope.row.createDate)">{{
+              scope.row.createDate
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="当前状态" width="100px">
+          <template v-slot="scope">
+            <span @click="handlePreviewClick(scope.row.createDate)">{{
+              scope.row.createDate
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="250">
+          <template v-slot="scope">
+            <el-button size="mini" @click="handleSee(scope.row)"
+              >查看</el-button
+            >
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getChangeProgramList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="督察级别：" prop="superviseLevel">
+              <el-select
+                placeholder="请选择督察级别"
+                @change="changeSuperviseLevel(2)"
+                v-model="dialogParams.superviseLevel"
+              >
+                <el-option
+                  v-for="item in superviseLevelArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="督察类型：" prop="superviseType">
+              <el-select
+                v-model="dialogParams.superviseType"
+                placeholder="请选择督察类型"
+                @change="changeSuperviseType(2)"
+              >
+                <el-option
+                  v-for="item in superviseTypeArry2"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="督察轮次：" prop="superviseRound">
+              <el-select
+                v-model="dialogParams.superviseRound"
+                placeholder="请选择督察轮次"
+                @change="changeSuperviseRound(2)"
+              >
+                <el-option
+                  v-for="item in superviseRoundArry2"
+                  :key="item.id"
+                  :label="item.batchName"
+                  :value="item.batchId"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="督察批次：" prop="superviseBatch">
+              <el-select
+                v-model="dialogParams.superviseBatch"
+                placeholder="请选择督察批次"
+              >
+                <el-option
+                  v-for="item in superviseBatchArry2"
+                  :key="item.id"
+                  :label="item.batchName"
+                  :value="item.batchId"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="督察地区：" prop="city">
+              <el-cascader :options="cityArry" ></el-cascader>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="反馈意见标题：" prop="backOpinion">
+              <el-input
+                class="inputWidth"
+                v-model="dialogParams.backOpinion"
+                placeholder="请输入反馈意见标题"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="反馈时间：" prop="backTime">
+              <el-date-picker
+                v-model="dialogParams.backTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="选择日期"
+              >
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="反馈意见电子件：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="方案名称：" prop="title">
+              <el-input
+                class="inputWidth"
+                v-model="dialogParams.title"
+                placeholder="请选择督察类型"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="方案上传时间：" prop="reportDate">
+              <el-date-picker
+                v-model="dialogParams.reportDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="选择日期"
+              >
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="方案电子件：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="整改措施电子件：" prop="attachmentId">
+              <el-button>点击下载</el-button>
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+
+    <el-dialog
+      title="查看"
+      :visible.sync="check"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+    >
+      <div class="dialogCheck">
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <label class="check-label">督察类型：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+          <el-col :span="12">
+            <label class="check-label">督察轮次：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <label class="check-label">督察类型：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+          <el-col :span="12">
+            <label class="check-label">督察轮次：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <label class="check-label">督察类型：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+          <el-col :span="12">
+            <label class="check-label">督察轮次：</label>
+            <span class="check-text">{{ dialogParams.title }}</span>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <label class="check-label">上传简报：</label>
+            <span
+              class="check-text accounChunk"
+              @click="handleDownLoadDoc(attachementPath)"
+              >{{ attachementName }}</span
+            >
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <label class="check-label">上传日期：</label>
+            <span class="check-text">{{ dialogParams.reportDate }}</span>
+          </el-col>
+        </el-row>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  getChangeProgramList,
+  saveChangeProgram,
+  getRoundOrBatchList,
+  getSpectTypeList
+} from "@/api/change/dispatch";
+import {
+  noticeList,
+  noticeDelete,
+  noticeSave,
+  noticeSee
+} from "@/api/support/notification";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { areaTreeNew } from "@/api/styem/dept";
+// import { dictListType, dictName } from "@/api/styem/dict/type";
+export default {
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        superviseLevel: undefined,
+        superviseType: undefined,
+        superviseRound: undefined,
+        superviseBatch: undefined,
+        pageNo: 1,
+        pageSize: 10,
+        batchId: undefined,
+        name: undefined
+      },
+      superviseLevelArry: [], //督察级别
+      superviseTypeArry: [], // 督察类型字典
+      superviseRoundArry: [], //轮次下拉
+      superviseBatchArry: [], //批次下拉
+      superviseTypeArry2: [], // 督察类型字典-弹框
+      superviseRoundArry2: [], //轮次下拉 --弹框
+      superviseBatchArry2: [], //批次下拉 --弹框
+      cityArry: [],
+      issueDate: undefined,
+      List: [],
+      total: 0,
+      loading: true,
+      dialogTitle: "整改方案",
+      open: false,
+      dialogParams: {
+        superviseLevel: undefined,
+        superviseType: undefined,
+        superviseRound: undefined,
+        superviseBatch: undefined,
+        cityCode:'',
+        backOpinion: '',
+        backTime:'',
+        smallType: 1,
+        title: undefined,
+        attachmentId: undefined,
+        reportDate: undefined,
+        fileId: " "
+      },
+      dialogRules: {
+        title: [{ required: true, message: "请输入简报标题" }],
+        superviseLevel: [
+          { required: true, message: "请选择督察类型", trigger: "change" }
+        ],
+        superviseType: [
+          { required: true, message: "请选择督察类型", trigger: "change" }
+        ],
+        attachmentId: [{ required: true, message: "请上传简报" }],
+        reportDate: [{ required: true, message: "请选择上报日期" }]
+      },
+      check: false,
+      attachementName: undefined,
+      attachementPath: undefined
+    };
+  },
+  created() {
+    this.getChangeProgramList();
+    this.getSuperviseLevelList();
+    this.getCityList();
+  },
+  methods: {
+    async getChangeProgramList() {
+      this.loading = true;
+      const reponse = await getChangeProgramList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    handleNewly() {
+      this.open = true;
+      this.dialogTitle = "整改方案";
+      this.resetFieldsTap("dialogForm");
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear();
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    onQuery() {
+      this.getChangeProgramList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.superviseType = undefined;
+      this.queryParams.batchId = undefined;
+      this.queryParams.name = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const reponse = await saveChangeProgram(this.dialogParams);
+          this.getChangeProgramList();
+          this.open = false;
+          this.handleformClear();
+          this.$refs.uploadFile.handleClear();
+        }
+      });
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+      this.handleCheckClear();
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    async handleSee({ id }) {
+      this.check = true;
+      this.getDialogInfo(id);
+    },
+    async handleEdit({ id }) {
+      this.dialogTitle = "修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await noticeSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.title = subject.title;
+      this.dialogParams.fileId = subject.attachmentId;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.dialogParams.reportDate = subject.reportDate;
+      this.getSingleMessagInfo(subject.attachmentId);
+      this.$nextTick(() => {
+        if (this.$refs.uploadFile) {
+          this.$refs.uploadFile.getFileMessageInfo();
+        }
+      });
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      if (reponse.data && reponse.data.length) {
+        const subject = reponse.data;
+        if (reponse.data && reponse.data.length) {
+          const subject = reponse.data;
+          this.attachementName = subject[0].file_name;
+          this.attachementPath = subject[0].save_path;
+        }
+      }
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await noticeDelete({ id });
+        this.getChangeProgramList();
+      });
+    },
+    handlePreviewClick() {},
+    handleformClear() {
+      this.resetFieldsTap("dialogForm");
+      this.dialogParams.id = undefined;
+    },
+    handleCheckClear() {
+      this.dialogParams.id = undefined;
+      this.dialogParams.title = undefined;
+      this.dialogParams.fileId = undefined;
+      this.dialogParams.reportDate = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginReportDate = undefined;
+        this.queryParams.endReportDate = undefined;
+      } else {
+        this.queryParams.beginReportDate = picker[0];
+        this.queryParams.endReportDate = picker[1];
+      }
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleDownLoadDoc(path) {
+      getdownLoadZip(path);
+    },
+    handleDownloadClick(fileId) {
+      getSingleInfo(fileId);
+    },
+    //   dq
+
+    getSuperviseLevelList: function () {
+      getSpectTypeList({ parentId: 0 })
+        .then(res => {
+          this.superviseLevelArry = res.data;
+        })
+        .catch(res => {
+          cosnoel.log(res);
+        });
+    },
+    getCityList: function(){
+      areaTreeNew({ parentId: 150000 })
+        .then((res) => {
+          this.cityArry = res.data;
+        })
+        .catch((res) => {
+          cosnoel.log(res);
+        });
+    },
+    changeSuperviseLevel: function (type) {
+      let value,relatedArr,id;
+      if (type == "2") {
+        value = this.dialogParams.superviseLevel;
+        relatedArr = 'superviseTypeArry2';
+        //清空关联表单
+        this.superviseTypeArry2 = [];
+        this.superviseRoundArry2 = [];
+        this.superviseBatchArry2 = []
+        this.dialogParams.superviseType = undefined;
+        this.dialogParams.superviseRound = undefined;
+        this.dialogParams.superviseBatch = undefined;
+      } else {
+        value = this.queryParams.superviseLevel;
+        relatedArr = 'superviseTypeArry';
+        this.superviseTypeArry = [];
+        this.superviseRoundArry = [];
+        this.superviseBatchArry = []
+        this.queryParams.superviseType = undefined;
+        this.queryParams.superviseRound = undefined;
+        this.queryParams.superviseBatch = undefined;
+      }
+      this.superviseLevelArry.forEach(item => {
+        if (item.value == value) {
+          id = item.id;
+        }
+      });
+      getSpectTypeList({ parentId: id })
+        .then(res => {
+          this[relatedArr] = res.data;
+        })
+        .catch(res => {});
+    },
+    changeSuperviseType: function (type) {
+      debugger
+      let value,relatedArr;
+      if (type == "2") {
+        value = this.dialogParams.superviseType;
+        relatedArr = 'superviseRoundArry2';
+        //清空关联表单
+        this.superviseRoundArry2 = [];
+        this.superviseBatchArry2 = []
+        this.dialogParams.superviseRound = undefined;
+        this.dialogParams.superviseBatch = undefined;
+      } else {
+        value = this.queryParams.superviseType;
+        relatedArr = 'superviseRoundArry';
+        this.superviseRoundArry = [];
+        this.superviseBatchArry = []
+        this.queryParams.superviseRound = undefined;
+        this.queryParams.superviseBatch = undefined;
+      }
+      getRoundOrBatchList({ superviseType: value })
+        .then(res => {
+          this[relatedArr] = res.data;
+        })
+        .catch((res) => {
+          console.log(res);
+        });
+    },
+    changeSuperviseRound: function (type) {
+      debugger
+      let value,relatedArr;
+      if (type == "2") {
+        value = this.dialogParams.superviseRound;
+        relatedArr = 'superviseBatchArry2';
+        //清空关联表单
+        this.superviseBatchArry2 = []
+        this.dialogParams.superviseBatch = undefined;
+      } else {
+        value = this.queryParams.superviseRound;
+        relatedArr = 'superviseBatchArry';
+        this.superviseBatchArry = []
+        this.queryParams.superviseBatch = undefined;
+      }
+      getRoundOrBatchList({ id: value })
+        .then(res => {
+          this[relatedArr] = res.data;
+        })
+        .catch((res) => {
+          console.log(res);
+        });
+    },
+
+  },
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm .el-form-item /deep/ .el-form-item__label {
+  width: 150px !important;
+}
+</style>
+
+

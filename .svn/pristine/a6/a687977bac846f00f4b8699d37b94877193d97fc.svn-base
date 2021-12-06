@@ -1,0 +1,770 @@
+<template>
+  <div>
+    <div class="files-more">
+      <div class="files-title">
+        <h1 class="files-title-name">整改任务列表</h1>
+      </div>
+      <div class="files-inner">
+        <div class="files-search">
+          <el-input
+            class="search-input"
+            v-model="queryParams.rectifyContent"
+            :placeholder="placeholder"
+            @focus="blurSearchFor"
+            @blur="blurSear"
+            @change="handleSearchChange"
+          ></el-input>
+          <span class="serach-icon" @click="handleSearchChange"></span>
+        </div>
+        <div class="files-hit">
+          共
+          <span class="files-hit-all">{{ totalCount }}</span>件
+          <template v-if="searchBoolean">
+            ,为您找到
+            <span class="files-hit-num">{{ count }}</span>件
+          </template>
+        </div>
+      </div>
+      <div class="files-content" style="overflow:auto">
+        <ul
+          class="middle-ul"
+          v-infinite-scroll="load"
+          infinite-scroll-distance="0"
+          infinite-scroll-delay="400"
+        >
+          <li
+            class="middle-item"
+            v-for="(item, index) in archiveList"
+            :key="index"
+            @click="handleSee(item.id)"
+          >
+            <div class="middle-item-top">
+              <i>{{ item.updateDate }}</i>
+              <i>{{ item.writeCity }}</i>
+            </div>
+            <div class="middle-item-bottom">
+              <p>{{ item.rectifyContent }}</p>
+            </div>
+            <span class="middle-allow"></span>
+          </li>
+        </ul>
+        <p v-if="noMore" class="no-more-text">没有更多了</p>
+      </div>
+
+      <i class="ctop-border ctop-left-top"></i>
+      <i class="ctop-border ctop-right-top"></i>
+    </div>
+    <el-dialog
+      title="查看"
+      v-if="check"
+      :visible="true"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+    >
+      <el-form ref="dialogForm2" label-width="80px" class="dialogForm twoLayoutForm">
+        <section style="margin-bottom: 30px">
+          <el-descriptions class="margin-top" :column="3" size="medium" title="方案信息" border>
+            <el-descriptions-item>
+              <template slot="label">督察级别</template>
+              {{ dialogParams.levelTypeName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">督察类型</template>
+              {{ dialogParams.inspectTypeName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">督察轮次</template>
+              {{ dialogParams.roundName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">督察批次</template>
+              {{ dialogParams.batchName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">整改方案名称</template>
+              {{ dialogParams.planName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">地区</template>
+              {{ dialogParams.writeCity }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </section>
+        <section style="margin-bottom: 30px">
+          <el-descriptions class="margin-top" :column="3" size="medium" title="任务信息" border>
+            <el-descriptions-item :span="3">
+              <template slot="label">整改任务内容</template>
+              {{ dialogParams.rectifyContent }}
+            </el-descriptions-item>
+            <el-descriptions-item :span="3">
+              <template slot="label">整改目标</template>
+              {{ dialogParams.rectifyTarget }}
+            </el-descriptions-item>
+            <el-descriptions-item :span="3">
+              <template slot="label">任务类型</template>
+              {{ taskText }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">牵头单位</template>
+              {{ dialogParams.leadUnitName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">督导单位</template>
+              {{ dialogParams.supervisionUnitName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">责任单位</template>
+              {{ dialogParams.responsibleUnitName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">完成时限</template>
+              {{ dialogParams.deadline }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">完成情况</template>
+              <el-select
+                v-model="dialogParams.finishSituation"
+                placeholder="请选择完成情况"
+                @change="changeStatus"
+              >
+                <el-option
+                  v-for="item in finishSituationArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">重点任务</template>
+              {{ dialogParams.isKeyTaskName }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">大概位置</template>
+              {{ dialogParams.taskCityName }}{{ dialogParams.taskCountyName
+              }}{{ dialogParams.taskAddress }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </section>
+        <section section>
+          <el-tabs v-model="editableTabsValue" type="card" @tab-click="toggleTab">
+            <el-tab-pane
+              :key="item.id"
+              v-for="(item) in dialogParams.measureDTOList"
+              :label="item.title"
+            >
+              <!-- :name="index" -->
+              <el-descriptions class="margin-top" :column="3" size="medium" border>
+                <el-descriptions-item :span="3">
+                  <template slot="label">措施内容</template>
+                  {{ item.measure }}
+                </el-descriptions-item>
+                <el-descriptions-item>
+                  <template slot="label">完成情况</template>
+                  {{ item.finishStateName }}
+                </el-descriptions-item>
+                <el-descriptions-item>
+                  <template slot="label">填报人</template>
+                  {{ item.fillerName }}
+                </el-descriptions-item>
+              </el-descriptions>
+              <section style="padding: 20px 0">
+                <el-table
+                  :data="item.progressDTOList"
+                  style="width: 100%"
+                  type="index"
+                  border
+                  size="small"
+                >
+                  <el-table-column label="填报时间" width="180">
+                    <template slot-scope="scope">{{ scope.row.createDate }}</template>
+                  </el-table-column>
+                  <el-table-column label="进展情况" width="280">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.progress }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="存在问题" width="280">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.problem }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="下步打算" width="280">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.nextPlan }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="是否完成" width="220">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.finishStateName }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="证明材料" width="180">
+                    <template slot-scope="scope" style="margin: 0 auto">
+                      <a @click="handleDownLoadDoc(scope.row.path)">
+                        {{
+                        scope.row.fileName
+                        }}
+                      </a>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="填报人" width="140">
+                    <template slot-scope="scope">
+                      <span>{{ scope.row.fillerName }}</span>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </section>
+            </el-tab-pane>
+          </el-tabs>
+        </section>
+
+        <section>
+          <el-descriptions class="margin-top" :column="2" size="medium" border title="核实信息">
+            <el-descriptions-item>
+              <template slot="label">核实人</template>
+              {{ dialogParams.rectifyVerify.verifiername }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">核实内容</template>
+              {{ dialogParams.rectifyVerify.verfityContent }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">核实时间</template>
+              {{ dialogParams.rectifyVerify.verfityTime }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label" :span="3">核实意见</template>
+              {{ dialogParams.rectifyVerify.verfitySuggestion }}
+            </el-descriptions-item>
+            <el-descriptions-item>
+              <template slot="label">核实情况</template>
+              {{ dialogParams.rectifyVerify.verfitySituationName }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </section>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="handleDialogCheckClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { findRectifyMainPage, rectifyInfoById } from "@/api/bigScreen";
+import { dictListType } from "@/api/styem/dict/type";
+import { getProgressList } from "@/api/change/dispatch";
+import { getFileInfo } from "@/api/file";
+import Bus from "@/utils/vueBus";
+const initMeasureDTOList = {
+  measure: "",
+  finishState: "",
+  filler: "",
+  fillerName: "",
+  title: "措施1",
+  name: "0",
+  content: "Tab 1 content",
+  progressDTOList: []
+};
+const initRectifyVerify = {
+  verfityTime: "",
+  verifier: "",
+  verifiername: "",
+  verfitySuggestion: "",
+  verfityContent: "",
+  verfitySituation: ""
+};
+const initData = {
+  levelType: undefined,
+  levelTypeName: "",
+  inspectType: undefined,
+  inspectTypeName: "",
+  roundName: "",
+  roundId: "",
+  batchId: undefined,
+  batchName: "",
+  planId: undefined,
+  planName: "",
+  writeCityCode: "",
+  writeCity: "",
+  rectifyContent: "",
+  rectifyTarget: "",
+  leadUnit: "", //牵头单位
+  leadUnitName: "",
+  supervisionUnit: "", //督导单位
+  supervisionUnitName: "",
+  responsibleUnit: "", //责任单位
+  responsibleUnitName: "",
+  taskTypeOne: [],
+  taskTypeOne: "",
+  taskTypeOneName: "",
+  taskTypeTwo: [],
+  taskTypeTwoName: [],
+  finishSituation: "",
+  finishSituationName: "",
+  deadline: "",
+  isKeyTask: "",
+  isKeyTaskName: "",
+  measureDTOList: [{ ...initMeasureDTOList }],
+  rectifyVerify: { ...initRectifyVerify },
+  taskCityCode: "",
+  taskCityName: "",
+  taskCountyCode: "",
+  taskCountyName: "",
+  taskAddress: ""
+};
+export default {
+  props: {
+    writeCityCode: {
+      type: String
+    },
+    finishSituation: {
+      type: String
+    },
+    inspectType: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      placeholder: "请输入要查询的关键字",
+      taskText: "",
+      firstLoad: true,
+      archiveList: [],
+      totalCount: 0,
+      count: 0,
+      searchBoolean: false,
+      queryParams: {
+        rectifyContent: undefined,
+        pageNo: 1,
+        pageSize: 20
+      },
+      noMore: false,
+      check: false,
+      dialogParams: { ...initData },
+      isHandleChange: false,
+      sortNameArry: [
+        "otherWater",
+        "otherAir",
+        "otherSoil",
+        "otherOcean",
+        "otherEcology",
+        "otherRadiation",
+        "otherNoise",
+        "other"
+      ],
+      editableTabsValue: "0"
+    };
+  },
+  created() {
+    Bus.$off("middleDetail");
+    this.getfinishSituationList();
+  },
+  watch: {
+    writeCityCode() {
+      this.noMore = false;
+      this.queryParams.pageNo = 1;
+      this.getfindRectifyMainPage();
+    },
+    inspectType() {
+      this.noMore = false;
+      this.queryParams.pageNo = 1;
+      this.getfindRectifyMainPage();
+    },
+    finishSituation() {
+      this.noMore = false;
+      this.queryParams.pageNo = 1;
+      this.getfindRectifyMainPage();
+    },
+    "dialogParams.finishSituation": {
+      immediate: false,
+      deep: true,
+      handler: function(newV, oldV) {
+        if (!this.isHandleChange) {
+          return;
+        }
+        if (newV == "1") {
+          let isAllFinished = true;
+          this.dialogParams.measureDTOList.forEach(item => {
+            if (item.finishState != "1") {
+              isAllFinished = false;
+            }
+          });
+          if (!isAllFinished) {
+            this.$alert("还有未完成的措施，请先完成所有措施", {
+              confirmButtonText: "确定",
+              callback: action => {
+                this.$set(this.dialogParams, "finishSituation", oldV);
+                this.isHandleChange = false;
+              }
+            });
+          }
+        }
+      }
+    }
+  },
+  methods: {
+    blurSearchFor: function() {
+      this.placeholder = "";
+    },
+    blurSear() {
+      this.placeholder = "请输入要查询的关键字";
+    },
+    changeStatus: function() {
+      this.isHandleChange = true;
+    },
+    handleSee(id) {
+      // this.getDialogInfo(info);
+      this.rectifyInfoById(id);
+      this.check = true;
+    },
+    toggleTab: function(tab) {
+      this.getProgressList(
+        this.dialogParams.measureDTOList[tab.index].id,
+        tab.index
+      );
+    },
+    getProgressList: function(id, index) {
+      //请求详情
+      getProgressList({
+        measureId: id
+      }).then(res => {
+        if (res.code == "200") {
+          let arr = res.data || [];
+          let promiseArr = [];
+          arr.forEach(item => {
+            if (item.file) {
+              const promisHttp = getFileInfo({
+                ids: item.file
+              }).then(res => {
+                item.fileName = res.data[0].file_name;
+                item.path = res.data[0].save_path;
+              });
+              promiseArr.push(promisHttp);
+            }
+          });
+          Promise.all(promiseArr).then(() => {
+            if (!this.dialogParams.measureDTOList[index].progressDTOList) {
+              this.$set(
+                this.dialogParams.measureDTOList[index],
+                "progressDTOList",
+                arr
+              );
+              this.$forceUpdate();
+            }
+          });
+        }
+      });
+    },
+    rectifyInfoById: function(id) {
+      rectifyInfoById({
+        id
+      }).then(res => {
+        console.log(res);
+        const taskMain = res.data.taskMain;
+        for (let key in this.dialogParams) {
+          if (taskMain[key]) {
+            this.$set(this.dialogParams, key, taskMain[key]);
+          }
+          this.$set(this.dialogParams, "measureDTOList", res.data.taskMeasure);
+          if (res.data.verify) {
+            this.$set(this.dialogParams, "rectifyVerify", res.data.verify);
+          }
+        }
+        let arr = [];
+        this.dialogParams.taskTypeTwoName.split(",").forEach(item => {
+          if (item != "其他") {
+            arr.push(item);
+          }
+        });
+        this.sortNameArry.forEach(item => {
+          if (taskMain[item]) {
+            arr.push(taskMain[item]);
+          }
+        });
+        this.taskText = arr.join(",");
+
+        // this.$set(this.dialogParams, "rectifyVerify", res.data.verify);
+
+        // this.$nextTick(() => {
+        //   this.getProgressList(this.dialogParams.measureDTOList[0].id, 0);
+        // });
+      });
+    },
+    getDialogInfo(info) {
+      // for (let key in this.dialogParams) {
+      //   if (info[key]) {
+      //     this.$set(this.dialogParams, key, info[key]);
+      //   }
+      // }
+      // let arr = [];
+      // this.dialogParams.taskTypeTwoName.split(",").forEach((item) => {
+      //   if (item != "其他") {
+      //     arr.push(item);
+      //   }
+      // });
+      // this.sortNameArry.forEach((item) => {
+      //   if (info[item]) {
+      //     arr.push(info[item]);
+      //   }
+      // });
+      // this.taskText = arr.join(",");
+    },
+    getfinishSituationList: function() {
+      dictListType({
+        type: "execution"
+      }).then(res => {
+        this.finishSituationArry = res.data;
+      });
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+    },
+    handleSearchChange() {
+      if (
+        this.queryParams.rectifyContent == "" ||
+        this.queryParams.rectifyContent == undefined
+      ) {
+        this.searchBoolean = false;
+      } else {
+        this.searchBoolean = true;
+      }
+      this.queryParams.pageNo = 1;
+      this.getfindRectifyMainPage();
+    },
+    load() {
+      const count = this.searchBoolean ? this.count : this.totalCount;
+      const pageNo = this.queryParams.pageNo;
+      const pageCount = Math.ceil(count / 20);
+      if (pageCount == pageNo) {
+        this.noMore = true;
+        return;
+      } else {
+        if (this.firstLoad) {
+          this.firstLoad = false;
+        } else {
+          this.queryParams.pageNo += 1;
+        }
+        this.noMore = false;
+        this.getfindRectifyMainPage();
+      }
+    },
+    async getfindRectifyMainPage() {
+      const loading = this.$loading({
+        lock: true,
+        text: "正在加载中...",
+        spinner: "el-icon-loading",
+        background: "rgba(0, 0, 0, 0.1)"
+      });
+      const archiveList = [];
+      const reponse = await findRectifyMainPage({
+        ...this.queryParams,
+        writeCityCode: this.writeCityCode,
+        finishSituation: this.finishSituation,
+        inspectType: this.inspectType
+      });
+      loading.close();
+      this.totalCount = reponse.data.totalCount;
+      this.count = reponse.data.page.count;
+      const findArchiveData = reponse.data.page.list;
+      if (findArchiveData) {
+        for (const item in findArchiveData) {
+          const subject = findArchiveData[item];
+          const temp = {
+            id: subject.id,
+            updateDate: subject.updateDate,
+            rectifyContent: subject.rectifyContent,
+            writeCity: subject.writeCity
+          };
+          archiveList.push(temp);
+        }
+      } else {
+        this.archiveList = [];
+        this.noMore = true;
+      }
+      if (this.queryParams.pageNo == 1) {
+        this.archiveList = archiveList;
+      } else {
+        this.archiveList = this.archiveList.concat(archiveList);
+      }
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.files-more {
+  width: 100%;
+  background-color: #082561;
+  padding: 10px 0;
+  border-radius: 6px;
+  border: 1px solid #135074;
+  box-sizing: border-box;
+  position: relative;
+  .files-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3.5%; //5.4%
+    .files-title-name {
+      font-size: 16px;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      color: #0feef2;
+      font-weight: normal;
+      margin: 0;
+    }
+    .files-title-close {
+      width: 13px;
+      height: 13px;
+      background: url("~@/assets/images/close-icon.png") no-repeat center center;
+      cursor: pointer;
+    }
+  }
+  .files-inner {
+    padding: 0 5.4%;
+    box-sizing: border-box;
+    .files-search {
+      margin-top: 10px;
+      position: relative;
+      .search-input {
+        /deep/.el-input__inner {
+          width: 100%;
+          height: 32px;
+          border: 1px solid #0e8583;
+          border-radius: 25px;
+          background-color: #091140;
+          font-size: 14px;
+          color: #fff;
+        }
+      }
+      .serach-icon {
+        width: 18px;
+        height: 18px;
+        display: block;
+        background: url("~@/assets/images/search-igm.png") no-repeat center
+          center;
+        position: absolute;
+        right: 6%;
+        top: 6px;
+        cursor: pointer;
+      }
+    }
+    .files-hit {
+      padding: 8px 0 8px 16px;
+      background: url("~@/assets/images/dot-icon.png") no-repeat 6px center;
+      font-size: 12px;
+      color: #bac3c4;
+      border-bottom: 1px solid #135074;
+      .files-hit-all {
+        color: #e8dc23;
+      }
+      .files-hit-num {
+        color: #10cbd3;
+      }
+    }
+  }
+  .files-content {
+    height: calc(100vh - 258px);
+    overflow: hidden;
+    &::-webkit-scrollbar {
+      /*滚动条整体样式*/
+      width: 4px; /*高宽分别对应横竖滚动条的尺寸*/
+      height: 4px;
+      scrollbar-arrow-color: red;
+    }
+    &::-webkit-scrollbar-thumb {
+      /*滚动条里面小方块*/
+      border-radius: 5px;
+      -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      scrollbar-arrow-color: red;
+    }
+    &::-webkit-scrollbar-track {
+      /*滚动条里面轨道*/
+      -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+      border-radius: 0;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    ul {
+      padding: 0 5.4%;
+    }
+  }
+  .ctop-border {
+    width: 19px;
+    height: 21px;
+    display: block;
+    position: absolute;
+    &.ctop-left-top {
+      left: -3px;
+      top: -3px;
+      background: url("~@/assets/images/ctop-left-top.png") no-repeat center
+        center;
+    }
+    &.ctop-right-top {
+      right: -3px;
+      top: -3px;
+      background: url("~@/assets/images/ctop-left-right.png") no-repeat center
+        center;
+    }
+  }
+}
+.middle-ul {
+  margin: 0;
+  .middle-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+    border: 1px solid #304876;
+    padding: 0 6% 0 6%;
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    .middle-allow {
+      width: 12px;
+      height: 15px;
+      position: absolute;
+      left: -11px;
+      top: 12px;
+      background: url("~@/assets/images/allow-icon.png") no-repeat center center;
+    }
+    .middle-item-top {
+      width: 100%;
+      display: flex;
+      margin-top: 10px;
+      align-items: center;
+      i {
+        font-size: 13px;
+        color: #bac3c4;
+        font-style: normal;
+        margin-right: 10px;
+        &:last-child {
+          margin-right: 0px;
+        }
+      }
+    }
+    .middle-item-bottom {
+      width: 100%;
+      p {
+        font-size: 14px;
+        color: #ffffff;
+        margin: 0;
+        line-height: 40px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+      }
+    }
+  }
+}
+.no-more-text {
+  color: #fff;
+  text-align: center;
+  margin: 0;
+  font-size: 14px;
+  margin-top: 10px;
+}
+</style>

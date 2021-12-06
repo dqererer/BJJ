@@ -1,0 +1,1463 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">边督边改</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.teamId"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-if="!buttonAuthority">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察轮次：">
+                <el-select
+                  v-model="queryParams.roundId"
+                  @change="handleRoundChange"
+                  placeholder="请选择督察轮次"
+                >
+                  <el-option
+                    v-for="item in roundArry"
+                    :key="item.id"
+                    :value="item.id"
+                    :label="item.name"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="督察批次：">
+                <el-select
+                  v-model="queryParams.batchId"
+                  placeholder="请选择督察批次"
+                >
+                  <el-option
+                    v-for="item in batchArry"
+                    :key="item.id"
+                    :value="item.id"
+                    :label="item.name"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="督察地区：">
+                <el-select
+                  v-model="queryParams.city"
+                  filterable
+                  placeholder="请选择督察地区"
+                >
+                  <el-option
+                    v-for="item in areaArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <div class="list-box">
+        <el-button
+          type="primary"
+          size="mini"
+          v-if="buttonShow"
+          @click="handleOverseersClick"
+          >展开边督边改</el-button
+        >
+        <el-table v-loading="loading" :data="List" border :stripe="true" v-else>
+          <el-table-column width="50" label="序号">
+            <template scope="scope">
+              <span>
+                {{ scope.$index + 1 }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="cityName"
+            label="督察地区"
+            min-width="120px"
+            :show-overflow-tooltip="true"
+          ></el-table-column>
+          <el-table-column label="收到举报数量(件)">
+            <el-table-column label="来电" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipCall, {
+                      state: 1,
+                      tipType: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.tipCall }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="来信" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipLetter, {
+                      state: 1,
+                      tipType: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.tipLetter }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="合计" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipAll, { state: 1 })
+                  "
+                >
+                  {{ scope.row.tipAll }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="举报包含后续(件)">
+            <el-table-column label="来电" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipCallWithLater, {
+                      state: 1,
+                      tipType: 0,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.tipCallWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="来信" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipLetterWithLater, {
+                      state: 1,
+                      tipType: 1,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.tipLetterWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="合计" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.tipAllWithLater, {
+                      state: 1,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.tipAllWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="不受理(件)" width="100">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleSee(scope.row.city, scope.row.unAccept, {
+                    state: 1,
+                    followFlag: 0,
+                  })
+                "
+              >
+                {{ scope.row.unAccept }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="跟随不受理(件)" width="120">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleSee(scope.row.city, scope.row.unAcceptFollow, {
+                    state: 2,
+                    followFlag: 1,
+                  })
+                "
+              >
+                {{ scope.row.unAcceptFollow }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="受理且暂不转办(件)">
+            <el-table-column label="来电" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptNCall, {
+                      state: 3,
+                      tipType: 0,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptNCall }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="来信" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptNLetter, {
+                      state: 3,
+                      tipType: 1,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptNLetter }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="跟随" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptNFollow, {
+                      state: 3,
+                      followFlag: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptNFollow }}
+                </span>
+              </template>
+            </el-table-column>
+            <!-- <el-table-column prop="acceptAll" label="合计" width="80"></el-table-column> -->
+          </el-table-column>
+          <el-table-column label="受理且转办(件)">
+            <el-table-column label="来电" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptCall, {
+                      state: 4,
+                      tipType: 0,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptCall }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="来信" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptLetter, {
+                      state: 4,
+                      tipType: 1,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptLetter }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="跟随" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptFollow, {
+                      state: 4,
+                      followFlag: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptFollow }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="合计" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptAll, { state: 4 })
+                  "
+                >
+                  {{ scope.row.acceptAll }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="受理包含后续(件)">
+            <el-table-column label="来电" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptCallWithLater, {
+                      state: 3,
+                      tipType: 0,
+                      followFlag: 0,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptCallWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="来信" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptLetterWithLater, {
+                      state: 3,
+                      tipType: 1,
+                      followFlag: 0,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptLetterWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="跟随" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptFollowWithLater, {
+                      state: 3,
+                      followFlag: 1,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptFollowWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="合计" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.acceptAllWithLater, {
+                      state: 3,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.acceptAllWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="交办数量(件)" width="110px">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleSee(scope.row.city, scope.row.transferTow, {
+                    state: 6,
+                    followFlag: 0,
+                  })
+                "
+              >
+                {{ scope.row.transferTow }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="转办（包含后续）">
+            <el-table-column label="转办" width="110px">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.transferWithLater, {
+                      state: 5,
+                      followFlag: 0,
+                      symbol: 1,
+                    })
+                  "
+                >
+                  {{ scope.row.transferWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="跟随" width="120px">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(
+                      scope.row.city,
+                      scope.row.transferFollowWithLater,
+                      { state: 5, followFlag: 1, symbol: 1 }
+                    )
+                  "
+                >
+                  {{ scope.row.transferFollowWithLater }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="未办结(件)" width="90px">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleSee(scope.row.city, scope.row.unDone, {
+                    state: 7,
+                    followFlag: 0,
+                  })
+                "
+              >
+                {{ scope.row.unDone }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="阶段性办结(件)" width="120px">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleSee(scope.row.city, scope.row.partDone, {
+                    state: 8,
+                    followFlag: 0,
+                  })
+                "
+              >
+                {{ scope.row.partDone }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="已办结(件)">
+            <el-table-column label="属实" width="60">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.allDoneReal, {
+                      state: 9,
+                      trueFlag: 0,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.allDoneReal }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="不属实" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.allDoneFake, {
+                      state: 9,
+                      trueFlag: 1,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.allDoneFake }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="合计" width="80">
+              <template v-slot="scope">
+                <span
+                  class="accounChunk"
+                  @click="
+                    handleSee(scope.row.city, scope.row.allDone, {
+                      state: 9,
+                      followFlag: 0,
+                    })
+                  "
+                >
+                  {{ scope.row.allDone }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="责令整改(家)" width="110px">
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleSee(scope.row)">
+                {{ scope.row.orderRectification }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="立案处罚(家)" width="110px">
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleSee(scope.row)">
+                {{ scope.row.initiatePunishment }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="罚款金额(家)" width="110px">
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleSee(scope.row)">
+                {{ scope.row.fines }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="立案侦查(家)" width="110px">
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleSee(scope.row)">
+                {{ scope.row.initiateInvestigation }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="拘留(人)">
+            <el-table-column label="行政" width="90">
+              <template v-slot="scope">
+                <span class="accounChunk" @click="handleSee(scope.row)">
+                  {{ scope.row.administrativeDetention }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="刑事" width="90">
+              <template v-slot="scope">
+                <span class="accounChunk" @click="handleSee(scope.row)">
+                  {{ scope.row.criminalDetention }}
+                </span>
+              </template>
+            </el-table-column>
+          </el-table-column>
+          <el-table-column label="约谈(家)" width="90">
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleSee(scope.row)">
+                {{ scope.row.questioning }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="问责" width="90">
+            <template v-slot="scope">
+              <span
+                class="accounChunk"
+                @click="
+                  handleAccountabilitySee(
+                    scope.row.city,
+                    scope.row.accountability,
+                    { type: 1 }
+                  )
+                "
+              >
+                {{ scope.row.accountability }}
+              </span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div v-if="letterShow" style="margin-top: 30px">
+        <el-table
+          v-loading="letterLoading"
+          :data="letterList"
+          border
+          :stripe="true"
+        >
+          <el-table-column type="index" label="序号" width="50">
+            <template scope="scope">
+              <span>
+                {{
+                  (letterQueryParams.pageNo - 1) * letterQueryParams.pageSize +
+                  scope.$index +
+                  1
+                }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="举报主要内容"
+            min-width="200px"
+            :show-overflow-tooltip="true"
+          >
+            <template v-slot="scope">
+              <span class="accounChunk" @click="handleLetterSee(scope.row)">
+                {{ scope.row.tipOffContent }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="cityName"
+            label="督察地市"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="address"
+            label="举报地址"
+            width="160px"
+            :show-overflow-tooltip="true"
+          ></el-table-column>
+          <el-table-column
+            prop="pollutionType"
+            label="污染类型"
+            width="120px"
+            :show-overflow-tooltip="true"
+          ></el-table-column>
+          <el-table-column
+            prop="tipTypeName"
+            label="举报类型"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="tipBy"
+            label="举报人"
+            width="80px"
+          ></el-table-column>
+          <el-table-column
+            prop="reporterPhone"
+            label="举报人手机号"
+            width="110px"
+          ></el-table-column>
+          <el-table-column
+            prop="tipNumber"
+            label="举报编号"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="tipTime"
+            label="举报时间"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="acceptNum"
+            label="受理编号"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="acceptDate"
+            label="受理时间"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="toUnit"
+            label="责任单位"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="transfetNumber"
+            label="转办编号"
+            width="200px"
+          ></el-table-column>
+          <el-table-column
+            prop="transferTime"
+            label="转办时间"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="handleStateName"
+            label="办理状态"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="handleTime"
+            label="办理时间"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="finishFlagName"
+            label="办结状态"
+            width="160px"
+          ></el-table-column>
+        </el-table>
+        <pagination
+          v-show="letterTotal > 0"
+          :total="letterTotal"
+          :pageNo.sync="letterQueryParams.pageNo"
+          :limit.sync="letterQueryParams.pageSize"
+          @pagination="getList"
+        />
+      </div>
+      <div v-if="accounShow" style="margin-top: 30px">
+        <el-table
+          :data="accounList"
+          v-loading="accountLoading"
+          style="width: 100%"
+        >
+          <el-table-column type="index" label="序号" width="50">
+            <template scope="scope">
+              <span>
+                {{ scope.$index + 1 }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="name"
+            label="姓名"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="unit"
+            label="单位"
+            min-width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="levelName"
+            label="级别"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="accountTime"
+            label="责任追究时间"
+            width="160px"
+          ></el-table-column>
+          <el-table-column
+            prop="accountWayName"
+            label="处理方式"
+            width="120px"
+          ></el-table-column>
+          <el-table-column
+            prop="staffTypeName"
+            label="人员分类"
+            width="120px"
+          ></el-table-column>
+        </el-table>
+      </div>
+    </div>
+    <el-dialog
+      title="查看"
+      :visible.sync="lookOpen"
+      width="80%"
+      :before-close="handleDialogLookClose"
+      append-to-body
+    >
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">举报内容</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">轮次：</span>
+            <span class="info-item-content">{{
+              manageInfo.inspectTurnName
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">督察地区：</span>
+            <span class="info-item-content">
+              {{ manageInfo.inspectAreaName }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报编号：</span>
+            <span class="info-item-content">{{ manageInfo.tipNumber }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报类型：</span>
+            <span class="info-item-content">{{ manageInfo.tipTypeName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报人：</span>
+            <span class="info-item-content">{{ manageInfo.tipBy }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报时间：</span>
+            <span class="info-item-content">{{ manageInfo.tipTime }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">来电显示号码：</span>
+            <span class="info-item-content">
+              {{ manageInfo.reporterPhoneShow }}
+            </span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">行业类型：</span>
+            <span class="info-item-content">{{ manageInfo.industryName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">主要举报内容：</span>
+            <span class="info-item-content">
+              {{ manageInfo.tipOffContent }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报地址：</span>
+            <span class="info-item-content">{{ manageInfo.tipAddress }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度：</span>
+            <span class="info-item-content">{{ manageInfo.longitude }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度：</span>
+            <span class="info-item-content">{{ manageInfo.latitude }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">主要污染类型：</span>
+            <span class="info-item-content">
+              {{
+                manageInfo.pollutionType &&
+                manageInfo.pollutionType.split(",")[0]
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">次要污染类型：</span>
+            <span class="info-item-content">
+              {{
+                manageInfo.pollutionType &&
+                manageInfo.pollutionType.split(",")[1]
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item" v-if="telBoolean == false">
+          <div class="info-item-quare">
+            <span class="info-item-title">来信电子件：</span>
+            <span
+              class="info-item-content accounChunk"
+              v-for="(item, index) in manageInfo.attachementArry"
+              :key="index"
+              @click="handleKnowDownloadClick(item.id,item.save_path,item.file_name,item.object_id)"
+              >{{ item.file_name }}</span
+            >
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">备注：</span>
+            <span class="info-item-content">{{ manageInfo.remarks }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">审核内容</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">审核人：</span>
+            <span class="info-item-content">{{ auditInfo.checkByName }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">审核时间：</span>
+            <span class="info-item-content">{{ auditInfo.checkTime }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="industryBoolena">
+          <div class="info-item-quare">
+            <span class="info-item-title">行业类型修正：</span>
+            <span class="info-item-content">
+              {{ auditInfo.industryTypeReviewName }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item" v-if="tipOffContentBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报内容修正：</span>
+            <span class="info-item-content">
+              {{ auditInfo.tipOffContentReivew }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item" v-if="addressBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报地址修正：</span>
+            <span class="info-item-content">
+              {{ auditInfo.cityReviewName }}{{ auditInfo.countyRevireName
+              }}{{ auditInfo.addressReview }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item" v-if="pollutionLevelBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">主要污染类型：</span>
+            <span class="info-item-content">{{
+              auditInfo.pollutionLevelOneReviewName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="pollutionLevelBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">次要污染类型：</span>
+            <span class="info-item-content">{{
+              auditInfo.pollutionLevelTwoReviewName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="longitudeBoolean">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度修正：</span>
+            <span class="info-item-content">{{
+              auditInfo.longitudeReview
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度修正：</span>
+            <span class="info-item-content">{{
+              auditInfo.latitudeReview
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否受理：</span>
+            <span class="info-item-content">{{ auditInfo.weatherAccept }}</span>
+          </div>
+          <div class="info-item-quare" v-if="auditInfo.weatherAccept === '否'">
+            <span class="info-item-title">不受理原因：</span>
+            <span class="info-item-content">{{ auditInfo.handIdea }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否重复：</span>
+            <span class="info-item-content">{{ auditInfo.repeatFlag }}</span>
+          </div>
+        </div>
+        <div class="info-item" v-if="auditInfo.repeatFlag === '是'">
+          <div class="info-item-quare">
+            <span class="info-item-title">重复举报编号：</span>
+            <span class="info-item-content">{{ auditInfo.repeatNums }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">纳入抽查范围：</span>
+            <span class="info-item-content">{{ auditInfo.spotFlag }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">是否重点关注：</span>
+            <span class="info-item-content">{{ auditInfo.importantFlag }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">是否转办：</span>
+            <span class="info-item-content">
+              {{ auditInfo.weatherTransfer }}
+            </span>
+          </div>
+          <div
+            class="info-item-quare"
+            v-if="auditInfo.weatherTransfer === '是'"
+          >
+            <span class="info-item-title">办理时限：</span>
+            <span class="info-item-content">
+              {{ auditInfo.handleDeadline }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item" v-if="auditInfo.weatherTransfer === '是'">
+          <div class="info-item-quare">
+            <span class="info-item-title">拟办意见：</span>
+            <span class="info-item-content">{{ auditInfo.proposal }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="manage-box" v-if="handleStateName === '已办理'">
+        <div class="examineInfo" style="margin-top: 30px">
+          <h1 class="examineInfo-title">办理信息</h1>
+        </div>
+        <div class="manage-info">
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">办结情况：</span>
+              <span class="info-item-content">{{
+                transactInfo.finishFlagName
+              }}</span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">办结时间：</span>
+              <span class="info-item-content">{{
+                transactInfo.finishTime
+              }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">属实情况：</span>
+              <span class="info-item-content">{{
+                transactInfo.trueFlagName
+              }}</span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">区域分布：</span>
+              <span class="info-item-content">{{ transactInfo.areaName }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">利益关系：</span>
+              <span class="info-item-content">
+                {{ transactInfo.interestRelationshipName }}
+              </span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">群众身边：</span>
+              <span class="info-item-content">
+                {{ transactInfo.aroundMassesName }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">调查核实情况：</span>
+              <span class="info-item-content">
+                {{ transactInfo.investiCheck }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">处理和整改情况：</span>
+              <span class="info-item-content">{{
+                transactInfo.dealReform
+              }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">问责情况：</span>
+              <span class="info-item-content">
+                {{ transactInfo.questioningSituation }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">是否公开：</span>
+              <span class="info-item-content">
+                {{ transactInfo.openFlagName }}
+              </span>
+            </div>
+            <template v-if="transactInfo.openFlag == 1">
+              <div class="info-item-quare">
+                <span class="info-item-title">公开时间：</span>
+                <span class="info-item-content">{{
+                  transactInfo.openTime
+                }}</span>
+              </div>
+              <div class="info-item-quare">
+                <span class="info-item-title">公开地址：</span>
+                <span class="info-item-content">{{
+                  transactInfo.openAddr
+                }}</span>
+              </div>
+            </template>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">责令整改（家）：</span>
+              <span class="info-item-content">
+                {{ transactInfo.orderReform }}
+              </span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">立案处罚（家）：</span>
+              <span class="info-item-content">{{
+                transactInfo.punishment
+              }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">罚款金额（元）：</span>
+              <span class="info-item-content">{{ transactInfo.fine }}</span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">立案侦查（件）：</span>
+              <span class="info-item-content">{{ transactInfo.lawcase }}</span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">约谈（人）：</span>
+              <span class="info-item-content">{{
+                transactInfo.interview
+              }}</span>
+            </div>
+            <div class="info-item-quare">
+              <span class="info-item-title">行政拘留（人）：</span>
+              <span class="info-item-content">
+                {{ transactInfo.adminDetain }}
+              </span>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-quare">
+              <span class="info-item-title">刑事拘留（人）：</span>
+              <span class="info-item-content">
+                {{ transactInfo.criminalDetain }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  anaInfoByTeam,
+  queryListForhandle,
+  acceptCheckInfo,
+  sourceList,
+} from "@/api/burg/garrison";
+import { inspectorRoundList } from "@/api/support/inspectorate";
+import { transactManageSee } from "@/api/national/transact";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import nationalInfo from "@/components/nationalInfo";
+import { getKnownSingleInfo } from "@/utils/styem";
+export default {
+  components: {
+    nationalInfo,
+  },
+  data() {
+    return {
+      buttonShow: false,
+      queryParams: {
+        teamId: undefined,
+        roundId: undefined,
+        batchId: undefined,
+        city: undefined,
+      },
+      List: [],
+      loading: true,
+      buttonAuthority: false,
+      letterQueryParams: {
+        pageNo: 1,
+        pageSize: 10,
+      },
+      letterLoading: true,
+      letterList: [],
+      letterTotal: 0,
+      lookOpen: false,
+      manageInfo: {
+        inspectTurnName: undefined,
+        inspectAreaName: undefined,
+        tipNumber: undefined,
+        tipTypeName: undefined,
+        tipBy: undefined,
+        tipTime: undefined,
+        reporterPhoneShow: undefined,
+        industryName: undefined,
+        tipOffContent: undefined,
+        tipAddress: undefined,
+        pollutionType: undefined,
+        remarks: undefined,
+        attachementPath: undefined,
+        attachementName: undefined,
+        longitude: undefined,
+        latitude: undefined,
+        attachementArry: [],
+      },
+      auditInfo: {
+        checkByName: undefined,
+        checkTime: undefined,
+        industryTypeReviewName: undefined,
+        tipOffContentReivew: undefined,
+        cityReviewName: undefined,
+        countyRevireName: undefined,
+        addressReview: undefined,
+        weatherAccept: undefined,
+        handIdea: undefined,
+        repeatFlag: undefined,
+        repeatNums: undefined,
+        spotFlag: undefined,
+        importantFlag: undefined,
+        weatherTransfer: undefined,
+        handleDeadline: undefined,
+        proposal: undefined,
+        pollutionLevelOneReviewName: undefined,
+        longitudeReview: undefined,
+        latitudeReview: undefined,
+      },
+      industryBoolena: false,
+      tipOffContentBoolean: false,
+      addressBoolean: false,
+      pollutionLevelBoolean: false,
+      longitudeBoolean: false,
+      telBoolean: true,
+      transactInfo: {
+        finishFlagName: undefined,
+        finishTime: undefined,
+        trueFlagName: undefined,
+        areaName: undefined,
+        interestRelationshipName: undefined,
+        aroundMassesName: undefined,
+        investiCheck: undefined,
+        dealReform: undefined,
+        questioningSituation: undefined,
+        openFlag: "0",
+        openTime: undefined,
+        openAddr: undefined,
+        orderReform: undefined,
+        punishment: undefined,
+        fine: undefined,
+        lawcase: undefined,
+        interview: undefined,
+        adminDetain: undefined,
+        criminalDetain: undefined,
+      },
+      handleStateName: undefined,
+      accounOpen: false,
+      queryLogParams: {
+        name: undefined,
+        unit: undefined,
+        pageNo: 1,
+        pageSize: 10,
+      },
+      accountLoading: true,
+      accounList: [],
+      accounTotal: 0,
+      letterShow: false,
+      accounShow: false,
+      roundArry: [],
+      batchArry: [],
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.handleTypeChange(superviseSubject.superviseType);
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "areaArry"]),
+  },
+  methods: {
+    handleOverseersClick() {
+      this.buttonShow = false;
+      this.letterShow = false;
+      this.accounShow = false;
+    },
+    async handleTypeChange(superviseType) {
+      const reponse = await inspectorRoundList({ superviseType, level: 3 });
+      this.roundArry = reponse.data;
+    },
+    async handleRoundChange(parentId) {
+      this.batchArry = [];
+      this.queryParams.batchId = undefined;
+      const reponse = await inspectorRoundList({ parentId, level: 4 });
+      this.batchArry = reponse.data;
+    },
+    async getList() {
+      this.loading = true;
+      const reponse = await anaInfoByTeam(this.queryParams);
+      this.List = reponse.data;
+      this.loading = false;
+    },
+    onQuery() {
+      this.getList();
+    },
+    onClear() {
+      this.queryParams.roundId = undefined;
+      this.batchArry = [];
+      this.queryParams.batchId = undefined;
+      this.queryParams.city = undefined;
+    },
+    async handleSee(city, value, params) {
+      if (value > 0) {
+        this.buttonShow = true;
+        this.letterShow = true;
+        this.letterLoading = true;
+        const reponse = await queryListForhandle({
+          city,
+          ...params,
+          ...this.letterQueryParams,
+          teamId: this.queryParams.teamId,
+          roundId: this.queryParams.roundId,
+          batchId: this.queryParams.batchId,
+        });
+        this.letterList = reponse.data.list;
+        this.letterTotal = reponse.data.count;
+        this.letterLoading = false;
+      }
+    },
+    async handleAccountabilitySee(city, value, params) {
+      if (value > 0) {
+        this.buttonShow = true;
+        this.accounShow = true;
+        this.accountLoading = true;
+        const reponse = await sourceList({
+          city,
+          ...params,
+          ...this.queryLogParams,
+          teamId: this.queryParams.teamId,
+          roundId: this.queryParams.roundId,
+          batchId: this.queryParams.batchId,
+        });
+        this.accounList = reponse.data.list;
+        this.accounTotal = reponse.data.count;
+        this.accountLoading = false;
+      }
+    },
+    async handleLetterSee(data) {
+      this.lookOpen = true;
+      this.manageInfo.inspectTurnName = data.inspectTurnName;
+      this.manageInfo.inspectAreaName = data.inspectAreaName;
+      this.manageInfo.tipNumber = data.tipNumber;
+      this.manageInfo.tipTypeName = data.tipTypeName;
+      this.manageInfo.tipBy = data.tipBy;
+      this.manageInfo.tipTime = data.tipTime;
+      this.manageInfo.reporterPhoneShow = data.reporterPhoneShow;
+      this.manageInfo.industryName = data.industryName;
+      this.manageInfo.tipOffContent = data.tipOffContent;
+      this.manageInfo.tipAddress =
+        data.cityName + data.countyName + data.address;
+      this.manageInfo.pollutionType = data.pollutionType;
+      this.manageInfo.remarks = data.remarks;
+      this.manageInfo.longitude = data.longitude;
+      this.manageInfo.latitude = data.latitude;
+      const { handleStateName } = data;
+      this.handleStateName = handleStateName;
+      if (handleStateName === "已办理") {
+        const manageReponse = await transactManageSee({ tipId: data.id });
+        this.transactInfo = manageReponse.data;
+        this.transactInfo["openFlagName"] =
+          manageReponse.data.openFlag == 1 ? "是" : "否";
+      }
+      this.getauditInfo(data.id);
+    },
+    async getauditInfo(id) {
+      const reponse = await acceptCheckInfo({ id });
+      const subject = reponse.data;
+      console.log(subject);
+      this.auditInfo.checkByName = subject.checkByName;
+      this.auditInfo.checkTime = subject.checkTime;
+      this.auditInfo.industryTypeReviewName = subject.industryTypeReviewName;
+      this.auditInfo.tipOffContentReivew = subject.tipOffContentReivew;
+      this.auditInfo.cityReviewName = subject.cityReviewName;
+      this.auditInfo.countyRevireName = subject.countyRevireName;
+      this.auditInfo.addressReview = subject.addressReview;
+      this.auditInfo.pollutionLevelOneReviewName =
+        subject.pollutionLevelOneReviewName;
+      this.auditInfo.pollutionLevelTwoReviewName =
+        subject.pollutionLevelTwoReviewName;
+      this.auditInfo.longitudeReview = subject.longitudeReview;
+      this.auditInfo.latitudeReview = subject.latitudeReview;
+      this.auditInfo.weatherAccept = this.getNotVal(subject.weatherAccept);
+      this.auditInfo.handIdea = subject.handIdea;
+      this.auditInfo.repeatFlag = this.getNotVal(subject.repeatFlag);
+      this.auditInfo.repeatNums = subject.repeatNums;
+      this.auditInfo.spotFlag = this.getNotVal(subject.spotFlag);
+      this.auditInfo.importantFlag = this.getNotVal(subject.importantFlag);
+      this.auditInfo.weatherTransfer = this.getNotVal(subject.weatherTransfer);
+      this.auditInfo.handleDeadline = subject.handleDeadline;
+      this.auditInfo.proposal = subject.proposal;
+      if (subject.modifyItems) {
+        subject.modifyItems.indexOf("0") > -1
+          ? (this.industryBoolena = true)
+          : (this.industryBoolena = false);
+        subject.modifyItems.indexOf("1") > -1
+          ? (this.tipOffContentBoolean = true)
+          : (this.tipOffContentBoolean = false);
+        subject.modifyItems.indexOf("2") > -1
+          ? (this.addressBoolean = true)
+          : (this.addressBoolean = false);
+        subject.modifyItems.indexOf("3") > -1
+          ? (this.pollutionLevelBoolean = true)
+          : (this.pollutionLevelBoolean = false);
+        subject.modifyItems.indexOf("4") > -1
+          ? (this.longitudeBoolean = true)
+          : (this.longitudeBoolean = false);
+        if (subject.tipTypeName === "来信") {
+          this.telBoolean = false;
+          this.getRegisterFile(subject.attachmentId);
+        } else {
+          this.telBoolean = true;
+        }
+      }
+    },
+    getNotVal(val) {
+      if (val === "1") {
+        return "是";
+      } else {
+        return "否";
+      }
+    },
+    async getRegisterFile(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      this.manageInfo.attachementArry = reponse.data;
+    },
+    handleDialogLookClose() {
+      this.lookOpen = false;
+    },
+    onDialogQuery() {
+      this.queryLogParams.pageNo = 1;
+      this.getSourceList();
+    },
+    onDialogClear() {
+      this.queryLogParams.name = undefined;
+      this.queryLogParams.unit = undefined;
+    },
+    handleDialogAccounClose() {
+      this.accounOpen = false;
+    },
+    handleKnowDownloadClick(fileId, fileUrl, fileName, state) {
+      const teamId = this.queryParams.teamId;
+      getKnownSingleInfo(fileId, fileUrl, fileName, state, teamId);
+    }
+  },
+};
+</script>
+<style lang="scss" scoped>
+.tab-list-content {
+  min-height: calc(100vh - 120px);
+}
+.list-box {
+  margin-top: 20px;
+}
+</style>

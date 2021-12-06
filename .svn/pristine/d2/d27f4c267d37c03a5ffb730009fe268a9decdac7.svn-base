@@ -1,0 +1,74 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import login from '@/views/login'
+import forget from '@/views/forget'
+import onemap from '@/views/oneMap'
+import platform from '@/views/platform'
+import task from '@/views/implement/dispatch/task'
+
+Vue.use(VueRouter)
+
+
+import Layout from '@/layout'
+import ParentView from '@/components/ParentView';
+
+export const constantRoutes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: (resolve) => require(['@/views/login'], resolve),
+  },
+  {
+    path: '/onemap',
+    name: 'onemap',
+    component: (resolve) => require(['@/views/oneMap'], resolve),
+  },
+  {
+    path: '/platform',
+    name: 'platform',
+    component: (resolve) => require(['@/views/platform'], resolve),
+  },
+  {
+    path: '/task',
+    name: 'task',
+    component: (resolve) => require(['@/views/implement/dispatch/task'], resolve),
+  },
+  {
+    path: '/people',
+    name: 'people',
+    component: (resolve) => require(['@/views/support/search/people'], resolve),
+  },
+  {
+    path: '/duchazu',
+    name: 'duchazu',
+    component: (resolve) => require(['@/views/support/search/duchazu'], resolve),
+    children: [{
+      path: '/renyuan',
+      name: 'renyuan',
+      component: (resolve) => require(['@/views/support/search/component/renyuan'], resolve),
+    }, {
+      path: '/xiansuo',
+      name: 'xiansuo',
+      component: (resolve) => require(['@/views/support/search/component/xiansuo'], resolve),
+    },{
+      path: '/ziliao',
+      name: 'ziliao',
+      component: (resolve) => require(['@/views/support/search/component/ziliao'], resolve),
+    },]
+  },
+]
+
+const router = new VueRouter({
+  mode: 'history',
+  base: process.env.BASE_URL,
+  scrollBehavior: () => ({ y: 0 }),
+  routes: constantRoutes
+})
+
+export default router
+
+
+// const originalPush = VueRouter.prototype.push
+// VueRouter.prototype.push = function push(location) {
+//   return originalPush.call(this, location).catch(err => err)
+// }

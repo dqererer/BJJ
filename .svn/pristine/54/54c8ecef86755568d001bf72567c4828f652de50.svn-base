@@ -1,0 +1,214 @@
+<template>
+  <div class="duchazu">
+    <div class="header">
+      <div class="title">
+        <p>{{ dczInfo.name }}</p>
+        <div class="flag">{{ dczInfo.stateName }}</div>
+      </div>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="bold">督察级别：</span
+          ><span>{{ dczInfo.superviseOneName }}</span>
+        </div>
+        <el-divider direction="vertical"></el-divider>
+        <div class="info-item">
+          <span class="bold">督察类型：</span
+          ><span>{{ dczInfo.superviseName }}</span>
+        </div>
+        <el-divider direction="vertical"></el-divider>
+        <div class="info-item">
+          <span class="bold">督察轮次：</span
+          ><span>{{ dczInfo.roundName }}</span>
+        </div>
+        <el-divider direction="vertical"></el-divider>
+        <div class="info-item">
+          <span class="bold">督察批次：</span
+          ><span>{{ dczInfo.batchName }}</span>
+        </div>
+        <el-divider direction="vertical"></el-divider>
+        <div class="info-item">
+          <span class="bold">督察地区：</span
+          ><span>{{ dczInfo.areaName }}</span>
+        </div>
+        <el-divider direction="vertical"></el-divider>
+        <div class="info-item">
+          <span class="bold">督察时间：</span
+          ><span>{{ dczInfo.startDate }}-{{ dczInfo.endDate }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <el-radio-group v-model="type">
+        <el-radio-button label="督察人员"></el-radio-button>
+        <el-radio-button label="相关线索"></el-radio-button>
+        <el-radio-button label="进驻前资料"></el-radio-button>
+        <el-radio-button label="进驻会议"></el-radio-button>
+        <el-radio-button label="信访举报"></el-radio-button>
+        <el-radio-button label="资料提供"></el-radio-button>
+        <el-radio-button label="督察方式"></el-radio-button>
+        <el-radio-button label="下沉督察"></el-radio-button>
+        <el-radio-button label="问题聚焦"></el-radio-button>
+        <el-radio-button label="佐证材料"></el-radio-button>
+        <el-radio-button label="问题案卷"></el-radio-button>
+        <el-radio-button label="工作简报"></el-radio-button>
+        <el-radio-button label="督察报告"></el-radio-button>
+        <el-radio-button label="整改方案"></el-radio-button>
+        <el-radio-button label="整改任务"></el-radio-button>
+      </el-radio-group>
+      <section>
+        <router-view></router-view>
+      </section>
+    </div>
+  </div>
+</template>
+<script>
+import { getTeamInfo } from "@/api/support/search";
+export default {
+  data() {
+    return {
+      id: "",
+      type: "督察人员",
+      dczInfo: {},
+    };
+  },
+  watch: {
+    type: {
+      handler: function (newV) {
+        this.toggleType(newV);
+      },
+      immediate: false,
+    },
+  },
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.toggleType("督察人员");
+    this.getTeamInfo();
+  },
+  methods: {
+    getTeamInfo: function () {
+      getTeamInfo({
+        id: this.id,
+      }).then((res) => {
+        if (res.data) {
+          this.dczInfo = res.data;
+        }
+      });
+    },
+    toggleType: function (newV) {
+      switch (newV) {
+        case "督察人员":
+          this.$router.push({ path: "/renyuan", query: { id: this.id } });
+          break;
+        case "相关线索":
+          this.$router.push({ path: "/xiansuo", query: { id: this.id } });
+          break;
+        case "进驻前资料":
+          this.$router.push({ path: "/jzqziliao", query: { id: this.id } });
+          break;
+        case "进驻会议":
+          this.$router.push({ path: "/meeting", query: { id: this.id } });
+          break;
+        case "信访举报":
+          this.$router.push({ path: "/jubao", query: { id: this.id } });
+          // 没好
+          break;
+        case "资料提供":
+          this.$router.push({ path: "/zl", query: { id: this.id } });
+          break;
+        case "督察方式":
+          this.$router.push({ path: "/ducha", query: { id: this.id } });
+          // 没好
+          break;
+        case "下沉督察":
+          this.$router.push({ path: "/xiachen", query: { id: this.id } });
+          // 没好
+          break;
+        case "问题聚焦":
+          this.$router.push({ path: "/wenti", query: { id: this.id } });
+          // 没好
+          break;
+        case "佐证材料":
+          this.$router.push({ path: "/zuozheng", query: { id: this.id } });
+          // 没好
+          break;
+          case "问题案卷":
+          this.$router.push({ path: "/anjuan", query: { id: this.id } });
+          // 没好
+          break;
+          case "工作简报":
+          this.$router.push({ path: "/jianbao", query: { id: this.id } });
+          // 没好
+          break;
+              case "督察报告":
+          this.$router.push({ path: "/baogao", query: { id: this.id } });
+          // 没好
+          break;
+           case "整改方案":
+          this.$router.push({ path: "/fangan", query: { id: this.id } });
+          // 没好
+          break;
+          case "整改任务":
+          this.$router.push({ path: "/renwu", query: { id: this.id } });
+          // 没好
+          break;
+        default:
+          //
+          break;
+      }
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.duchazu {
+  padding: 20px;
+  .header {
+    padding-bottom: 20px;
+    .title {
+      height: 50px;
+      line-height: 30px;
+
+      p {
+        float: left;
+        margin: 0;
+        font-weight: bold;
+        font-size: 20px;
+      }
+      .flag {
+        float: left;
+        margin-left: 20px;
+        background: #2196f3;
+        border-radius: 3px;
+        font-size: 12px;
+        width: 80px;
+        text-align: center;
+        color: white;
+        font-weight: bold;
+      }
+    }
+    .info-list {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      .el-divider {
+        margin: 0 16px;
+      }
+    }
+  }
+  .content {
+    .title {
+      border-left: 3px solid #2196f3;
+      padding-left: 10px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+  }
+  .bold {
+    font-weight: bold;
+  }
+}
+</style>
+
+

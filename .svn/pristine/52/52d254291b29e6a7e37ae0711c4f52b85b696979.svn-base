@@ -1,0 +1,111 @@
+<template>
+  <div class="renyuan">
+    <div class="title">督察人员</div>
+    <p>
+      督察组长：<span>{{ dczInfo.leader_name }}</span>
+    </p>
+    <p>
+      督察副组长：<span>{{ dczInfo.deputyName }}</span>
+    </p>
+    <p>
+      督察总协调人：<span>{{ dczInfo.chiefName }}</span>
+    </p>
+    <p>
+      督察组成员：<span>{{ dczInfo.memberName }}</span>
+    </p>
+    <p>
+      举报登记人员：<span>{{ dczInfo.registerName }}</span>
+    </p>
+    <p>
+      举报审核人员：<span>{{ dczInfo.auditorName }}</span>
+    </p>
+    <p>
+      举报办理人员：<span>{{ dczInfo.handlerName }}</span>
+    </p>
+    <p>
+      资料登记人员：<span>{{ dczInfo.dataRegisterName }}</span>
+    </p>
+    <p>
+      工作方案：<a
+          v-for="(item, index) in workPlan"
+          v-bind:key="index"
+          href="#"
+          @click="downloadFile(item.path)"
+          >{{ item.name
+          }}<span v-if="index != workPlan.length - 1">、</span></a
+        >
+    </p>
+    <p>工作通知：<a href="#">第一批省生态环境保护督察“回头看”工作方案</a></p>
+  </div>
+</template>
+<script>
+import { getTeamInfo } from "@/api/support/search";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+export default {
+  data() {
+    return {
+      id: "",
+      dczInfo: {},
+      workPlan: [],
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getTeamInfo();
+  },
+  methods: {
+    getTeamInfo: function () {
+      getTeamInfo({
+        id: this.id,
+      }).then((res) => {
+        if (res.data) {
+          this.dczInfo = res.data;
+          let workPlan = res.data.workPlan.split(",");
+          workPlan.forEach((item) => {
+            item && this.getFileInfo(item);
+          });
+        }
+      });
+    },
+    getFileInfo: function (id) {
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this.workPlan.push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.renyuan {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  p {
+    padding-left: 10px;
+    font-weight: 500;
+    span,
+    a {
+      font-weight: 400;
+    }
+  }
+  a {
+    color: #2196f3;
+  }
+}
+</style>
+
+

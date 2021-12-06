@@ -1,0 +1,392 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">问题聚焦</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.parentId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="问题名称：">
+                <el-input
+                  v-model="queryParams.problemDescript"
+                  placeholder="请输入问题名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" type="primary">新增</el-button>
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          prop="name"
+          label="问题名称"
+          min-width="200px"
+          class="column-left"
+        ></el-table-column>
+        <el-table-column
+          prop="areaName"
+          label="问题内容"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="xcStartDate"
+          label="工作安排"
+          width="180px"
+        ></el-table-column>
+        <el-table-column label="线索数" width="100px">
+          <template v-slot="scope">
+            <span class="accounChunk">{{ scope.row.attachementName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="书证" width="120px">
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleFileDialog(scope.row.id)"
+              >书证</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="取证笔录" width="100px">
+          <template v-slot="scope">
+            <span class="accounChunk">{{ scope.row.attachementName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="勘察笔录" width="100px">
+          <template v-slot="scope">
+            <span class="accounChunk">{{ scope.row.attachementName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="多媒体记录" width="100px">
+          <template v-slot="scope">
+            <span class="accounChunk">{{ scope.row.attachementName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160">
+          <template slot-scope="scope">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >调查取证</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="修改"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">下沉组信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="下沉组名称：" prop="name">
+              <el-input
+                readonly
+                v-model="dialogParams.name"
+                placeholder="请输入下沉组名称"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="开始时间：" prop="xcStartDate">
+              <el-date-picker
+                v-model="dialogParams.xcStartDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择开始时间"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="结束时间：" prop="xcEndDate">
+              <el-date-picker
+                v-model="dialogParams.xcEndDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择结束时间"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="下沉旗县：" prop="areaCode">
+              <el-select
+                multiple
+                v-model="dialogParams.areaCode"
+                placeholder="请选择下沉旗县"
+              >
+                <el-option
+                  v-for="item in townArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="下沉方案：" prop="attachementId">
+              <upload
+                ref="uploadFile1"
+                :limit="5"
+                accept=".doc,.docx,.pdf"
+                :fileId="dialogParams.attachementId"
+                fromKey="attachementId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="附件查看"
+      :visible.sync="fileOpen"
+      width="80%"
+      append-to-body
+      :before-close="handleFileDialogClose"
+    >
+      <div>
+        <span
+          class="accounChunk file-item"
+          v-for="item in fileArry"
+          :key="item.id"
+          >{{ item.file_name }}</span
+        >
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  schemeList,
+  schemeSee,
+  schemeDelete,
+  schemeSave
+} from "@/api/burg/garrison";
+import { dictListType } from "@/api/styem/dict/type";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import { areaTreeNew } from "@/api/styem/dept";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        level: 6,
+        parentId: undefined,
+        areaCode: undefined,
+        inspectAreaCode: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        parentId: undefined,
+        level: 6,
+        name: undefined,
+        xcStartDate: undefined,
+        xcEndDate: undefined,
+        areaCode: [],
+        attachementId: undefined
+      },
+      dialogRules: {
+        name: [{ required: true, message: "请输入下沉组名称" }],
+        xcStartDate: [{ required: true, message: "请选择开始时间" }],
+        xcEndDate: [{ required: true, message: "请选择结束时间" }],
+        areaCode: [{ required: true, message: "请选择下沉旗县" }],
+        attachementId: [{ required: true, message: "请上传下沉方案" }]
+      },
+      townArry: [],
+      fileOpen: false,
+      fileArry: []
+    };
+  },
+  created() {
+    this.getList();
+  },
+  mounted() {
+    this.handleCountyChange();
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await schemeList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async handleCountyChange() {
+      const reponse = await areaTreeNew({
+        parentId: this.queryParams.inspectAreaCode
+      });
+      this.townArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.areaCode = undefined;
+    },
+    handleEdit(data) {
+      this.open = true;
+      const { id, name } = data;
+      this.dialogParams.parentId = this.queryParams.parentId;
+      this.dialogParams.id = id;
+      this.dialogParams.name = name;
+      this.getDialogInfo();
+    },
+    getDialogInfo() {},
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.areaCode = this.dialogParams.areaCode.join(",");
+          const reponse = await schemeSave(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+    },
+
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await schemeDelete({ id });
+        this.getList();
+      });
+    },
+    async handleFileDialog(id, name) {
+      this.fileOpen = true;
+      const reponse = await trainSee({ id });
+      const subjet = reponse.data;
+      this.getSingleMessagInfo(subjet[name]);
+    },
+    async getSingleMessagInfo(fileId) {
+      const reponse = await getFileInfo({ ids: fileId });
+      if (reponse.data && reponse.data.length) {
+        const subject = reponse.data;
+        if (reponse.data && reponse.data.length) {
+          this.fileArry = reponse.data;
+        }
+      }
+    },
+    handleFileDialogClose() {
+      this.fileOpen = false;
+      this.fileArry = [];
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 33%;
+      }
+      .el-input {
+        width: 34%;
+      }
+    }
+  }
+}
+.file-item {
+  display: block;
+  margin-top: 10px;
+}
+</style>

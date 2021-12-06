@@ -1,0 +1,402 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">反馈意见</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.teamId"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="意见标题：">
+                <el-input
+                  v-model="queryParams.reportTitle"
+                  placeholder="请输入意见标题"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <div class="button-authority-style" v-if="buttonAuthority">
+          <el-button size="small" @click="handleNewly" type="primary"
+            >新增</el-button
+          >
+        </div>
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          :show-overflow-tooltip="true"
+          label="意见标题"
+          min-width="200px"
+        >
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">{{
+              scope.row.reportTitle
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="电子件预览" width="240px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              v-if="scope.row.reportFile"
+              @click="handlePreviewClick(scope.row.reportFile)"
+              >{{ scope.row.reportFileName }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="reportTime"
+          label="反馈时间"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="createName"
+          label="创建人"
+          width="120px"
+        ></el-table-column>
+        <el-table-column label="操作" width="150">
+          <template v-slot="scope" v-if="buttonAuthority">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="督察反馈添加"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">反馈意见</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="意见标题：" prop="reportTitle">
+              <el-input
+                v-model="dialogParams.reportTitle"
+                placeholder="请输入意见标题"
+                maxlength="60"
+                show-word-limit
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="反馈时间：" prop="reportTime">
+              <el-date-picker
+                v-model="dialogParams.reportTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择反馈时间"
+              >
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="意见电子件：" prop="reportFile">
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.reportFile"
+                fromKey="reportFile"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="反馈内容摘要：" prop="reportContent">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.reportContent"
+                placeholder="请输入反馈内容摘要"
+                maxlength="480"
+                show-word-limit
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="check"
+      width="80%"
+      :before-close="handleDialogCheckClose"
+      append-to-body
+    >
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">意见标题：</span>
+            <span class="info-item-content">{{
+              dialogParams.reportTitle
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">反馈时间：</span>
+            <span class="info-item-content">{{ dialogParams.reportTime }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">意见电子件：</span>
+            <span
+              class="info-item-content accounChunk"
+              @click="handleDownLoadDoc(dialogParams.reportFile)"
+              >{{ dialogParams.reportFileName }}</span
+            >
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">反馈内容摘要：</span>
+            <span class="info-item-content">{{
+              dialogParams.reportContent
+            }}</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  reportList,
+  reportSee,
+  reportDelete,
+  reportSave
+} from "@/api/burg/examineReport";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        dataType: 2,
+        reportTitle: undefined,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        teamId: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        dataType: 2,
+        reportTitle: undefined,
+        reportTime: undefined,
+        reportFile: undefined,
+        reportContent: undefined,
+        reportFileName: undefined,
+        teamId: undefined
+      },
+      dialogRules: {
+        reportTitle: [{ required: true, message: "请输入意见标题" }],
+        reportTime: [{ required: true, message: "请选择选择时间" }],
+        reportFile: [{ required: true, message: "请上传意见电子件" }],
+        reportContent: [{ required: true, message: "请输入反馈内容摘要" }]
+      },
+      check: false,
+      buttonAuthority: true
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.superviseType;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo","userInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await reportList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.reportTitle = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.teamId = this.queryParams.teamId;
+          const reponse = await reportSave(this.dialogParams);
+          loading.close();
+          this.handleDialogClose();
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleEdit(data) {
+      const { id } = data;
+      this.dialogTitle = "修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async handleSee({ id }) {
+      this.check = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await reportSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.reportTitle = subject.reportTitle;
+      this.dialogParams.reportTime = subject.reportTime;
+      this.dialogParams.reportFile = subject.reportFile;
+      this.dialogParams.reportContent = subject.reportContent;
+      this.dialogParams.reportFileName = subject.reportFileName;
+      this.$nextTick(() => {
+        this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+      });
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+      this.handleCheckClear();
+    },
+    handleCheckClear() {
+      this.dialogParams.reportTitle = undefined;
+      this.dialogParams.reportTime = undefined;
+      this.dialogParams.reportFile = undefined;
+      this.dialogParams.reportContent = undefined;
+      this.dialogParams.reportFileName = undefined;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await reportDelete({ id });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleDownLoadDoc(path) {
+      getdownLoadZip(path);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-input {
+        width: 25%;
+      }
+    }
+  }
+}
+</style>

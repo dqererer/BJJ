@@ -1,0 +1,32 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import login from '@/views/login'
+import forget from '@/views/forget'
+
+Vue.use(VueRouter)
+
+
+import Layout from '@/layout'
+import ParentView from '@/components/ParentView';
+
+export const constantRoutes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: (resolve) => require(['@/views/login'], resolve),
+  }
+]
+
+const router = new VueRouter({
+  mode: 'history',
+  scrollBehavior: () => ({ y: 0 }),
+  routes: constantRoutes
+})
+
+export default router
+
+
+// const originalPush = VueRouter.prototype.push
+// VueRouter.prototype.push = function push(location) {
+//   return originalPush.call(this, location).catch(err => err)
+// }

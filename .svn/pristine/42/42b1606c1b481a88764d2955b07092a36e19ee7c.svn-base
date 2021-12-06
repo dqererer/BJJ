@@ -1,0 +1,638 @@
+<template>
+  <div>
+    <el-dialog
+      title="添加勘查笔录"
+      :visible.sync="spotOpen"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <el-button
+        class="inspect-preview"
+        @click.stop="inspectPreviewClick"
+        size="small"
+        type="primary"
+        >预览</el-button
+      >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">现场勘察笔录</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="时间：" prop="startTime">
+              <el-date-picker
+                class="datetimerange-box"
+                v-model="issueDate"
+                type="datetimerange"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                value-format="yyyy-MM-dd hh:mm"
+                @change="issueDateChange"
+              >
+              </el-date-picker>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮编：" prop="actualIntervieweePostcode">
+              <el-input
+                v-model="dialogParams.actualIntervieweePostcode"
+                placeholder="请输入邮编"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="地点："
+              class="meet-address"
+              prop="actualAddress"
+            >
+              <el-select
+                v-model="dialogParams.actualCityCode"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.actualCountyCode"
+                filterable
+                placeholder="请选择县"
+                @change="handleActualCountyChange"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-input
+                maxlength="250"
+                show-word-limit
+                v-model="dialogParams.actualAddress"
+                placeholder="详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="勘察人员：" prop="actualSpeakerIds">
+              <el-select
+                v-model="dialogParams.actualSpeakerIds"
+                placeholder="请选择勘察人员"
+                multiple
+                @change="handleActualPersonClick"
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="记录人员：" prop="actualRecordId">
+              <el-select
+                v-model="dialogParams.actualRecordId"
+                placeholder="请选择记录人员"
+                @change="handleActualRecordClick"
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="被勘察人：" prop="actualInterviewee">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                v-model="dialogParams.actualInterviewee"
+                placeholder="请输入被勘察人"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="现场负责人：" prop="siteLeader">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                v-model="dialogParams.siteLeader"
+                placeholder="请输入现场负责人"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="电话：" prop="actualIntervieweePhone">
+              <el-input
+                v-model="dialogParams.actualIntervieweePhone"
+                placeholder="请输入电话"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="身份证号码：" prop="actualIntervieweeIdcard">
+              <el-input
+                v-model="dialogParams.actualIntervieweeIdcard"
+                placeholder="请输入身份证号码"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="年龄：" prop="actualIntervieweeAge">
+              <el-input
+                v-model.number="dialogParams.actualIntervieweeAge"
+                placeholder="请输入年龄"
+                maxlength="60"
+                show-word-limit
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="工作单位：" prop="actualIntervieweeUnit">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                v-model="dialogParams.actualIntervieweeUnit"
+                placeholder="请输入工作单位"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="职务：" prop="actualIntervieweePost">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                v-model="dialogParams.actualIntervieweePost"
+                placeholder="请输入职务"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="其他参与人员：" prop="otherHander">
+              <el-input
+                maxlength="100"
+                show-word-limit
+                v-model="dialogParams.otherHander"
+                placeholder="请输入其他参与人员"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="现场情况：" prop="siteCondition">
+              <el-input
+                type="textarea"
+                maxlength="250"
+                show-word-limit
+                v-model="dialogParams.siteCondition"
+                placeholder="请输入现场情况"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="电子件：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                accept=".doc,.docx,.pdf"
+                :limit="5"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <spot-preview
+      v-if="previewOpen"
+      @handlePreviewClose="handlePreviewClose"
+      :previewOpen="previewOpen"
+      :inspectName="inspectName"
+      :previewData="previewData"
+      :dialogParams="dialogParams"
+    ></spot-preview>
+  </div>
+</template>
+
+<script>
+import examineInfo from "@/components/examineInfo";
+import {
+  issueSpotSave,
+  severalSee,
+  interviewGetNewId,
+  severalShowNum
+} from "@/api/burg/garrison";
+import { severalPersonList } from "@/api/burg/garrison";
+import { areaTreeNew } from "@/api/styem/dept";
+import { mapGetters } from "vuex";
+import spotPreview from "./spotPreview";
+export default {
+  props: {
+    spotOpen: {
+      type: Boolean
+    },
+    inspectId: {
+      type: String
+    },
+    inspectAreaCode: {
+      type: String
+    },
+    inspectName: {
+      type: String
+    },
+    spotInfoId: {
+      type: String
+    },
+    spotInfoIndex: {
+      type: Number
+    },
+    spotArry: {
+      type: Array
+    }
+  },
+  components: {
+    examineInfo,
+    spotPreview
+  },
+  data() {
+    return {
+      dialogParams: {
+        type: 4,
+        id: undefined,
+        isNewRecord: true,
+        inspectId: undefined,
+        showNum: undefined,
+        startTime: undefined,
+        endTime: undefined,
+        actualCityCode: undefined,
+        actualCountyCode: undefined,
+        actualAddress: undefined,
+        actualSpeakerIds: [],
+        actualRecordId: undefined,
+        actualInterviewee: undefined,
+        siteLeader: undefined,
+        actualIntervieweePhone: undefined,
+        actualIntervieweeIdcard: undefined,
+        actualIntervieweeAge: undefined,
+        actualIntervieweeUnit: undefined,
+        actualIntervieweePost: undefined,
+        actualIntervieweePostcode: undefined,
+        otherHander: undefined,
+        siteCondition: undefined,
+        attachmentId: undefined
+      },
+      dialogRules: {
+        startTime: [{ required: true, message: "请选择时间" }],
+        actualAddress: [{ required: true, message: "请输入详细地址" }],
+        actualSpeakerIds: [{ required: true, message: "请选择勘察人员" }],
+        actualRecordId: [{ required: true, message: "请选择记录人员" }],
+        actualInterviewee: [{ required: true, message: "请输入被询问人" }],
+        siteLeader: [{ required: true, message: "请输入现场负责人" }],
+        actualIntervieweePhone: [
+          { required: true, message: "请输入电话" },
+          {
+            pattern: /^1[34578]\d{9}$/,
+            message: "请输入正确的手机号码"
+          }
+        ],
+        actualIntervieweeIdcard: [
+          { required: true, message: "请输入身份证号码" },
+          {
+            pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/,
+            message: "你的身份证格式不正确"
+          }
+        ],
+        actualIntervieweeAge: [{ required: true, message: "请输入年龄" }],
+        actualIntervieweeUnit: [{ required: true, message: "请输入工作单位" }],
+        actualIntervieweePost: [{ required: true, message: "请输入职务" }],
+        actualIntervieweePostcode: [
+          { required: true, message: "请输入邮编" },
+          {
+            type: "email",
+            message: "请输入正确的邮箱地址",
+            trigger: ["blur", "change"]
+          }
+        ],
+        otherHander: [{ required: true, message: "请输入其他参与人员" }],
+        siteCondition: [{ required: true, message: "请输入现场情况" }],
+        attachmentId: [{ required: true, message: "请上传电子件" }]
+      },
+      countyArry: [],
+      personArry: [],
+      spotArryOther: [],
+      previewOpen: false,
+      issueDate: undefined,
+      previewData: {
+        actualSpeakerNmae: undefined,
+        actualRecordName: undefined,
+        city: undefined,
+        county: undefined,
+        address: undefined,
+        startTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        },
+        endTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        }
+      }
+    };
+  },
+  created() {
+    this.getPersonList();
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo"])
+  },
+  methods: {
+    handleInspectArry() {
+      this.spotArryOther = this.spotArry;
+    },
+    async getNewId() {
+      const reponse = await interviewGetNewId();
+      this.dialogParams.id = reponse.data.id;
+    },
+    async getShowNum() {
+      const reponse = await severalShowNum({
+        type: 4,
+        areaCode: this.inspectAreaCode
+      });
+      this.dialogParams.showNum = reponse.data.showNum;
+    },
+    async getPersonList(code) {
+      const reponse = await severalPersonList();
+      this.personArry = reponse.data;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.actualCountyCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+      for (const item in this.areaArry) {
+        const subject = this.areaArry[item];
+        if (subject.id === code) {
+          this.previewData.city = subject.label;
+        }
+      }
+    },
+    async handleActualCountyChange(code) {
+      for (const item in this.countyArry) {
+        const subject = this.countyArry[item];
+        if (subject.id === code) {
+          this.previewData.county = subject.label;
+        }
+      }
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.actualSpeakerIds = this.dialogParams.actualSpeakerIds.join(
+            ","
+          );
+          this.dialogParams.inspectId = this.inspectId;
+          const reponse = await issueSpotSave(this.dialogParams);
+          const subject = reponse.data;
+          if (this.stateText === "修改") {
+            this.spotArryOther.splice(this.inspectInfoIndex, 1);
+          }
+          this.spotArryOther.push({
+            id: subject.id,
+            actualCityName: subject.actualCityName + "勘察笔录"
+          });
+          loading.close();
+          this.handleDialogClose();
+        }
+      });
+    },
+    async handleEdit() {
+      const id = this.spotInfoId;
+      this.stateText = "修改";
+      this.spotArryOther = this.spotArry;
+      const reponse = await severalSee({ id });
+      const subject = reponse.data;
+      this.getReacodEditInfo(subject);
+    },
+    getReacodEditInfo(data) {
+      this.dialogParams.isNewRecord = false;
+      this.dialogParams.id = data.id;
+      this.dialogParams.startTime = data.startTime;
+      this.dialogParams.endTime = data.endTime;
+      this.dialogParams.actualCityCode = data.actualCityCode;
+      this.dialogParams.actualCountyCode = data.actualCountyCode;
+      this.dialogParams.actualAddress = data.actualAddress;
+      this.dialogParams.actualSpeakerIds = data.actualSpeakerIds.split(",");
+      this.dialogParams.actualRecordId = data.actualRecordId;
+      this.dialogParams.actualInterviewee = data.actualInterviewee;
+      this.dialogParams.siteLeader = data.siteLeader;
+      this.dialogParams.actualIntervieweePhone = data.actualIntervieweePhone;
+      this.dialogParams.actualIntervieweeIdcard = data.actualIntervieweeIdcard;
+      this.dialogParams.actualIntervieweeAge = data.actualIntervieweeAge;
+      this.dialogParams.actualIntervieweeUnit = data.actualIntervieweeUnit;
+      this.dialogParams.actualIntervieweePost = data.actualIntervieweePost;
+      this.dialogParams.actualIntervieweePostcode =
+        data.actualIntervieweePostcode;
+      this.dialogParams.otherHander = data.otherHander;
+      this.dialogParams.siteCondition = data.siteCondition;
+      this.dialogParams.attachmentId = data.attachmentId;
+      this.issueDate = [data.startTime, data.endTime];
+      this.handleCityChangeb(data.actualCityCode);
+      this.$nextTick(() => {
+        this.$refs.uploadFile.getFileMessageInfo();
+      });
+
+      this.previewData.startTime = this.getTimeValue(data.startTime);
+      this.previewData.endTime = this.getTimeValue(data.endTime);
+      this.previewData.actualSpeakerNmae = data.actualSpeaker;
+      this.previewData.actualRecordName = data.actualRecord;
+      this.previewData.city = data.actualCityName;
+      this.previewData.county = data.actualCountyName;
+    },
+    handleDialogClose() {
+      this.handleformClear("dialogForm");
+      this.$emit("handleSpotClose", this.spotArryOther);
+      this.$refs.uploadFile.handleClear && this.$refs.uploadFile.handleClear();
+      this.spotArryOther = [];
+      this.stateText = undefined;
+      this.dialogParams.actualCityCode = undefined;
+      this.dialogParams.actualCountyCode = undefined;
+      this.issueDate = undefined;
+      this.previewData = {
+        actualSpeakerNmae: undefined,
+        actualRecordName: undefined,
+        city: undefined,
+        county: undefined,
+        address: undefined,
+        startTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        },
+        endTime: {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        }
+      };
+    },
+    inspectPreviewClick() {
+      this.previewOpen = true;
+    },
+    handlePreviewClose() {
+      this.previewOpen = false;
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleActualPersonClick(val) {
+      let personArry = [];
+      for (const item in this.personArry) {
+        const subject = this.personArry[item];
+        if (val.indexOf(subject.id) > -1) {
+          personArry.push(subject.name);
+        }
+      }
+      this.previewData.actualSpeakerNmae = personArry.join("、");
+    },
+    handleActualRecordClick(val) {
+      for (const item in this.personArry) {
+        const subject = this.personArry[item];
+        if (subject.id === val) {
+          this.previewData.actualRecordName = subject.name;
+        }
+      }
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.dialogParams.startTime = undefined;
+        this.dialogParams.endTime = undefined;
+        this.previewData.startTime = {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        };
+        this.previewData.endTime = {
+          year: undefined,
+          month: undefined,
+          day: undefined,
+          hour: undefined,
+          min: undefined
+        };
+      } else {
+        this.dialogParams.startTime = picker[0];
+        this.dialogParams.endTime = picker[1];
+        this.previewData.startTime = this.getTimeValue(picker[0]);
+        this.previewData.endTime = this.getTimeValue(picker[1]);
+      }
+    },
+    getTimeValue(time) {
+      const timeArry = time.split(" ");
+      const yearArry = timeArry[0].split("-");
+      const secondArry = timeArry[1].split(":");
+      return {
+        year: yearArry[0],
+        month: yearArry[1],
+        day: yearArry[2],
+        hour: secondArry[0],
+        min: secondArry[1]
+      };
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 33%;
+      }
+      .el-input {
+        width: 34%;
+      }
+    }
+  }
+}
+.inspect-preview {
+  position: fixed;
+  right: 5%;
+}
+</style>

@@ -1,0 +1,45 @@
+<template>
+  <div class="renyuan">
+    <div class="title">督察人员</div>
+    <p>督察组长：<span>白宝玉</span></p>
+    <p>督察副组长：<span>杜俊峰</span></p>
+    <p>督察总协调人：<span>陈军</span></p>
+    <p>
+      督察组成员：<span
+        >白雪椿,刘敏,田海芬,徐永明,木其日,陈泽宇,温福,苏璐,薛晓兵,丁键炜,白杰</span
+      >
+    </p>
+    <p>举报登记人员：<span>赤峰市举报登记1，赤峰市举报登记2</span></p>
+    <p>举报审核人员：<span>赤峰市举报审核1，赤峰市举报审核2</span></p>
+    <p>举报办理人员：<span>赤峰市举报办理1，赤峰市举报办理2</span></p>
+    <p>资料登记人员：<span>赤峰市资料登记1，赤峰市资料登记2</span></p>
+    <p>工作方案：<span>第一批省生态环境保护督察“回头看”工作方案</span></p>
+    <p>工作通知：<span>第一批省生态环境保护督察“回头看”工作方案</span></p>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      id: "",
+    };
+  },
+
+  computed: {},
+  created() {},
+  methods: {},
+};
+</script>
+
+<style lang="scss" scoped>
+.renyuan {
+  .title {
+    border-left: 3px solid #2196f3;
+    padding-left: 10px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+}
+</style>
+
+

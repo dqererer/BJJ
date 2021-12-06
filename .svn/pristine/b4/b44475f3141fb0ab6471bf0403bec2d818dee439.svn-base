@@ -1,0 +1,106 @@
+<template>
+  <div class="people">
+    <div class="top">
+      <div class="left">
+        <div class="card ruku">
+          <p class="title">入库总人数（人）</p>
+          <p class="num">300</p>
+        </div>
+
+        <div class="card ducha">
+          <p class="title">参与督察人数（人）</p>
+          <p class="num">300</p>
+        </div>
+        <div class="card pie">
+          <div id="pie"></div>
+        </div>
+      </div>
+      <div class="card right">
+        <p>各地区入库人员分布情况</p>
+        <div id="bar"></div>
+      </div>
+    </div>
+    <div class="bottom"></div>
+  </div>
+</template>
+
+<script>
+// import { getTeamList } from "@/api/support/inspectorate";
+export default {
+    data() {
+    return {
+
+
+    };
+  },
+  created() {
+  },
+  computed: {
+  },
+  methods: {
+
+
+
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.people {
+  color: #606266;
+  p {
+    margin: 0;
+    padding: 0;
+  }
+  padding: 20px;
+  .card {
+    background: white;
+    width: 100%;
+    .title {
+      height: 48px;
+      line-height: 48px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .num {
+      color: #d9001b;
+      text-align: center;
+      height: 52px;
+      line-height: 32px;
+      font-weight: bold;
+      font-size: 24px;
+    }
+  }
+  .top {
+    display: flex;
+    .left {
+      width: 200px;
+      margin-right: 14px;
+
+      .ruku {
+        height: 100px;
+        margin-bottom: 10px;
+      }
+      .ducha {
+        height: 100px;
+        margin-bottom: 10px;
+      }
+      #pie {
+        height: 130px;
+        width: 100%;
+      }
+    }
+    .right {
+      flex: 1;
+      p {
+        margin: 12px 0 15px 15px;
+        font-weight: bolder;
+        font-size: 20px;
+      }
+      #bar {
+        height: 300px;
+      }
+    }
+  }
+}
+</style>

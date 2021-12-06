@@ -1,0 +1,13 @@
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+
+const getChangeProgramList = params => getAction(path + `/center/trectify/plan/tRectifyPlan/list`, params);  //获取方案列表
+const saveChangeProgram = params => postForm(path + `/center/trectify/plan/tRectifyPlan/save`, params);  //保存方案
+const getRoundOrBatchList = params => getAction(path + `/center/tinspect/round/tInspectRound/getInspectRoundList`, params);  //获取轮次/批次列表
+const getSpectTypeList = params => getAction(path + `/center/tinspect/round/tInspectRound/findInspectTypeList`, params);  //获取轮次/批次列表
+export {
+  getChangeProgramList,
+  saveChangeProgram,
+  getRoundOrBatchList,
+  getSpectTypeList
+}

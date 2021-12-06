@@ -1,0 +1,32 @@
+<template>
+  <div class="people">
+    <div class="header">
+      人员
+    </div>
+  </div>
+</template>
+<script>
+
+export default {
+  data() {
+    return {
+      abc: '',
+    };
+  },
+  computed: {},
+
+  created() {
+    
+    this.abc = this.$route.query.id 
+  },
+  methods: {
+   
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+
+</style>
+
+

@@ -1,0 +1,90 @@
+<template>
+  <div id="Echarts">
+    <div id="myChart" :style="{ width: '340px', height: '280px' }"></div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "Echarts",
+  data() {
+    return {};
+  },
+  mounted() {
+    this.drawLine();
+  },
+  methods: {
+    drawLine() {
+      // 基于准备好的dom，初始化echarts实例
+      let myChart = this.$echarts.init(document.getElementById("myChart"));
+      // 绘制图表
+      myChart.setOption({
+        tooltip: {},
+        xAxis: {
+          data: [
+            "中央督察",
+            "省级督察",
+            "一键举报",
+            "上级交办",
+            "数据城管",
+            "全国举报系统",
+            "日常检查",
+            "电话热线",
+            "在线监控",
+            "线索举报",
+            "省级反馈整改任务",
+            "其他",
+          ],
+          axisTick: {
+            show: false, //设置坐标竖杠
+            alignWithLabel: true,
+          },
+          axisLabel: {
+            interval: 0,
+            rotate: -50,
+            textStyle: {
+              show: true,
+              color: "#fff",
+              fontSize: 10,
+            },
+          },
+        },
+        yAxis: {
+          type: "value",
+          axisTick: {
+            show: false, //设置坐标竖杠
+          },
+          axisLabel: {
+            show: true,
+            textStyle: {
+              color: "#fff",
+              fontSize: 10,
+            },
+          },
+        },
+        grid: {
+          left: "3%",
+          bottom: "1%",
+          containLabel: true,
+        },
+        series: [
+          {
+            name: "销量",
+            type: "bar",
+            barWidth: 14, //柱图宽度
+            itemStyle: {
+              normal: {
+                color: "#019fff",
+              },
+            },
+            data: [28, 26, 24, 20, 18, 16, 13, 10, 9, 7, 5, 2],
+          },
+        ],
+      });
+    },
+  },
+};
+</script>
+
+<style>
+</style>

@@ -1,0 +1,113 @@
+<template>
+  <div class="ziliao">
+    <section>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="资料目录">{{
+          info.businessTypeName
+        }}</el-descriptions-item>
+        <el-descriptions-item label="资料分类">{{
+          info.classification
+        }}</el-descriptions-item>
+        <el-descriptions-item label="资料标题">{{
+          info.title
+        }}</el-descriptions-item>
+        <el-descriptions-item label="资料文号">{{
+          info.fileNumber
+        }}</el-descriptions-item>
+        <el-descriptions-item label="所属地区">
+          {{ info.areaName }}
+        </el-descriptions-item>
+        <el-descriptions-item label="提供人/单位">
+          {{ info.fromPerson }}/{{ info.fromUnit }}
+        </el-descriptions-item>
+        <el-descriptions-item label="资料简介" :span="2">
+          {{ info.content }}
+        </el-descriptions-item>
+        <el-descriptions-item label="附件" :span="2">
+          <div v-if="info.attachmentId">
+            <a
+              v-for="(item, index) in FileList"
+              v-bind:key="index"
+              href="#"
+              @click="downloadFile(item.path)"
+              >{{ item.name
+              }}<span v-if="index != FileList.length - 1">、</span></a
+            >
+          </div>
+          <span v-else>-</span>
+        </el-descriptions-item>
+      </el-descriptions>
+    </section>
+    <!-- <section>
+      <img :src="path" alt="">
+    </section> -->
+  </div>
+</template>
+<script>
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { manageSee } from "@/api/support/material";
+export default {
+  data() {
+    return {
+      id: "",
+      info: {},
+      FileList: [],
+    };
+  },
+
+  computed: {},
+  created() {
+    this.id = this.$route.query.id;
+    this.getinfo();
+  },
+  methods: {
+    getinfo: async function () {
+      // const res = await manageSee({ id: "1026665666721095680" });
+      const res = await manageSee({ id: this.id });
+      this.info = res.data;
+      let FileList =
+        res.data.attachmentId && res.data.attachmentId.split(",");
+      FileList &&
+        FileList.forEach((item) => {
+          item && this.getFileInfo(item, "FileList");
+        });
+    },
+
+    getFileInfo: function (id, key) {
+      this.fileList = [];
+      getFileInfo({ ids: id }).then((res) => {
+        let obj = {
+          path: res.data[0].save_path,
+          name: res.data[0].file_name,
+        };
+        this[key].push(obj);
+      });
+    },
+    downloadFile: function (path) {
+      getdownLoadZip(path);
+    },
+    // viewPic: function(path){
+    //   this.path = path;
+    // }
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.ziliao {
+  padding: 20px;
+  section {
+    margin-bottom: 20px;
+    header {
+      height: 40px;
+      line-height: 40px;
+      background: #409eff;
+      text-align: center;
+      color: white;
+    }
+  }
+}
+</style>
+
+

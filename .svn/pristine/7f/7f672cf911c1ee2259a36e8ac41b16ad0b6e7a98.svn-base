@@ -1,0 +1,412 @@
+<template>
+  <div>
+    <div class="title">现场勘察信息</div>
+    <div class="clue-info">
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>督察信息：
+          </span>
+          <span class="clue-item-input">{{teamInfo}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare">
+          <span class="clue-item-label" style="margin:0">
+            <i class="clue-import">*</i>现场勘察信息：
+          </span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>勘察时间：
+          </span>
+          <span class="clue-item-input">{{manageInfo.time}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>邮编：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweePostcode}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>勘察人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualSpeaker}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>记录人员：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualRecord}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>地点：
+          </span>
+          <span class="clue-item-input">{{manageInfo.arrangeAddress}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>被勘察人：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualInterviewee}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>现场负责人：
+          </span>
+          <span class="clue-item-input">{{manageInfo.siteLeader}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>手机号码：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweePhone}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>身份证号码：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweeIdcard}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>年龄：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweeAge}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>工作单位：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweeUnit}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>职务：
+          </span>
+          <span class="clue-item-input">{{manageInfo.actualIntervieweePost}}</span>
+        </div>
+      </div>
+      <div class="clue-item">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>其他参与人：
+          </span>
+          <span class="clue-item-input">{{manageInfo.otherHander}}</span>
+        </div>
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>现场情况：
+          </span>
+          <span class="clue-item-input">{{manageInfo.siteCondition}}</span>
+        </div>
+      </div>
+      <div class="clue-item clue-item-paper">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>电子件：
+          </span>
+          <div class="clue-item-file">
+            <div class="clue-item-file-group">
+              <span class="accounChunk">{{manageInfo.attachmentName}}</span>
+              <el-button size="mini" @click="handlePreviewClick(manageInfo.attachmentId)">预览</el-button>
+              <el-button
+                size="mini"
+                @click="handleDownLoadDoc(manageInfo.attachmentId)"
+                type="primary"
+              >下载</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="clue-item clue-item-paper" v-if="manageInfo.clueList.length>0">
+        <div class="clue-item-quare clue-item-inspect">
+          <span class="clue-item-label">
+            <i class="clue-import">*</i>其他相关线索：
+          </span>
+          <div class="clue-item-file">
+            <span
+              class="accounChunk"
+              @click="handleClewClick(item.clueId)"
+              v-for="(item,index) in manageInfo.clueList"
+              :key="index"
+            >{{item.clueName}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getSingleInfo } from "@/utils/styem";
+import { severalSee } from "@/api/burg/garrison";
+import { getdownLoadZip } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { threadTeamInfo } from "@/api/InspectorClues";
+
+export default {
+  props: {
+    tailId: {
+      type: String
+    },
+    teamId: {
+      type: String
+    },
+    clueId: {
+      type: String
+    }
+  },
+  data() {
+    return {
+      teamInfo: undefined,
+      manageInfo: {
+        arrangeTime: undefined,
+        arrangeSpeaker: undefined,
+        arrangeInterviewee: undefined,
+        arrangeIntervieweePost: undefined,
+        arrangeAddress: undefined,
+        time: undefined,
+        actualSpeakerIds: undefined,
+        actualRecordId: undefined,
+        actualInterviewee: undefined,
+        actualIntervieweeUnit: undefined,
+        actualIntervieweePost: undefined,
+        otherHander: undefined,
+        actualAddress: undefined,
+        recordList: undefined,
+        attachmentId: undefined,
+        attachmentName: undefined,
+        audioPath: undefined,
+        audioName: undefined,
+        clueList: [],
+        actualIntervieweePostcode: undefined,
+        siteCondition: undefined
+      }
+    };
+  },
+  methods: {
+    async getTeamInfo() {
+      const reponse = await threadTeamInfo({ id: this.teamId });
+      const subject = reponse.data;
+      this.teamInfo =
+        subject.superviseName +
+        subject.roundName +
+        subject.batchName +
+        subject.name;
+    },
+    handleClewClick(clueId) {
+      this.$confirm("是否要跳转其他线索", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      }).then(() => {
+        this.$emit("handleNewClewInfo", clueId);
+      });
+    },
+    async getInfo() {
+      const reponse = await severalSee({ id: this.tailId });
+      const subject = reponse.data;
+      this.manageInfo.actualIntervieweePostcode =
+        subject.actualIntervieweePostcode;
+      this.manageInfo.siteLeader = subject.siteLeader;
+      this.manageInfo.actualIntervieweePhone = subject.actualIntervieweePhone;
+      this.manageInfo.actualIntervieweeIdcard = subject.actualIntervieweeIdcard;
+      this.manageInfo.arrangeAddress =
+        subject.actualCityName +
+        subject.actualCountyName +
+        subject.actualAddress;
+      this.manageInfo.time = subject.startTime + "至" + subject.endTime;
+      this.manageInfo.actualSpeaker = subject.actualSpeaker;
+      this.manageInfo.actualRecord = subject.actualRecord;
+      this.manageInfo.actualInterviewee = subject.actualInterviewee;
+      this.manageInfo.actualIntervieweeUnit = subject.actualIntervieweeUnit;
+      this.manageInfo.actualIntervieweePost = subject.actualIntervieweePost;
+      this.manageInfo.otherHander = subject.otherHander;
+      this.manageInfo.siteCondition = subject.siteCondition;
+      this.manageInfo.actualIntervieweeAge = subject.actualIntervieweeAge;
+      this.manageInfo.actualAddress =
+        subject.actualCityName +
+        subject.actualCountyName +
+        subject.actualAddress;
+      this.manageInfo.recordList = subject.recordList;
+      this.manageInfo.attachmentId = subject.attachmentId;
+      this.manageInfo.attachmentName = subject.attachmentName;
+      if (subject.existClueList) {
+        for (const item in subject.existClueList) {
+          const subjectd = subject.existClueList[item];
+          if (subjectd.clueId != this.clueId) {
+            const tempd = {
+              clueId: subjectd.clueId,
+              clueName: subjectd.clueName
+            };
+            this.manageInfo.clueList.push(tempd);
+          }
+        }
+      }
+      if (subject.newClueList) {
+        for (const item in subject.newClueList) {
+          const subjectd = subject.newClueList[item];
+          if (subjectd.clueId != this.clueId) {
+            const tempd = {
+              clueId: subjectd.clueId,
+              clueName: subjectd.clueName
+            };
+            this.manageInfo.clueList.push(tempd);
+          }
+        }
+      }
+    },
+    handleDownLoadDoc(fileId) {
+      getSingleInfo(fileId);
+    },
+    handlePreviewClick(fileId) {
+      filePreview(fileId);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.title {
+  height: 20px;
+  border-left: 3px solid #2196f3;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.clue-info {
+  width: 100%;
+  .clue-item {
+    display: flex;
+    margin-top: 16px;
+    &.two-clue-item {
+      .clue-item-quare {
+        &:first-child {
+          margin-right: 16px;
+        }
+      }
+    }
+    .clue-item-quare {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      &.clue-item-inspect {
+        flex-direction: row;
+        .clue-item-label {
+          width: 110px;
+          text-align: right;
+          margin-bottom: 0;
+          margin-top: 10px;
+        }
+      }
+      .clue-item-file {
+      }
+      .clue-item-label {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 10px;
+        display: block;
+        .clue-import {
+          display: inline-block;
+          margin-right: 4px;
+          color: #f56c6c;
+        }
+      }
+      .clue-item-input {
+        width: 100%;
+        min-height: 32px;
+        line-height: 32px;
+        font-size: 14px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding-left: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+        flex: 1;
+      }
+      .clue-item-select {
+        display: flex;
+        .clue-item-select-city {
+          width: 11%;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          margin-right: 16px;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+        .clue-item-select-address {
+          flex: 1;
+          height: 32px;
+          line-height: 32px;
+          font-size: 14px;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding-left: 10px;
+          overflow: hidden;
+        }
+      }
+    }
+  }
+}
+.clue-question {
+  display: flex;
+  flex-direction: column;
+  .question-item {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    .question-top {
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+    .question-bottom {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      .question-label {
+        width: 100px;
+        font-size: 14px;
+        color: #333;
+        text-align: right;
+        font-weight: normal;
+      }
+    }
+  }
+}
+.clue-item-paper .clue-item-label {
+  margin-top: 4px !important;
+}
+.accounChunk {
+  display: block;
+  padding: 4px 10px 4px 10px;
+  background-color: #eee;
+  margin-bottom: 4px;
+}
+</style>

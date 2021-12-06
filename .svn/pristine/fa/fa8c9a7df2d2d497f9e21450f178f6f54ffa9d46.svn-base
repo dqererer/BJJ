@@ -1,0 +1,56 @@
+import router from './router'
+import store from './store'
+import { Message } from 'element-ui'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+import { getToken } from '@/utils/auth'
+
+const whiteList = ['/login', '/forget'] //白名单
+
+router.beforeEach((to, from, next) => {
+    NProgress.start();
+    if (getToken()) {
+        if (to.path == "/login") {
+            router.push({ path: '/onemap' })
+            NProgress.done();
+        } else {
+            if (to.matched.length === 0) {  //如果未匹配到路由
+                console.log('没匹配到')
+            } else {
+                next();    //如果匹配到正确跳转
+            }
+            NProgress.done();
+            // if (store.getters.sidebarRouters.length === 0) {
+            //     store.dispatch('GetInfo').then((res) => {
+            //         const { id } = res.data
+            //         store.dispatch('InspectUserInfo', id).then(() => {
+            //             store.dispatch('GenerateRoutes').then(accessRoutes => {
+            //                 console.log('permission',router, accessRoutes)
+            //                 router.addRoutes(accessRoutes)
+            //                 next({ ...to, replace: true }) //设置replace: true，这样导航就不会留下历史记录
+            //                 store.dispatch('GetAreaInfo')
+            //             })
+            //         })
+            //     }).catch(err => {
+            //         store.dispatch('LogOut').then(() => {
+            //             Message.error(err)
+            //             next({ path: '/login' })
+            //         })
+            //     })
+            // } else {
+            //     next()
+            // }
+        }
+    } else {
+        if (whiteList.indexOf(to.path) !== -1) {
+            next()
+        } else {
+            next({ path: '/login', query: { redirect: to.fullPath } })
+            NProgress.done();
+        }
+    }
+})
+
+router.afterEach(() => {
+    NProgress.done();
+})

@@ -1,0 +1,1525 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">下沉日志</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.inspectId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        :inspectName.sync="queryParams.inspectName"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="下沉旗县：">
+                <el-select v-model="queryParams.countyCode" placeholder="请选择下沉旗县">
+                  <el-option
+                    v-for="item in sinkCountyArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.id"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <div class="button-authority-style" v-if="buttonAuthority">
+          <el-button size="small" @click="handleNewly" type="primary">新增</el-button>
+        </div>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="getListb"></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>
+              {{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="下沉组名称" min-width="200px">
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">
+              {{
+              scope.row.teamName
+              }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sinkDate" label="日志时间" width="160px"></el-table-column>
+        <el-table-column prop="sinkPerson" label="下沉人员" width="220px" :show-overflow-tooltip="true"></el-table-column>
+        <el-table-column
+          prop="xcCountyName"
+          label="下沉旗县"
+          width="200px"
+          :show-overflow-tooltip="true"
+        ></el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
+          <template slot-scope="scope" v-if="buttonAuthority">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)">修改</el-button>
+            <el-button size="mini" type="danger" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getListb"
+      />
+    </div>
+    <el-dialog
+      :title="logTitle"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">下沉基本信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="下沉组名称：" prop="teamId">
+              <el-select
+                v-model="dialogParams.teamId"
+                @change="handleSinkNameChange"
+                placeholder="请选择下沉组名称"
+                :disabled="curStatus == 'view'"
+              >
+                <el-option
+                  v-for="item in sinkAllArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="日志时间：" prop="sinkDate">
+              <el-date-picker
+                :disabled="curStatus == 'view'"
+                v-model="dialogParams.sinkDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择日志时间"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="下沉人员：" prop="sinkPersonId">
+              <el-select
+                v-model="dialogParams.sinkPersonId"
+                :disabled="curStatus == 'view'"
+                placeholder="请选择下沉人员"
+                multiple
+              >
+                <el-option
+                  v-for="item in personArry"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.personId"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="examineInfo">
+          <h1 class="examineInfo-title">下沉日志信息</h1>
+        </div>
+        <section style="padding-top: 10px">
+          <el-tabs
+            v-model="editableTabsValue"
+            type="card"
+            :editable="curStatus == 'new'"
+            :addable="curStatus == 'new'"
+            @edit="handleTabsEdit"
+            @tab-click="toggleTab"
+          >
+            <el-tab-pane
+              :key="item.name"
+              v-for="(item,index) in dialogParams.evidenceWithAddrList"
+              :label="item.title"
+              :name="item.name"
+            >
+              <!-- :key="item.name" -->
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="下沉地点：" class="meet-address" prop="address">
+                    <el-select
+                      v-model="item.countyCode"
+                      :disabled="curStatus != 'new'"
+                      filterable
+                      placeholder="请选择旗县"
+                    >
+                      <el-option
+                        v-for="item in sinkCountyArry"
+                        :key="item.id"
+                        :label="item.label"
+                        :value="item.id"
+                      ></el-option>
+                    </el-select>
+                    <el-input
+                      v-model="item.address"
+                      placeholder="请输入详细地址"
+                      maxlength="120"
+                      show-word-limit
+                      class="input-limit"
+                      :disabled="curStatus != 'new'"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="主要核实问题：">
+                    <el-select
+                      :key="index"
+                      v-model="item.problemId"
+                      @change="handleSinkPrombleChange"
+                      placeholder="请输入主要核实问题"
+                      :disabled="curStatus != 'new'"
+                    >
+                      <el-option
+                        v-for="item in linkList"
+                        :key="item.id"
+                        :label="item.problemDescript"
+                        :value="item.id"
+                      ></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="问题相关线索：">
+                    <div class="info-item-content">
+                      <ul class="info-item-list">
+                        <li
+                          class="info-item-item"
+                          v-for="(item, index) in item.discoverList"
+                          :key="index"
+                        >
+                          <span
+                            class="accounChunk"
+                            @click.stop="handleClewClick(item.id)"
+                          >{{ index + 1 }}、{{ item.name }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="新发现线索：">
+                    <el-table :data="item.clewList" style="width: 100%">
+                      <el-table-column prop="clueName" label="线索名称"></el-table-column>
+                      <el-table-column label="聚焦到此问题" width="200px">
+                        <template v-slot="scope">
+                          <el-switch
+                            v-model="item.clewList[scope.$index].state"
+                            :disabled="curStatus != 'new'"
+                          ></el-switch>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <el-form-item label="工作安排：">
+                    <el-checkbox-group
+                      v-model="item.workArrange"
+                      @change="handleReviewChange"
+                      :disabled="curStatus != 'new'"
+                    >
+                      <el-checkbox label="0" :checked="checked" @change="checked=!checked">调取书证</el-checkbox>
+                      <el-checkbox label="1" :checked="checked" @change="checked=!checked">询问笔录</el-checkbox>
+                      <el-checkbox label="2" :checked="checked" @change="checked=!checked">现场勘察</el-checkbox>
+                    </el-checkbox-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" v-if="item.bookBoolean">
+                <el-col :span="24">
+                  <el-form-item label="调取书证：">
+                    <el-button
+                      size="mini"
+                      type="primary"
+                      :disabled="curStatus != 'new'"
+                      @click="handleWorkClick"
+                    >添加书证</el-button>
+                    <div class="info-item-content">
+                      <ul class="info-item-list">
+                        <li
+                          class="info-item-item"
+                          v-for="(item, index) in item.workArry"
+                          :key="item.id"
+                        >
+                          {{ index + 1 }}、{{ item.name
+                          }}
+                        </li>
+                      </ul>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" v-if="item.inspectBoolean">
+                <el-col :span="24">
+                  <el-form-item label="询问笔录：">
+                    <el-button
+                      size="mini"
+                      type="primary"
+                      :disabled="curStatus != 'new'"
+                      @click="handleInspectClick"
+                    >添加询问笔录</el-button>
+                    <div class="info-item-content">
+                      <ul class="info-item-list">
+                        <li
+                          class="info-item-item"
+                          v-for="(item, index) in item.inspectArry"
+                          :key="item.id"
+                        >
+                          <el-tooltip
+                            class="item"
+                            effect="dark"
+                            :content="item.theme"
+                            placement="top"
+                          >
+                            <span
+                              class="info-item-text accounChunk"
+                              @click.stop="handleInspectInfoClick(item.id, index)"
+                            >{{ index + 1 }}、{{ item.theme }}</span>
+                          </el-tooltip>
+                          <!-- <span
+                            class="info-item-text accounChunk"
+                            @click.stop="handleInspectInfoClick(item.id, index)"
+                          >{{ index + 1 }}、{{ item.theme }}</span>-->
+
+                          <span
+                            v-if="curStatus == 'new'"
+                            @click="handleClueInspectClose(index,item.id)"
+                            class="clue-close"
+                          >X</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" v-if="item.spotBoolean">
+                <el-col :span="24">
+                  <el-form-item label="现场勘察：">
+                    <div class="spot-box">
+                      <el-button
+                        size="mini"
+                        type="primary"
+                        :disabled="curStatus != 'new'"
+                        @click="handleSpotClick"
+                      >添加勘察笔录</el-button>
+                      <div class="info-item-content">
+                        <ul class="info-item-list">
+                          <li
+                            class="info-item-item"
+                            v-for="(item, index) in item.spotArry"
+                            :key="item.id"
+                          >
+                            <!-- <span
+                              class="info-item-text"
+                              @click.stop="handleSpotInfoClick(item.id,index)"
+                            >{{ index + 1 }}、{{ item.actualCityName }}</span>-->
+                            <el-tooltip
+                              class="item"
+                              effect="dark"
+                              :content="item.actualCityName"
+                              placement="top"
+                            >
+                              <span
+                                class="info-item-text accounChunk"
+                                @click.stop="handleSpotInfoClick(item.id, index)"
+                              >{{ index + 1 }}、{{ item.actualCityName }}</span>
+                            </el-tooltip>
+                            <span
+                              v-if="curStatus == 'new'"
+                              @click="handleClueSpotClose(index,item.id)"
+                              class="clue-close"
+                            >X</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div class="spot-box">
+                      <el-button
+                        size="mini"
+                        type="primary"
+                        :disabled="curStatus != 'new'"
+                        @click="handleMediaClick"
+                      >添加现场多媒体记录</el-button>
+                      <div class="info-item-content">
+                        <ul class="info-item-list">
+                          <li
+                            class="info-item-item accounChunk"
+                            v-for="(item, index) in item.mediaArry"
+                            :key="item.id"
+                          >
+                            <!-- <span
+                              class="info-item-text"
+                              @click.stop="handleMediaInfoClick(item.id,index)"
+                            >{{ index + 1 }}、{{ item.mediaExplain }}</span>-->
+
+                            <el-tooltip
+                              class="item"
+                              effect="dark"
+                              :content="item.mediaExplain"
+                              placement="top"
+                            >
+                              <span
+                                class="info-item-text accounChunk"
+                                @click.stop="handleMediaInfoClick(item.id, index)"
+                              >{{ index + 1 }}、{{ item.mediaExplain }}</span>
+                            </el-tooltip>
+
+                            <span
+                              v-if="curStatus == 'new'"
+                              @click="handleClueMediaClose(index)"
+                              class="clue-close"
+                            >X</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+          </el-tabs>
+        </section>
+        <div class="dialogFormFooter" style="margin-top:22px">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <ssue-book
+      ref="bookRef"
+      :bookOpen="bookOpen"
+      :list="dialogParams.evidenceWithAddrList"
+      :tabIndex="tabIndex"
+      v-if="bookOpen"
+      @handleBookClose="handleBookClose"
+    ></ssue-book>
+    <ssue-inspect
+      ref="inspectRef"
+      :inspectOpen="inspectOpen"
+      :inspectInfoId="inspectInfoId"
+      :list="dialogParams.evidenceWithAddrList"
+      :tabIndex="tabIndex"
+      :inspectInfoIndex="inspectInfoIndex"
+      :inspectAreaCode="queryParams.inspectAreaCode"
+      :inspectId="queryParams.inspectId"
+      :inspectName="queryParams.inspectName"
+      :teamPersonArry="teamPersonArry"
+      @handleInspectClose="handleInspectClose"
+      :curStatus="curStatus"
+      v-if="buttonAuthority"
+    ></ssue-inspect>
+    <!-- :inspectArry="dialogParams.evidenceWithAddrList[tabIndex].inspectArry" -->
+    <ssue-spot
+      ref="spotRef"
+      :spotOpen="spotOpen"
+      :spotInfoId="spotInfoId"
+      :list="dialogParams.evidenceWithAddrList"
+      :tabIndex="tabIndex"
+      :spotInfoIndex="spotInfoIndex"
+      :inspectAreaCode="queryParams.inspectAreaCode"
+      :inspectId="queryParams.inspectId"
+      :inspectName="queryParams.inspectName"
+      :teamPersonArry="teamPersonArry"
+      @handleSpotClose="handleSpotClose"
+      :curStatus="curStatus"
+      v-if="buttonAuthority"
+    ></ssue-spot>
+    <!-- :spotArry="dialogParams.evidenceWithAddrList[tabIndex].spotArry" -->
+    <ssue-media
+      ref="mediaRef"
+      :mediaInfoId="mediaInfoId"
+      :list="dialogParams.evidenceWithAddrList"
+      :tabIndex="tabIndex"
+      :mediaInfoIndex="mediaInfoIndex"
+      :mediaOpen="mediaOpen"
+      @handleMediaClose="handleMediaClose"
+      :curStatus="curStatus"
+      v-if="buttonAuthority"
+    ></ssue-media>
+    <!-- :mediaArry="dialogParams.evidenceWithAddrList[tabIndex].mediaArry" -->
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+  </div>
+</template>
+
+<script>
+import {
+  logList,
+  logSee,
+  logDelete,
+  logSave,
+  sinkAll,
+  severalRelationSave,
+  issueClueAll,
+  logSinkId,
+  logSinkProblemList,
+  logClueListByTableAndId,
+  severalDelete,
+  severalPersonList
+} from "@/api/burg/garrison";
+import {
+  threadRelationPull,
+  threadSee,
+  threadRelationSave,
+  threadRelationAlerady
+} from "@/api/burg/prepare";
+import { inspectorPersonInfo } from "@/api/support/inspectorate";
+import { dictListType } from "@/api/styem/dict/type";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { getFileInfo } from "@/api/file";
+import { mapGetters } from "vuex";
+import { areaTreeNew } from "@/api/styem/dept";
+import ssueBook from "@/views/burg/garrison/sink/sinkIssue/ssueBook";
+import ssueInspect from "@/views/burg/garrison/sink/sinkIssue/ssueInspect";
+import ssueMedia from "@/views/burg/garrison/sink/sinkIssue/ssueMedia";
+import ssueSpot from "@/views/burg/garrison/sink/sinkIssue/ssueSpot";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo,
+    ssueBook,
+    ssueMedia,
+    ssueSpot,
+    ssueInspect,
+    clewInfo
+  },
+  data() {
+    return {
+      checked: false,
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        inspectType: undefined,
+        inspectTurnId: undefined,
+        inspectBatchId: undefined,
+        inspectId: undefined,
+        inspectAreaCode: undefined,
+        inspectName: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      sinkAllArry: [],
+      personArry: [],
+      sinkCountyArry: [],
+      linkList: [],
+      dialogParams: {
+        id: undefined,
+        inspectId: undefined,
+        teamId: undefined,
+        teamName: undefined,
+        sinkDate: undefined,
+        sinkPersonId: [],
+        evidenceWithAddrList: [
+          {
+            title: "日志1",
+            name: "0",
+            problemId: undefined,
+            addressId: "",
+            cityCode: undefined,
+            countyCode: undefined,
+            county: undefined,
+            address: undefined,
+            focusClueId: undefined,
+            unfocusClueId: undefined,
+            discoverList: [],
+            workArrange: [],
+            workArry: [],
+            inspectArry: [],
+            spotArry: [],
+            mediaArry: [],
+            evidenceId: undefined,
+            inquiryId: undefined,
+            surveyId: undefined,
+            mediaId: undefined,
+            bookBoolean: false,
+            inspectBoolean: false,
+            spotBoolean: false,
+            clewList: [],
+            deleteClewList: [],
+            deleteClewStr: undefined,
+            bookData: {
+              attachment: [],
+              name: []
+            }
+          }
+        ]
+      },
+      dialogRules: {
+        teamId: [{ required: true, message: "请输入下沉组名称" }],
+        sinkDate: [{ required: true, message: "请选择日志时间" }],
+        sinkPersonId: [{ required: true, message: "请选择下沉人员" }]
+      },
+      clewId: undefined,
+      lookOpen: false,
+      buttonAuthority: true,
+      logTitle: "新增下沉日志",
+      editableTabsValue: "0",
+      tabIndex: 0,
+
+      bookOpen: false,
+      inspectOpen: false,
+      inspectInfoId: undefined,
+      inspectInfoIndex: undefined,
+      spotOpen: false,
+      spotInfoId: undefined,
+      spotInfoIndex: undefined,
+      mediaOpen: false,
+      mediaInfoId: undefined,
+      mediaInfoIndex: undefined,
+      curStatus: "",
+      teamPersonArry:[]
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = true;
+    } else {
+      this.buttonAuthority = false;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.inspectType = superviseSubject.code;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+    }
+  },
+  computed: {
+    ...mapGetters(["areaArry", "inspectInfo", "userInfo"])
+  },
+  activated() {
+    this.getList();
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await logList(this.queryParams);
+      reponse.data.list &&
+        reponse.data.list.map(item => {
+          item["sinkDate"] = item.sinkDate.split(" ")[0];
+        });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+      this.getPerson();
+      this.getPersonList();
+      this.getSinkAll();
+      this.getCountyArry();
+    },
+    async getListb() {
+      this.loading = true;
+      const reponse = await logList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getPerson() {
+      const teamId = this.queryParams.inspectId;
+      //获取下沉人员
+      const personReponse = await inspectorPersonInfo({ teamId });
+      this.personArry = personReponse.data;
+    },
+    async getPersonList() {
+      const reponse = await severalPersonList({
+        teamId: this.queryParams.inspectId
+      });
+      this.teamPersonArry = reponse.data;
+    },
+    async getSinkAll() {
+      const parentId = this.queryParams.inspectId;
+      const reponse = await sinkAll({ parentId, level: 6 });
+      this.sinkAllArry = reponse.data;
+    },
+    async getCountyArry() {
+      const reponse = await areaTreeNew({
+        parentId: this.queryParams.inspectAreaCode
+      });
+      this.sinkCountyArry = reponse.data;
+    },
+    async handleSinkNameChange(teamId) {
+      for (const item in this.sinkAllArry) {
+        const subject = this.sinkAllArry[item];
+        if (subject.id === teamId) {
+          this.dialogParams.teamName = subject.name;
+        }
+      }
+      this.linkList = [];
+      for (const item in this.dialogParams.evidenceWithAddrList) {
+        const subject = this.dialogParams.evidenceWithAddrList[item];
+        subject.discoverList = [];
+        subject.problemId = undefined;
+      }
+      this.getLogSinkProblemList(teamId);
+    },
+    async getLogSinkProblemList(teamId) {
+      const reponse = await logSinkProblemList({
+        teamId
+      });
+      this.linkList = reponse.data;
+    },
+    async handleSinkPrombleChange(relationId) {
+      this.$forceUpdate();
+      const reponse = await logClueListByTableAndId({
+        relationTable: "TInspectProblem",
+        relationId
+      });
+      let data;
+      if (reponse.data) {
+        data = JSON.parse(JSON.stringify(reponse.data));
+      }
+      const addrList = this.dialogParams.evidenceWithAddrList[this.tabIndex]
+        .clewList;
+      if (addrList) {
+        const clewList = JSON.parse(
+          JSON.stringify(
+            this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList
+          )
+        );
+        const result = [];
+        for (let i = 0; i < data.length; i++) {
+          const isExist = false;
+          for (let j = 0; j < clewList.length; j++) {
+            if (clewList[j].clueId == data[i].id) {
+              isExist = true;
+              break;
+            }
+          }
+          if (!isExist) {
+            result.push(data[i]);
+          }
+        }
+        this.$set(
+          this.dialogParams.evidenceWithAddrList[this.tabIndex],
+          "discoverList",
+          result
+        );
+      } else {
+        this.dialogParams.evidenceWithAddrList[
+          this.tabIndex
+        ].discoverList = data;
+      }
+    },
+    async handleSinkPrombleChangeb(item, relationId) {
+      this.$forceUpdate();
+      const reponse = await logClueListByTableAndId({
+        relationTable: "TInspectProblem",
+        relationId
+      });
+      let data;
+      if (reponse.data) {
+        data = JSON.parse(JSON.stringify(reponse.data));
+      }
+      const addrList = this.dialogParams.evidenceWithAddrList[item].clewList;
+      if (addrList) {
+        const clewList = JSON.parse(
+          JSON.stringify(this.dialogParams.evidenceWithAddrList[item].clewList)
+        );
+        const result = [];
+        for (let i = 0; i < data.length; i++) {
+          const isExist = false;
+          for (let j = 0; j < clewList.length; j++) {
+            if (clewList[j].clueId == data[i].id) {
+              isExist = true;
+              break;
+            }
+          }
+          if (!isExist) {
+            result.push(data[i]);
+          }
+        }
+        this.$set(
+          this.dialogParams.evidenceWithAddrList[item],
+          "discoverList",
+          result
+        );
+      } else {
+        this.dialogParams.evidenceWithAddrList[item].discoverList = data;
+      }
+      // let newArr = [];
+      // let isExit;
+      // for (let i = 0; i < data.length; i++) {
+      //   for (let j = 0; j < clewList.length; j++) {
+      //     if (data[i].id === clewList[j].clueId) {
+      //       isExit = true;
+      //     }
+      //   }
+      //   isExit && newArr.push(data[i]);
+      // }
+      // console.log(newArr);
+    },
+    onQuery() {
+      this.getListb();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.countyCode = undefined;
+    },
+    handleNewly() {
+      this.logTitle = "新增下沉日志";
+      this.dialogParams.id = undefined;
+      this.dialogParams.inspectId = this.queryParams.inspectId;
+      this.dialogParams.evidenceWithAddrList[0].cityCode = this.queryParams.inspectAreaCode;
+      this.open = true;
+      this.tabIndex = 0;
+      this.editableTabsValue = "0";
+      this.linkList = [];
+      this.curStatus = "new";
+    },
+    handleSwitchChange(index, state) {
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList[
+        index
+      ].state = state;
+    },
+    async getNewId() {
+      const reponse = await logSinkId();
+      this.dialogParams.id = reponse.msg;
+    },
+    handleTabsEdit(targetName, action) {
+      if (action === "add") {
+        let len = this.dialogParams.evidenceWithAddrList.length;
+        let newTabName = "日志" + (len + 1);
+        this.dialogParams.evidenceWithAddrList.push({
+          title: newTabName,
+          name: len.toString(),
+          content: "New Tab content",
+          problemId: undefined,
+          addressId: "",
+          cityCode: undefined,
+          countyCode: undefined,
+          county: undefined,
+          address: undefined,
+          focusClueId: undefined,
+          unfocusClueId: undefined,
+          discoverList: [],
+          workArrange: [],
+          workArry: [],
+          inspectArry: [],
+          spotArry: [],
+          mediaArry: [],
+          evidenceId: undefined,
+          inquiryId: undefined,
+          surveyId: undefined,
+          mediaId: undefined,
+          bookBoolean: false,
+          inspectBoolean: false,
+          spotBoolean: false,
+          clewList: [],
+          deleteClewList: [],
+          deleteClewStr: undefined,
+          bookData: {
+            attachment: [],
+            name: []
+          }
+        });
+        const listLen = this.dialogParams.evidenceWithAddrList.length;
+        this.tabIndex = len;
+        this.editableTabsValue = this.tabIndex.toString();
+        this.$nextTick(() => {
+          this.dialogParams.evidenceWithAddrList[listLen - 1].workArrange = [];
+          this.$set(
+            this.dialogParams.evidenceWithAddrList[listLen - 1],
+            "workArrange",
+            []
+          );
+        });
+      }
+      if (action === "remove") {
+        if (this.dialogParams.evidenceWithAddrList.length == 1) {
+          return;
+        }
+        this.$confirm("是否要删除", "确认信息", {
+          distinguishCancelAndClose: true,
+          confirmButtonText: "删除",
+          cancelButtonText: "取消"
+        }).then(() => {
+          let tabs = this.dialogParams.evidenceWithAddrList;
+          let activeName = this.editableTabsValue;
+          if (activeName === targetName) {
+            tabs.forEach((tab, index) => {
+              if (tab.name === targetName) {
+                let nextTab = tabs[index + 1] || tabs[index - 1];
+                if (nextTab) {
+                  activeName = nextTab.name;
+                }
+              }
+            });
+          }
+          const evidenceList = tabs.filter(tab => {
+            return tab.name !== targetName;
+          });
+          this.dialogParams.evidenceWithAddrList = evidenceList.map(
+            (item, index) => {
+              item["title"] = "日志" + (index + 1);
+              item["name"] = index.toString();
+              return item;
+            }
+          );
+          const listLen = this.dialogParams.evidenceWithAddrList.length - 1;
+          this.editableTabsValue = listLen.toString();
+        });
+      }
+    },
+    toggleTab(tab) {
+      this.tabIndex = tab.index;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleEdit(data) {
+      this.curStatus = "new";
+      this.tabIndex = 0;
+      this.editableTabsValue = "0";
+      this.logTitle = "修改下沉日志";
+      const { id } = data;
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          for (const item in this.dialogParams.evidenceWithAddrList) {
+            const subject = this.dialogParams.evidenceWithAddrList[item];
+            if (!subject.cityCode && !subject.countyCode && !subject.address) {
+              this.$message.error("下沉地点不能为空");
+              return;
+            }
+            if (subject.problemId == undefined) {
+              this.$message.error("主要核实问题不能为空");
+              return;
+            }
+          }
+          for (const item in this.dialogParams.evidenceWithAddrList) {
+            const subject = this.dialogParams.evidenceWithAddrList[item];
+            subject.workArrange = subject.workArrange.join(",");
+            subject.evidenceId = this.handleArryIdChange(subject.workArry);
+            subject.inquiryId = this.handleArryIdChange(subject.inspectArry);
+            subject.surveyId = this.handleArryIdChange(subject.spotArry);
+            subject.mediaId = this.handleArryIdChange(subject.mediaArry);
+            const deleteClewListArry = [];
+            if (subject.deleteClewList) {
+              const deleteClewList = JSON.parse(
+                JSON.stringify(subject.deleteClewList)
+              );
+              for (const itemb in deleteClewList) {
+                const subjectb = deleteClewList[itemb];
+                deleteClewListArry.push(subjectb.clueId);
+              }
+            }
+            subject.deleteClewStr = deleteClewListArry.join(",");
+          }
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.inspectId = this.queryParams.inspectId;
+          this.dialogParams.sinkPersonId = this.dialogParams.sinkPersonId.join(
+            ","
+          );
+          const reponse = await logSave(this.dialogParams);
+          loading.close();
+          this.$message({
+            message: "保存成功",
+            type: "success"
+          });
+          this.handleDialogClose();
+          this.getListb();
+        }
+      });
+    },
+    handleArryIdChange(data) {
+      let IdArry = [];
+      if (data.length > 0) {
+        for (const item in data) {
+          const subject = data[item];
+          IdArry.push(subject.id);
+        }
+        return IdArry.join(",");
+      } else {
+        return undefined;
+      }
+    },
+    handleSee(data) {
+      this.curStatus = "view";
+      const { id } = data;
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    handleDialogCheckClose() {
+      this.check = false;
+      this.dialogParams.id = undefined;
+      this.dialogParams.teamId = undefined;
+      this.dialogParams.teamName = undefined;
+      this.dialogParams.sinkDate = undefined;
+      this.dialogParams.sinkPersonId = [];
+      this.dialogParams.evidenceWithAddrList = [
+        {
+          title: "日志1",
+          name: "0",
+          problemId: undefined,
+          addressId: "",
+          cityCode: undefined,
+          countyCode: undefined,
+          county: undefined,
+          address: undefined,
+          focusClueId: undefined,
+          unfocusClueId: undefined,
+          discoverList: [],
+          workArrange: [],
+          workArry: [],
+          inspectArry: [],
+          spotArry: [],
+          mediaArry: [],
+          evidenceId: undefined,
+          inquiryId: undefined,
+          surveyId: undefined,
+          mediaId: undefined,
+          bookBoolean: false,
+          inspectBoolean: false,
+          spotBoolean: false,
+          clewList: [],
+          deleteClewList: [],
+          deleteClewStr: undefined,
+          bookData: {
+            attachment: [],
+            name: []
+          }
+        }
+      ];
+    },
+    async getDialogInfo(id) {
+      const reponse = await logSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.inspectId = this.queryParams.inspectId;
+      this.dialogParams.teamId = subject.teamId;
+      this.dialogParams.teamName = subject.teamName;
+      this.dialogParams.sinkDate = subject.sinkDate.split(" ")[0];
+      this.dialogParams.sinkPersonId = subject.sinkPersonId.split(",");
+      this.dialogParams.sinkPerson = subject.sinkPerson;
+      this.dialogParams.evidenceWithAddrList = [];
+      for (const item in subject.evidenceWithAddrList) {
+        const subjectc = subject.evidenceWithAddrList[item];
+        this.dialogParams.evidenceWithAddrList.push({});
+        this.dialogParams.evidenceWithAddrList[item].title =
+          "日志" + (Number(item) + 1);
+        this.dialogParams.evidenceWithAddrList[item].name = item.toString();
+        this.dialogParams.evidenceWithAddrList[item].cityCode =
+          subjectc.cityCode;
+        this.dialogParams.evidenceWithAddrList[item].countyCode =
+          subjectc.countyCode;
+        this.dialogParams.evidenceWithAddrList[item].address = subjectc.address;
+        this.dialogParams.evidenceWithAddrList[item].problemId =
+          subjectc.problemId;
+        // this.dialogParams.evidenceWithAddrList[
+        //   item
+        // ].workArrange = [];
+        // debugger;
+
+        if (subjectc.workArrange) {
+          const workArrangeArry = subjectc.workArrange.split(",");
+          this.dialogParams.evidenceWithAddrList[item].workArrange = [];
+
+          this.$nextTick(() => {
+            this.dialogParams.evidenceWithAddrList[
+              item
+            ].workArrange = workArrangeArry;
+            this.handleReviewChangeb(item, workArrangeArry);
+          });
+        } else {
+          this.dialogParams.evidenceWithAddrList[item].workArrange = [];
+        }
+        this.dialogParams.evidenceWithAddrList[item].addressId =
+          subjectc.addressId;
+        this.dialogParams.evidenceWithAddrList[item].clewList = [];
+        this.dialogParams.evidenceWithAddrList[item].deleteClewList = [];
+        this.dialogParams.evidenceWithAddrList[item].deleteClewStr = undefined;
+        const clewList = subjectc.linkClueInfoList;
+        if (subjectc.linkClueInfoList) {
+          // const clewList = [];
+          // const focusClue = childMap.focusClue;
+          // const unfocusClue = childMap.unfocusClue;
+          // if (childMap.focusClue) {
+          //   focusClue.map(item => {
+          //     item["state"] = true;
+          //   });
+          //   clewList.push(...focusClue);
+          // }
+          // if (childMap.unfocusClue) {
+          //   unfocusClue.map(item => {
+          //     item["state"] = false;
+          //   });
+          //   clewList.push(...unfocusClue);
+          // }
+          this.dialogParams.evidenceWithAddrList[item].clewList = clewList;
+        }
+        const childMap = subjectc.childMap;
+        if (subjectc.childMap) {
+          if (childMap.szList) {
+            const workArry = [];
+            const bookData = {
+              attachment: [],
+              name: []
+            };
+            for (const item in childMap.szList) {
+              const subject = childMap.szList[item];
+              const temp = {
+                id: subject.id,
+                name: subject.name
+              };
+              bookData.attachment.push(subject.id);
+              bookData.name.push(subject.name);
+              workArry.push(temp);
+            }
+            this.dialogParams.evidenceWithAddrList[item].workArry = workArry;
+            this.dialogParams.evidenceWithAddrList[item].bookData = bookData;
+          } else {
+            this.dialogParams.evidenceWithAddrList[item].workArry = [];
+          }
+
+          if (childMap.dcxwList) {
+            const inspectArry = [];
+            for (const itemb in childMap.dcxwList) {
+              const subjectb = childMap.dcxwList[itemb];
+              inspectArry.push({
+                id: subjectb.id,
+                theme: subjectb.theme + "询问笔录"
+              });
+            }
+            this.dialogParams.evidenceWithAddrList[
+              item
+            ].inspectArry = inspectArry;
+          } else {
+            this.dialogParams.evidenceWithAddrList[item].inspectArry = [];
+          }
+
+          if (childMap.kcblList) {
+            const spotArry = [];
+            const kcblList = childMap.kcblList;
+            for (const item in kcblList) {
+              const subjectb = kcblList[item];
+              spotArry.push({
+                actualCityName: subjectb.actualCityName + "勘察笔录",
+                id: subjectb.id
+              });
+            }
+            this.dialogParams.evidenceWithAddrList[item].spotArry = spotArry;
+          } else {
+            this.dialogParams.evidenceWithAddrList[item].spotArry = [];
+          }
+          if (childMap.mediaList) {
+            const mediaArry = [];
+            const mediaList = childMap.mediaList;
+            for (const item in mediaList) {
+              const subjectb = mediaList[item];
+              mediaArry.push({
+                mediaExplain: subjectb.mediaExplain + "现场多媒体证据",
+                id: subjectb.id
+              });
+            }
+            this.dialogParams.evidenceWithAddrList[item].mediaArry = mediaArry;
+          } else {
+            this.dialogParams.evidenceWithAddrList[item].mediaArry = [];
+          }
+        } else {
+          this.dialogParams.evidenceWithAddrList[item].workArry = [];
+          this.dialogParams.evidenceWithAddrList[item].inspectArry = [];
+          this.dialogParams.evidenceWithAddrList[item].spotArry = [];
+          this.dialogParams.evidenceWithAddrList[item].mediaArry = [];
+        }
+        this.$nextTick(() => {
+          this.handleSinkPrombleChangeb(item, subjectc.problemId);
+        });
+      }
+      this.getLogSinkProblemList(subject.teamId);
+    },
+
+    handleWorkClick() {
+      this.bookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.bookRef.handleWorkArry();
+      });
+    },
+    handleBookClose(data) {
+      const bookData = JSON.parse(JSON.stringify(data));
+      const workArry = [];
+      for (const item in bookData.attachment) {
+        const id = bookData.attachment[item];
+        const temp = {
+          id,
+          name: bookData.name[item]
+        };
+        workArry.push(temp);
+      }
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].workArry = workArry;
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].bookData = bookData;
+      this.bookOpen = false;
+    },
+    handleWorkClose(index) {
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].workArry.splice(
+        index,
+        1
+      );
+    },
+    handleInspectClick() {
+      this.inspectOpen = true;
+      this.$nextTick(() => {
+        this.$refs.inspectRef.handleInspectArry();
+        this.$refs.inspectRef.getShowNum();
+        this.$refs.inspectRef.getNewId();
+      });
+    },
+    handleInspectClose(data) {
+      const inspectData = JSON.parse(JSON.stringify(data));
+      console.log(inspectData.clewList);
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].inspectArry =
+        inspectData.inspectArryOther;
+      inspectData.clewList &&
+        inspectData.clewList.map(item => {
+          if (!item.state) {
+            item["state"] = false;
+          }
+        });
+      // this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList =
+      //   inspectData.clewList;
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList =
+        inspectData.clewList;
+      this.inspectOpen = false;
+    },
+    async handleClueInspectClose(index, id) {
+      
+      debugger;
+      const reponse = await severalDelete({ id });
+      if (reponse.code == 200) {
+        const clewList = JSON.parse(
+          JSON.stringify(
+            this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList
+          )
+        );
+        const deleteClewList = [];
+        if (clewList) {
+          for (var i = clewList.length - 1; i >= 0; i--) {
+            if (clewList[i].indentId == id) {
+              deleteClewList.push(clewList[i]);
+              clewList.splice(i, 1);
+            }
+          }
+        }
+        // this.dialogParams.evidenceWithAddrList[
+        //   this.tabIndex
+        // ].clewList = clewList;
+        this.dialogParams.evidenceWithAddrList[
+          this.tabIndex
+        ].deleteClewList.push(...deleteClewList);
+
+        this.dialogParams.evidenceWithAddrList[
+          this.tabIndex
+        ].inspectArry.splice(index, 1);
+
+        this.$set(
+          this.dialogParams.evidenceWithAddrList[this.tabIndex],
+          "clewList",
+          clewList
+        );
+        this.$message({
+          message: "删除成功",
+          type: "success"
+        });
+        this.$forceUpdate();
+      } else {
+        this.$message.error("删除失败");
+      }
+    },
+    handleInspectInfoClick(id, index) {
+      this.inspectInfoId = id;
+      this.inspectInfoIndex = index;
+      this.inspectOpen = true;
+      this.$nextTick(() => {
+        this.$refs.inspectRef.handleEdit();
+      });
+    },
+    handleSpotClick() {
+      this.spotOpen = true;
+      this.$nextTick(() => {
+        this.$refs.spotRef.handleInspectArry();
+        this.$refs.spotRef.getShowNum();
+        this.$refs.spotRef.getNewId();
+      });
+    },
+    handleSpotClose(data) {
+      const inspectData = JSON.parse(JSON.stringify(data));
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].spotArry =
+        inspectData.spotArryOther;
+      inspectData.clewList &&
+        inspectData.clewList.map(item => {
+          if (!item.state) {
+            item["state"] = false;
+          }
+        });
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList =
+        inspectData.clewList;
+      this.spotOpen = false;
+    },
+    async handleClueSpotClose(index, id) {
+      const reponse = await severalDelete({ id });
+      if (reponse.code == 200) {
+        const clewList = JSON.parse(
+          JSON.stringify(
+            this.dialogParams.evidenceWithAddrList[this.tabIndex].clewList
+          )
+        );
+        const deleteClewList = [];
+        if (clewList) {
+          for (var i = clewList.length - 1; i >= 0; i--) {
+            if (clewList[i].indentId == id) {
+              deleteClewList.push(clewList[i]);
+              clewList.splice(i, 1);
+            }
+          }
+        }
+        this.dialogParams.evidenceWithAddrList[
+          this.tabIndex
+        ].deleteClewList.push(...deleteClewList);
+        this.dialogParams.evidenceWithAddrList[this.tabIndex].spotArry.splice(
+          index,
+          1
+        );
+        this.$set(
+          this.dialogParams.evidenceWithAddrList[this.tabIndex],
+          "clewList",
+          clewList
+        );
+        this.$message({
+          message: "删除成功",
+          type: "success"
+        });
+        this.$forceUpdate();
+      } else {
+        this.$message.error("删除失败");
+      }
+    },
+    handleSpotInfoClick(id, index) {
+      this.spotInfoId = id;
+      this.spotInfoIndex = index;
+      this.spotOpen = true;
+      this.$nextTick(() => {
+        this.$refs.spotRef.handleEdit();
+      });
+    },
+    handleMediaClick() {
+      this.mediaOpen = true;
+      this.$nextTick(() => {
+        this.$refs.mediaRef.handleInspectArry();
+      });
+    },
+    handleMediaClose(data) {
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].mediaArry = data;
+      this.mediaOpen = false;
+    },
+    handleClueMediaClose(index) {
+      this.$forceUpdate();
+      this.dialogParams.evidenceWithAddrList[this.tabIndex].mediaArry.splice(
+        index,
+        1
+      );
+    },
+    handleMediaInfoClick(id, index) {
+      this.mediaInfoId = id;
+      this.mediaInfoIndex = index;
+      this.mediaOpen = true;
+      this.$nextTick(() => {
+        this.$refs.mediaRef.handleEdit();
+      });
+    },
+
+    handleDialogClose() {
+      this.open = false;
+      this.handleDialogCheckClose();
+      this.handleformClear("dialogForm");
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await logDelete({ id });
+        this.getListb();
+      });
+    },
+
+    handleformClear(formName) {
+      this.$nextTick(() => {
+        this.resetFieldsTap(formName);
+      });
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    },
+    // 查看线索详情
+    async handleClewClick(id) {
+      this.clewId = id;
+      this.lookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.clewRef.handleEdit();
+      });
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    handleReviewChangeb(item, value) {
+      value.indexOf("0") > -1
+        ? (this.dialogParams.evidenceWithAddrList[item].bookBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[item].bookBoolean = false);
+      value.indexOf("1") > -1
+        ? (this.dialogParams.evidenceWithAddrList[item].inspectBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[item].inspectBoolean = false);
+      value.indexOf("2") > -1
+        ? (this.dialogParams.evidenceWithAddrList[item].spotBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[item].spotBoolean = false);
+    },
+    handleReviewChange(value) {
+      this.$nextTick(() => {
+        this.$forceUpdate();
+      });
+      const index = this.tabIndex;
+      value.indexOf("0") > -1
+        ? (this.dialogParams.evidenceWithAddrList[index].bookBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[index].bookBoolean = false);
+      value.indexOf("1") > -1
+        ? (this.dialogParams.evidenceWithAddrList[index].inspectBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[
+            index
+          ].inspectBoolean = false);
+      value.indexOf("2") > -1
+        ? (this.dialogParams.evidenceWithAddrList[index].spotBoolean = true)
+        : (this.dialogParams.evidenceWithAddrList[index].spotBoolean = false);
+      // this.$nextTick(() => {
+      //   value.indexOf("0") > -1
+      //     ? (this.dialogParams.evidenceWithAddrList[index].bookBoolean = true)
+      //     : (this.dialogParams.evidenceWithAddrList[index].bookBoolean = false);
+      //   value.indexOf("1") > -1
+      //     ? (this.dialogParams.evidenceWithAddrList[
+      //         index
+      //       ].inspectBoolean = true)
+      //     : (this.dialogParams.evidenceWithAddrList[
+      //         index
+      //       ].inspectBoolean = false);
+      //   value.indexOf("2") > -1
+      //     ? (this.dialogParams.evidenceWithAddrList[index].spotBoolean = true)
+      //     : (this.dialogParams.evidenceWithAddrList[index].spotBoolean = false);
+      // });
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.manage-info {
+  .info-item {
+    .info-item-title {
+      width: 120px;
+      text-align: right;
+      padding-right: 10px;
+    }
+  }
+}
+.info-item-list {
+  margin: 0px;
+  padding: 0px;
+  .info-item-item {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    width: 300px;
+    .info-item-text {
+      max-width: 268px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+.clue-close {
+  color: red;
+  margin-left: 20px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  text-align: center;
+  line-height: 20px;
+}
+.manage-box-other {
+  border: 1px solid #d7d7d7;
+  margin-top: 10px;
+  .info-item {
+    border-bottom: 0px;
+  }
+}
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 62%;
+      }
+    }
+  }
+}
+/deep/.el-select-dropdown__list {
+  /deep/.el-select-dropdown__item {
+    width: 300px;
+  }
+}
+</style>

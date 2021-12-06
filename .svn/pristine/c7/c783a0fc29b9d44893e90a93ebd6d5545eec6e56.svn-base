@@ -1,0 +1,349 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">工作简报</h1>
+    <div class="tab-list-content">
+      <national-info @nameChange="getList"></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="简报标题：">
+                <el-input
+                  v-model="queryParams.title"
+                  placeholder="请输入简报标题"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="简报日期：">
+                <el-date-picker
+                  v-model="issueDate"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="issueDateChange"
+                ></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          prop="title"
+          label="简报标题"
+          min-width="200px"
+          class="column-left"
+        ></el-table-column>
+        <el-table-column
+          prop="issueNum"
+          label="简报期号"
+          width="140px"
+        ></el-table-column>
+        <el-table-column
+          prop="reportDate"
+          label="简报日期"
+          width="200px"
+        ></el-table-column>
+        <el-table-column label="简报预览" width="260px">
+          <template v-slot="scope">
+            <span
+              class="accounChunk"
+              @click="handlePreviewClick(scope.row.attachmentId)"
+              >{{ scope.row.attachmentName }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="createByName"
+          label="上传人"
+          width="140px"
+        ></el-table-column>
+        <el-table-column
+          prop="createDate"
+          label="上报日期"
+          width="180px"
+        ></el-table-column>
+        <el-table-column label="操作" width="150">
+          <template slot-scope="scope">
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="新增工作简报"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <examineInfo />
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">工作简报</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="标题：" prop="title">
+              <el-input
+                v-model="dialogParams.title"
+                placeholder="请输入标题"
+                maxlength="120"
+                show-word-limit
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="简报期号：" prop="issueNum">
+              <el-input
+                v-model="dialogParams.issueNum"
+                placeholder="请输入简报期号"
+                maxlength="30"
+                show-word-limit
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="简报日期：" prop="reportDate">
+              <el-date-picker
+                v-model="dialogParams.reportDate"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请输入简报日期"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="简报文件：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                :limit="1"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  bulletinList,
+  bulletinSave,
+  bulletinSee,
+  bulletinDelete
+} from "@/api/national/bulletin";
+import examineInfo from "@/components/examineInfo";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    examineInfo,
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        bigType: 2,
+        title: undefined,
+        beginReportDate: undefined,
+        endReportDate: undefined,
+        smallType: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        bigType: 2,
+        title: undefined,
+        issueNum: undefined,
+        reportDate: undefined,
+        attachmentId: undefined,
+        smallType: undefined
+      },
+      dialogRules: {
+        title: [{ required: true, message: "请输入标题" }],
+        issueNum: [{ required: true, message: "请输入简报期数" }],
+        reportDate: [{ required: true, message: "请输入简报日期" }],
+        attachmentId: [{ required: true, message: "请上传简报文件" }]
+      },
+      issueDate: undefined
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.queryParams.smallType = this.inspectInfo.suite.superviseType;
+    } else {
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.queryParams.smallType = superviseSubject.superviseType;
+    }
+
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await bulletinList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    handleNewly() {
+      this.open = true;
+      this.handleformClear("dialogForm");
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.title = undefined;
+      this.issueDate = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          this.dialogParams.smallType = this.inspectInfo.suite.superviseType;
+          const reponse = await bulletinSave(this.dialogParams);
+          loading.close();
+          this.$refs.uploadFile.handleClear();
+          this.open = false;
+          this.getList();
+        }
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.handleformClear("dialogForm");
+      this.$refs.uploadFile.handleClear();
+    },
+    handleEdit({ id }) {
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await bulletinSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.title = subject.title;
+      this.dialogParams.issueNum = subject.issueNum;
+      this.dialogParams.reportDate = subject.reportDate;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.$nextTick(() => {
+        this.$refs.uploadFile.getFileMessageInfo();
+      });
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await bulletinDelete({ id });
+        this.getList();
+      });
+    },
+    async handleDownloadClick(fileId) {
+      getSingleInfo(fileId);
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginReportDate = undefined;
+        this.queryParams.endReportDate = undefined;
+      } else {
+        this.queryParams.beginReportDate = picker[0];
+        this.queryParams.endReportDate = picker[1];
+      }
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

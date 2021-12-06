@@ -1,0 +1,169 @@
+<template>
+  <div>
+    <el-dialog
+      title="查看"
+      :visible.sync="lookOpen"
+      :before-close="handleDialogLookClose"
+      width="80%"
+      append-to-body
+    >
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索名称：</span>
+            <span class="info-item-content">{{ manageInfo.clueName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索编号：</span>
+            <span class="info-item-content">{{ manageInfo.clueNum }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">线索来源：</span>
+            <span class="info-item-content">{{
+              manageInfo.clueSourceName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">污染类型：</span>
+            <span class="info-item-content">{{
+              manageInfo.pollutionTypeName
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">问题属性：</span>
+            <span class="info-item-content">{{ manageInfo.problemType }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索所在地：</span>
+            <span class="info-item-content">
+              {{ manageInfo.city }}{{ manageInfo.county }}{{ manageInfo.town }}
+              {{ manageInfo.address }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.longitude }}
+            </span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.latitude }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索内容：</span>
+            <span class="info-item-content">{{ manageInfo.clueContent }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索相关资料：</span>
+            <span
+              class="info-item-content accounChunk"
+              @click="handleDownLoadDoc(manageInfo.attachmentId)"
+              >{{ manageInfo.attachmentName }}</span
+            >
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { threadSee } from "@/api/burg/prepare";
+import { getFileInfo } from "@/api/file";
+import { getSingleInfo } from "@/utils/styem";
+export default {
+  props: {
+    clewId: {
+      type: String
+    },
+    lookOpen: {
+      type: Boolean
+    }
+  },
+  data() {
+    return {
+      manageInfo: {
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachementPath: undefined,
+        attachmentName: undefined,
+        weatherFocus: undefined,
+        longitude:undefined,
+        latitude:undefined
+      }
+    };
+  },
+  methods: {
+    handleDialogLookClose() {
+      this.$emit("handleLookClose");
+    },
+    handleEdit() {
+      this.getDetailInfo(this.clewId);
+    },
+    async getDetailInfo(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.manageInfo.clueName = subject.clueName;
+      this.manageInfo.clueNum = subject.clueNum;
+      this.manageInfo.clueSourceName = subject.clueSourceName;
+      this.manageInfo.pollutionTypeName = subject.pollutionTypeName;
+      this.manageInfo.problemType = subject.problemType;
+      this.manageInfo.city = subject.city;
+      this.manageInfo.county = subject.county;
+      this.manageInfo.town = subject.town;
+      this.manageInfo.address = subject.address;
+      this.manageInfo.clueContent = subject.clueContent;
+      this.manageInfo.weatherFocus = subject.weatherFocus;
+      this.manageInfo.attachmentId = subject.attachmentId;
+      this.manageInfo.attachmentName = subject.attachmentName;
+      this.manageInfo.longitude = subject.longitude;
+      this.manageInfo.latitude = subject.latitude;
+    },
+    dialogParamsClear() {
+      this.manageInfo.clueName = undefined;
+      this.manageInfo.clueNum = undefined;
+      this.manageInfo.clueSourceName = undefined;
+      this.manageInfo.pollutionTypeName = undefined;
+      this.manageInfo.problemType = undefined;
+      this.manageInfo.city = undefined;
+      this.manageInfo.county = undefined;
+      this.manageInfo.town = undefined;
+      this.manageInfo.address = undefined;
+      this.manageInfo.clueContent = undefined;
+      this.manageInfo.attachementPath = undefined;
+      this.manageInfo.attachmentName = undefined;
+      this.manageInfo.longitude = undefined;
+      this.manageInfo.latitude = undefined;
+    },
+    handleDownLoadDoc(attachmentId) {
+      this.getSingleInfo(attachmentId);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+</style>

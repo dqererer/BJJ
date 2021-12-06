@@ -1,0 +1,15 @@
+// 人员管理
+import { getAction, postAction, postForm } from '../manage'
+const path = process.env.VUE_APP_BASE_API;
+
+const personnelList = params => getAction(path + `/center/tcommon/member/tCommonMember/list`, params);
+const personnelDelete = params => postAction(path + `/center/tcommon/member/tCommonMember/delete`, params);
+const personnelSave = params => postForm(path + `/center/tcommon/member/tCommonMember/save`, params);
+const personnelSee = params => getAction(path + `/center/tcommon/member/tCommonMember/getInfoById`, params);
+
+export {
+    personnelList,
+    personnelDelete,
+    personnelSave,
+    personnelSee
+}

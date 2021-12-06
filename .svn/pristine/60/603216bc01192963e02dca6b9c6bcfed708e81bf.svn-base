@@ -1,0 +1,981 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">审核</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.teamId"
+        :areaCode.sync="queryParams.inspectAreaCode"
+        :areaName.sync="queryParams.inspectAreaName"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="举报内容：">
+                <el-input
+                  v-model="queryParams.tipOffContent"
+                  placeholder="请输入举报内容"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="举报编号：">
+                <el-input
+                  v-model="queryParams.tipNumber"
+                  placeholder="请输入举报编号"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="举报时间：">
+                <el-date-picker
+                  v-model="issueDate"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  value-format="yyyy-MM-dd"
+                  @change="issueDateChange"
+                ></el-date-picker>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="污染类型：">
+                <el-select
+                  v-model="queryParams.pollutionLevelOne"
+                  placeholder="请选择污染类型"
+                >
+                  <el-option
+                    v-for="item in pollutantArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="举报来源：">
+                <el-select
+                  v-model="queryParams.tipType"
+                  placeholder="请选择举报来源"
+                >
+                  <el-option
+                    v-for="item in tipArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleComplaint" type="danger"
+          >不受理</el-button
+        >
+        <el-button size="small" @click="handleAttention" type="primary"
+          >重点关注</el-button
+        >
+        <el-button size="small" @click="handleRandomy" type="primary"
+          >纳入抽查</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table
+        v-loading="loading"
+        :data="List"
+        border
+        @selection-change="handleSelectionChange"
+        :stripe="true"
+      >
+        <el-table-column type="selection" width="50"></el-table-column>
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          prop="tipOffContent"
+          label="举报主要内容"
+          :show-overflow-tooltip="true"
+          min-width="200px"
+          class="column-left"
+        ></el-table-column>
+        <el-table-column label="旗县" width="180px">
+          <template slot-scope="scope">
+            {{ scope.row.cityName }}{{ scope.row.countyName }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="举报地址"
+          :show-overflow-tooltip="true"
+          width="180px"
+        >
+          <template slot-scope="scope">
+            {{ scope.row.address }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="tipNumber"
+          label="举报编号"
+          width="140px"
+        ></el-table-column>
+        <el-table-column
+          prop="tipTime"
+          label="举报时间"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="tipBy"
+          label="举报人"
+          width="100px"
+        ></el-table-column>
+        <el-table-column
+          prop="pollutionType"
+          label="污染类型"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="industryName"
+          label="行业类型"
+          width="120px"
+        ></el-table-column>
+        <el-table-column
+          prop="tipTypeName"
+          label="举报类型"
+          width="80px"
+        ></el-table-column>
+        <el-table-column
+          prop="importantFlagName"
+          label="重点关注"
+          width="80px"
+        ></el-table-column>
+        <el-table-column
+          prop="spotFlagName"
+          label="纳入抽查"
+          width="80px"
+        ></el-table-column>
+        <el-table-column label="操作" width="80">
+          <template slot-scope="scope">
+            <el-button
+              size="mini"
+              type="primary"
+              @click="handleCheck(scope.row)"
+              >审核</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="审核"
+      :visible.sync="open"
+      width="80%"
+      :before-close="handleDialogClose"
+      append-to-body
+    >
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">举报内容</h1>
+      </div>
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">轮次：</span>
+            <span class="info-item-content">{{ manageInfo.roundName }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">督查省份：</span>
+            <span class="info-item-content">{{
+              manageInfo.inspectAreaName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报编号：</span>
+            <span class="info-item-content">{{ dialogParams.tipNumber }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报类型：</span>
+            <span class="info-item-content">{{ manageInfo.tipTypeName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报人：</span>
+            <span class="info-item-content">{{ manageInfo.tipBy }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">举报时间：</span>
+            <span class="info-item-content">{{ manageInfo.tipTime }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">来电显示号码：</span>
+            <span class="info-item-content">{{
+              manageInfo.reporterPhoneShow
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">行业类型：</span>
+            <span class="info-item-content">{{ manageInfo.industryType }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">主要举报内容：</span>
+            <span class="info-item-content">{{
+              manageInfo.tipOffContent
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">举报地址：</span>
+            <span class="info-item-content">{{ manageInfo.tipAddress }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">污染类型：</span>
+            <span class="info-item-content">{{
+              manageInfo.pollutionType
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">备注：</span>
+            <span class="info-item-content">{{ manageInfo.remarks }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">举报审核</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="审核人：">
+              <el-input readonly v-model="manageInfo.checkByName"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="审核时间：" prop="checkTime">
+              <el-date-picker
+                v-model="dialogParams.checkTime"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择审核时间"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="是否修改内容">
+              <el-checkbox-group
+                v-model="reviewContent"
+                @change="handleReviewChange"
+              >
+                <el-checkbox label="0">行业类型</el-checkbox>
+                <el-checkbox label="1">举报内容</el-checkbox>
+                <el-checkbox label="2">举报地址</el-checkbox>
+              </el-checkbox-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24" v-if="industryTypeBoolean == true">
+          <el-col :span="12">
+            <el-form-item label="行业类型修正：" prop="industryTypeReview">
+              <el-select
+                v-model="dialogParams.industryTypeReview"
+                placeholder="请选择行业类型"
+              >
+                <el-option
+                  v-for="item in industryArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24" v-if="tipOffContentBoolean == true">
+          <el-col :span="24">
+            <el-form-item label="举报内容修正：" prop="tipOffContentReivew">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.tipOffContentReivew"
+                placeholder="请输入举报内容修正"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24" v-if="addressBoolean == true">
+          <el-col :span="24">
+            <el-form-item
+              label="举报地址修正："
+              class="meet-address"
+              prop="addressReview"
+            >
+              <el-select
+                v-model="dialogParams.cityReview"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.countyRevire"
+                filterable
+                placeholder="请选择县"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-input
+                v-model="dialogParams.addressReview"
+                placeholder="详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="是否受理：" prop="weatherAccept">
+              <el-radio-group v-model="dialogParams.weatherAccept">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="dialogParams.weatherAccept === '0'">
+            <el-form-item label="不受理原因：" prop="handIdea">
+              <el-input
+                v-model="dialogParams.handIdea"
+                placeholder="请输入不受理原因"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="是否重复：" prop="repeatFlag">
+              <el-radio-group v-model="dialogParams.repeatFlag">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24" v-if="dialogParams.repeatFlag === '1'">
+            <el-form-item label="重复举报编号：" prop="repeatNums">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.repeatNums"
+                placeholder="请输入重复举报编号"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="纳入抽查范围：" prop="spotFlag">
+              <el-radio-group v-model="dialogParams.spotFlag">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="是否重点关注：" prop="importantFlag">
+              <el-radio-group v-model="dialogParams.importantFlag">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="是否转办：" prop="weatherTransfer">
+              <el-radio-group v-model="dialogParams.weatherTransfer">
+                <el-radio label="1">是</el-radio>
+                <el-radio label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="dialogParams.weatherTransfer === '1'">
+            <el-form-item label="办理时限：">
+              <el-date-picker
+                v-model="dialogParams.handleDeadline"
+                format="yyyy-MM-d"
+                value-format="yyyy-MM-dd"
+                type="date"
+                placeholder="请选择办理时限"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24" v-if="dialogParams.weatherTransfer === '1'">
+          <el-col :span="24">
+            <el-form-item label="拟办意见：">
+              <el-input
+                type="textarea"
+                v-model="dialogParams.proposal"
+                placeholder="请输入拟办意见"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="不受理"
+      :visible.sync="noAccpetOpen"
+      width="80%"
+      :before-close="handleDialogNoAccpetClose"
+      append-to-body
+    >
+      <p class="noAccpet-text">
+        本次选中<b class="noAccpet-b">{{ dialogNoAccpetParams.noAccpetNum }}</b
+        >条数据，请填写不受理原因
+      </p>
+      <el-form
+        ref="dialogNoAccpetForm"
+        :model="dialogNoAccpetParams"
+        :rules="dialogNoAccpetRules"
+        label-width="80px"
+        class="dialogForm"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="不受理原因：" prop="handleIdea">
+              <el-input
+                type="textarea"
+                v-model="dialogNoAccpetParams.handleIdea"
+                placeholder="请输入不受理原因"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogNoAccpetubmit"
+            >保存</el-button
+          >
+          <el-button type="primary" @click="handleDialogNoAccpetClose"
+            >关闭</el-button
+          >
+        </div>
+      </el-form>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  acceptList,
+  acceptCheckSave,
+  acceptCheckReject,
+  acceptCheckPay,
+  acceptCheckSpot,
+  acceptCheckInfo
+} from "@/api/burg/garrison";
+import nationalInfo from "@/components/nationalInfo";
+import { getdownLoadZip, getSingleInfo } from "@/utils/styem";
+import { dictListType } from "@/api/styem/dict/type";
+import { getFileInfo } from "@/api/file";
+import { areaTreeNew } from "@/api/styem/dept";
+import { mapGetters } from "vuex";
+export default {
+  components: {
+    nationalInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      pollutantArry: [],
+      tipArry: [],
+      industryArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        tipOffContent: undefined,
+        tipNumber: undefined,
+        beginTipTime: undefined,
+        endTipTime: undefined,
+        pollutionLevelOne: undefined,
+        tipType: undefined,
+        state: 1,
+        teamId: undefined,
+        inspectAreaCode: undefined,
+        inspectAreaName: undefined
+      },
+      issueDate: undefined,
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      manageInfo: {
+        roundName: undefined,
+        inspectAreaName: undefined,
+        tipTypeName: undefined,
+        tipBy: undefined,
+        tipTime: undefined,
+        reporterPhoneShow: undefined,
+        industryType: undefined,
+        tipOffContent: undefined,
+        tipAddress: undefined,
+        pollutionType: undefined,
+        remarks: undefined,
+        checkByName: undefined
+      },
+      dialogParams: {
+        id: undefined,
+        tipType: undefined,
+        tipNumber: undefined,
+        checkBy: undefined,
+        checkTime: undefined,
+        industryTypeReview: undefined,
+        tipOffContentReivew: undefined,
+        cityReview: undefined,
+        countyRevire: undefined,
+        addressReview: undefined,
+        weatherAccept: "1",
+        handIdea: undefined,
+        repeatFlag: "1",
+        repeatNums: undefined,
+        spotFlag: "1",
+        importantFlag: "1",
+        weatherTransfer: "1",
+        handleDeadline: undefined,
+        proposal: undefined,
+        teamId: undefined,
+        modifyItems: undefined
+      },
+      amend: {
+        industryTypeReview: undefined,
+        tipOffContentReivew: undefined,
+        cityReview: undefined,
+        countyRevire: undefined,
+        addressReview: undefined
+      },
+      dialogRules: {
+        checkTime: [{ required: true, message: "请选择审核时间" }],
+        industryTypeReview: [{ required: true, message: "请选择行业类型" }],
+        tipOffContentReivew: [
+          { required: true, message: "请输入举报内容修正" }
+        ],
+        addressReview: [{ required: true, message: "请输入地址" }],
+        weatherAccept: [{ required: true, message: "请选择是否受理" }],
+        repeatFlag: [{ required: true, message: "请选择是否重复" }],
+        spotFlag: [{ required: true, message: "请选择纳入抽查范围" }],
+        importantFlag: [{ required: true, message: "请选择是否重点关注" }],
+        weatherTransfer: [{ required: true, message: "请选择是否转办" }]
+      },
+      countyArry: [],
+      multipleSelection: [],
+      reviewContent: [],
+      industryTypeBoolean: false,
+      tipOffContentBoolean: false,
+      addressBoolean: false,
+      noAccpetOpen: false,
+      dialogNoAccpetParams: {
+        noAccpetNum: undefined,
+        idList: undefined,
+        handleIdea: undefined
+      },
+      dialogNoAccpetRules: {
+        handleIdea: [{ required: true, message: "请输入不受理原因" }]
+      }
+    };
+  },
+  created() {
+    this.getList();
+    this.getDictPollutant();
+    this.getDictTip();
+    this.getDictIndustry();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "userInfo", "areaArry"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await acceptList(this.queryParams);
+      reponse.data.list &&
+        reponse.data.list.map(item => {
+          item["importantFlagName"] = item.importantFlag == 1 ? "是" : "否";
+          item["spotFlagName"] = item.spotFlag == 1 ? "是" : "否";
+        });
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    async getDictTip() {
+      const reponse = await dictListType({ type: "tip_type" });
+      this.tipArry = reponse.data;
+    },
+    async getDictIndustry() {
+      const reponse = await dictListType({ type: "industry_type" });
+      this.industryArry = reponse.data;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.countyRevire = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    handleComplaint() {
+      const obj = this.getIdsGather();
+      if (obj) {
+        this.dialogNoAccpetParams.noAccpetNum = obj.len;
+        this.dialogNoAccpetParams.idList = obj.ids;
+        this.noAccpetOpen = true;
+      } else {
+        return;
+      }
+    },
+    async dailogNoAccpetubmit(ids) {
+      const reponse = await acceptCheckReject(this.dialogNoAccpetParams);
+      this.handleDialogNoAccpetClose();
+      this.getList();
+    },
+    handleDialogNoAccpetClose() {
+      this.noAccpetOpen = false;
+      this.dialogNoAccpetParams.noAccpetNum = undefined;
+      this.dialogNoAccpetParams.idList = undefined;
+      this.handleformClear("dialogNoAccpetForm");
+    },
+    handleAttention() {
+      const obj = this.getIdsGather();
+      let len, ids;
+      if (obj) {
+        len = obj.len;
+        ids = obj.ids;
+      } else {
+        return;
+      }
+      this.$confirm(`是否要对这${len}条数据进行重点关注`, "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const reponse = await acceptCheckPay({ idList: ids });
+        this.getList();
+      });
+    },
+    handleRandomy() {
+      const obj = this.getIdsGather();
+      let len, ids;
+      if (obj) {
+        len = obj.len;
+        ids = obj.ids;
+      } else {
+        return;
+      }
+      this.$confirm(`是否要对这${len}条数据进行纳入抽查`, "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const reponse = await acceptCheckSpot({ idList: ids });
+        this.getList();
+      });
+    },
+    getIdsGather() {
+      const ids = [];
+      const len = this.multipleSelection.length;
+      if (len <= 0) {
+        this.$message.error(`请选择数据!`);
+        return false;
+      }
+      this.multipleSelection.forEach(item => {
+        ids.push(item.id);
+      });
+      return { ids, len };
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.tipOffContent = undefined;
+      this.queryParams.tipNumber = undefined;
+      this.queryParams.beginTipTime = undefined;
+      this.queryParams.endTipTime = undefined;
+      this.queryParams.pollutionLevelOne = undefined;
+      this.queryParams.tipType = undefined;
+      this.issueDate = undefined;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          if (!this.getAmendDecide()) {
+            return;
+          }
+          if (
+            this.dialogParams.weatherAccept === "0" &&
+            !this.dialogParams.weatherAccept
+          ) {
+            this.$message.error(`请输入不受理原因!`);
+            return;
+          }
+          if (
+            this.dialogParams.repeatFlag === "1" &&
+            !this.dialogParams.repeatNums
+          ) {
+            this.$message.error(`请输入重复举报编号!`);
+            return;
+          }
+          if (
+            this.dialogParams.weatherTransfer === "1" &&
+            !this.dialogParams.handleDeadline
+          ) {
+            this.$message.error(`请选择办理时限!`);
+            return;
+          }
+          if (
+            this.dialogParams.weatherTransfer === "1" &&
+            !this.dialogParams.proposal
+          ) {
+            this.$message.error(`请输入拟办意见!`);
+            return;
+          }
+          
+          this.dialogParams.modifyItems =
+            this.reviewContent.length == 0
+              ? undefined
+              : this.reviewContent.join(",");
+          this.dialogParams.teamId = this.queryParams.teamId;
+          const reponse = await acceptCheckSave(this.dialogParams);
+          this.getList();
+          this.handleDialogClose();
+        }
+      });
+    },
+    getAmendDecide() {
+      const len = this.reviewContent.length;
+      if (len == 0) {
+        return true;
+      } else {
+        if (
+          this.reviewContent.indexOf("0") > -1 &&
+          this.dialogParams.industryTypeReview == this.amend.industryTypeReview
+        ) {
+          this.$message.error(`请修正行业类型信息`);
+          return false;
+        }
+        if (
+          this.reviewContent.indexOf("1") > -1 &&
+          this.dialogParams.tipOffContentReivew ==
+            this.amend.tipOffContentReivew
+        ) {
+          this.$message.error(`请修正举报内容信息`);
+          return false;
+        }
+        if (this.reviewContent.indexOf("2") > -1) {
+          if (
+            this.dialogParams.cityReview == this.amend.cityReview &&
+            this.dialogParams.countyRevire == this.amend.countyRevire &&
+            this.dialogParams.addressReview == this.amend.addressReview
+          ) {
+            this.$message.error(`请修正举报地址信息`);
+            return false;
+          }
+        }
+        return true;
+      }
+    },
+    async handleCheck(data) {
+      this.open = true;
+      this.getTipContent(data);
+      this.getCheckCommonContent(data);
+      if (data.checkBy) {
+        const { id } = data;
+        this.getCheckContent(id);
+      }
+    },
+    getCheckCommonContent(data) {
+      this.dialogParams.id = data.id;
+      this.dialogParams.industryTypeReview = data.industryType;
+      this.dialogParams.tipOffContentReivew = data.tipOffContent;
+      this.dialogParams.cityReview = data.city;
+      this.dialogParams.countyRevire = data.county;
+      this.dialogParams.addressReview = data.address;
+
+      this.amend.industryTypeReview = data.industryType;
+      this.amend.tipOffContentReivew = data.tipOffContent;
+      this.amend.cityReview = data.city;
+      this.amend.countyRevire = data.county;
+      this.amend.addressReview = data.address;
+
+      this.dialogParams.weatherAccept = data.weatherAccept || "1";
+      this.dialogParams.repeatFlag = data.repeatFlag || "1";
+      this.dialogParams.spotFlag = data.spotFlag || "1";
+      this.dialogParams.importantFlag = data.importantFlag || "1";
+      this.dialogParams.weatherTransfer = data.weatherTransfer || "1";
+      this.handleCityChangeb(data.city);
+    },
+    getTipContent(data) {
+      this.dialogParams.tipNumber = data.tipNumber;
+      this.dialogParams.tipType = data.tipType;
+      this.dialogParams.checkBy = this.userInfo.id;
+      this.manageInfo.roundName = this.inspectInfo.suite.roundName;
+      this.manageInfo.inspectAreaName = this.queryParams.inspectAreaName;
+      this.manageInfo.tipTypeName = data.tipTypeName;
+      this.manageInfo.tipBy = data.tipBy;
+      this.manageInfo.tipTime = data.tipTime;
+      this.manageInfo.reporterPhoneShow = data.reporterPhoneShow;
+      this.manageInfo.industryType = data.industryName;
+      this.manageInfo.tipOffContent = data.tipOffContent;
+      this.manageInfo.tipAddress =
+        data.cityName + data.countyName + data.address;
+      this.manageInfo.remarks = data.remarks;
+      this.manageInfo.pollutionType = data.pollutionType;
+      this.manageInfo.checkByName = this.userInfo.name;
+    },
+    async getCheckContent(id) {
+      const reponse = await acceptCheckInfo({ id });
+      const subject = reponse.data;
+      this.dialogParams.handIdea = subject.handIdea;
+      this.dialogParams.checkTime = subject.checkTime;
+      this.dialogParams.handleDeadline = subject.handleDeadline;
+      this.dialogParams.proposal = subject.proposal;
+      this.reviewContent = subject.modifyItems?subject.modifyItems.split(","):[];
+      subject.modifyItems&&this.handleReviewChange(subject.modifyItems)
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.dialogParams.weatherAccept = undefined;
+      this.dialogParams.repeatNums = undefined;
+      this.dialogParams.handleDeadline = undefined;
+      this.dialogParams.proposal = undefined;
+      this.dialogParams.handIdea = undefined;
+      this.dialogParams.teamId = undefined;
+      this.handleformClear("dialogForm");
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    issueDateChange(picker) {
+      if (picker == null) {
+        this.queryParams.beginTipTime = undefined;
+        this.queryParams.endTipTime = undefined;
+      } else {
+        this.queryParams.beginTipTime = picker[0];
+        this.queryParams.endTipTime = picker[1];
+      }
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleSelectionChange(data) {
+      this.multipleSelection = data;
+    },
+    handleReviewChange(value) {
+      value.indexOf("0") > -1
+        ? (this.industryTypeBoolean = true)
+        : (this.industryTypeBoolean = false);
+      value.indexOf("1") > -1
+        ? (this.tipOffContentBoolean = true)
+        : (this.tipOffContentBoolean = false);
+      value.indexOf("2") > -1
+        ? (this.addressBoolean = true)
+        : (this.addressBoolean = false);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 20%;
+      }
+      .el-input {
+        width: 40%;
+      }
+    }
+  }
+}
+.manage-info {
+  .info-item {
+    .info-item-title {
+      width: 112px;
+    }
+  }
+}
+.noAccpet-text {
+  text-align: center;
+  .noAccpet-b {
+    color: red;
+  }
+}
+</style>

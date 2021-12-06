@@ -1,0 +1,103 @@
+.dialogForm {
+  margin-top: 0px;
+
+  .el-form-item {
+    display: flex;
+    justify-content: center;
+
+    .el-form-item__label {
+      width: 26% !important;
+      text-align: right;
+      font-weight: normal;
+      line-height: 34px;
+    }
+
+    .el-form-item__content {
+      line-height: 34px;
+      margin-left: 0 !important;
+      width: 50%;
+
+      .el-input {
+        width: 220px;
+      }
+
+      .el-input__inner {
+        height: 34px;
+        line-height: 34px;
+      }
+
+      .el-input__icon {
+        line-height: 34px;
+      }
+    }
+  }
+
+  .dialogFormFooter {
+    display: flex;
+    justify-content: center;
+  }
+}
+ 
+.el-dialog__body {
+  padding: 10px 20px 30px 20px;
+  overflow: hidden;
+}
+
+.twoLayoutForm {
+  .el-form-item {
+    .el-form-item__label {
+      width: 120px !important;
+    }
+
+    .el-form-item__content {
+      flex: 1;
+
+      .el-select {
+        width: 100%;
+      }
+
+      .el-input {
+        width: 100%;
+      }
+    }
+  }
+}
+
+.new-add-btn {
+  color: #FFF;
+  background-color: #2cca47;
+  border-color: #2cca47;
+}
+
+.new-add-btn:focus,
+.new-add-btn:hover {
+  background: #41bb55;
+  border-color: #41bb55;
+  color: #FFF;
+}
+
+.new-add-btn:active {
+  background: #2cca47;
+  border-color: #2cca47;
+  color: #FFF;
+}
+
+.dialogCheck {
+  .el-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    .check-label {
+      font-weight: normal;
+      font-size: 14px;
+      color: #606266;
+      height: 36px;
+      line-height: 36px;
+    }
+  }
+
+}
+.accounChunk {
+  cursor: pointer;
+  color:blue;
+}

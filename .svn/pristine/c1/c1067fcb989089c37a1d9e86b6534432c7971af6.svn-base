@@ -1,0 +1,573 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">线索管理</h1>
+    <div class="tab-list-content">
+      <national-info
+        :teamId.sync="queryParams.inspectTeamId"
+        @nameChange="getList"
+      ></national-info>
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="督察组名称：">
+                <el-input
+                  v-model="queryParams.inspectTeamName"
+                  placeholder="请输入督察组名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="线索名称：">
+                <el-input
+                  v-model="queryParams.clueName"
+                  placeholder="请输入线索名称"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <div class="button-authority-style" v-if="buttonAuthority">
+          <el-button size="small" @click="handleNewly" type="primary"
+            >新增</el-button
+          >
+        </div>
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column
+          label="线索名称"
+          min-width="200px"
+          :show-overflow-tooltip="true"
+        >
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">{{
+              scope.row.clueName
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="clueNum"
+          label="线索编号"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="inspectTeamName"
+          label="督察组名称"
+          width="200px"
+          :show-overflow-tooltip="true"
+        ></el-table-column>
+        <el-table-column
+          prop="inspectTeamAreaName"
+          label="督察地区"
+          width="120px"
+        ></el-table-column>
+        <el-table-column label="线索所在地" width="240px">
+          <template v-slot="scope">
+            <span
+              >{{ scope.row.city }}{{ scope.row.county
+              }}{{ scope.row.address }}</span
+            >
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="pollutionTypeName"
+          label="污染类型"
+          width="100px"
+        ></el-table-column>
+        <el-table-column
+          prop="clueSourceName"
+          label="线索来源"
+          width="140px"
+        ></el-table-column>
+        <el-table-column label="操作" width="80" fixed="right">
+          <template slot-scope="scope" v-if="buttonAuthority">
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      title="新增线索"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">督察信息</h1>
+        <div class="examineInfo-box">
+          <div class="examine-top">
+            <div class="examine-item examine-item-sort">督察类型</div>
+            <div class="examine-item examine-item-turn">督察轮次批次</div>
+            <div class="examine-item examine-item-start">开始时间</div>
+            <div class="examine-item examine-item-end">结束时间</div>
+          </div>
+          <div class="examine-bottom">
+            <div class="examine-item examine-item-sort">
+              {{ examineInfo.superviseName }}
+            </div>
+            <div class="examine-item examine-item-turn">
+              {{ examineInfo.roundName }}{{ examineInfo.batchName }}
+            </div>
+            <div class="examine-item examine-item-start">
+              {{ examineInfo.startDate }}
+            </div>
+            <div class="examine-item examine-item-end">
+              {{ examineInfo.endDate }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="examineInfo">
+        <h1 class="examineInfo-title">线索信息</h1>
+      </div>
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="督察组名称：" prop="inspectTeamId">
+              <el-select
+                v-model="dialogParams.inspectTeamId"
+                @change="handleInspectChange"
+                filterable
+                placeholder="请选择督察组名称"
+              >
+                <el-option
+                  v-for="item in inspectNameList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索名称：" prop="clueName">
+              <el-select
+                v-model="dialogParams.clueName"
+                filterable
+                @change="handleClueNameChange"
+                placeholder="请选择线索名称"
+              >
+                <el-option
+                  v-for="item in nameList"
+                  :key="item.id"
+                  :label="item.clueName"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索编号：" prop="clueNum">
+              <el-input readonly v-model="dialogParams.clueNum"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="线索来源：" prop="clueSourceName">
+              <el-input
+                readonly
+                v-model="dialogParams.clueSourceName"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="污染类型：" prop="pollutionType">
+              <el-input
+                readonly
+                v-model="dialogParams.pollutionTypeName"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="问题属性：" prop="problemType">
+              <el-input readonly v-model="dialogParams.problemType"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="线索所在地："
+              class="meet-address"
+              prop="title"
+            >
+              <el-input
+                class="meet-address-input"
+                readonly
+                v-model="dialogParams.city"
+              ></el-input>
+              <el-input
+                class="meet-address-input"
+                readonly
+                v-model="dialogParams.county"
+              ></el-input>
+              <el-input
+                class="meet-address-input"
+                readonly
+                v-model="dialogParams.town"
+              ></el-input>
+              <el-input
+                class="meet-address-input4"
+                readonly
+                v-model="dialogParams.address"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="经度：" prop="longitude">
+              <el-input readonly v-model="dialogParams.longitude"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="纬度：" prop="latitude">
+              <el-input readonly v-model="dialogParams.latitude"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索内容：" prop="clueContent">
+              <el-input
+                readonly
+                type="textarea"
+                v-model="dialogParams.clueContent"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索相关资料：" prop="clueContent">
+              <span
+                class="check-text accounChunk"
+                @click="handleDownLoadDoc(dialogParams.attachmentId)"
+                >{{ dialogParams.attachmentName }}</span
+              >
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <clew-info
+      ref="clewRef"
+      :clewId="clewId"
+      :lookOpen="lookOpen"
+      @handleLookClose="handleLookClose"
+    />
+  </div>
+</template>
+
+<script>
+import {
+  threadRelationList,
+  threadRelationPull,
+  threadSee,
+  threadRelationSave,
+  threadRelationDelete
+} from "@/api/burg/prepare";
+import { inspectorRoundAmend } from "@/api/support/inspectorate";
+import { homeTeamList } from "@/api/burg/home";
+import { dictListType } from "@/api/styem/dict/type";
+import nationalInfo from "@/components/nationalInfo";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+import { getFileInfo } from "@/api/file";
+import clewInfo from "@/views/InspectorClues/components/clewInfo";
+export default {
+  components: {
+    nationalInfo,
+    clewInfo
+  },
+  data() {
+    return {
+      showSearch: true,
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        inspectTeamName: undefined,
+        clueName: undefined,
+        inspectType: undefined,
+        inspectTurnId:undefined,
+        inspectBatchId:undefined,
+        inspectTeamId: undefined
+      },
+      List: [],
+      nameList: [],
+      nameParams: {
+        pageNo: 1,
+        pageSize: 20,
+        clueName: undefined,
+        inspectTeamId: undefined
+      },
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        problemType: undefined,
+        city: undefined,
+        county: undefined,
+        town: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentId: undefined,
+        attachmentName: undefined,
+        longitude: undefined,
+        latitude: undefined
+      },
+      dialogRules: {
+        inspectTeamId: [{ required: true, message: "请输入督察组名称" }],
+        clueName: [{ required: true, message: "请输入线索名称" }]
+      },
+      lookOpen: false,
+      clewId: undefined,
+      examineInfo: {
+        superviseName: undefined,
+        roundName: undefined,
+        batchName: undefined,
+        startDate: undefined,
+        endDate: undefined
+      },
+      buttonAuthority: false,
+      inspectNameList: [],
+    };
+  },
+  created() {
+    if (this.inspectInfo.suite) {
+      this.buttonAuthority = false;
+    } else {
+      this.buttonAuthority = true;
+      const superviseSubject = JSON.parse(
+        sessionStorage.getItem("superviseItem")
+      );
+      this.examineInfo = superviseSubject;
+      this.queryParams.inspectType = superviseSubject.superviseType;
+      this.queryParams.inspectTurnId = superviseSubject.roundId;
+      this.queryParams.inspectBatchId = superviseSubject.batchId;
+      this.getBatchTime();
+    }
+    this.getList();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await threadRelationList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getBatchTime() {
+      const reponse = await inspectorRoundAmend({ id: this.queryParams.inspectTurnId });
+      const subject = reponse.data;
+      this.examineInfo.startDate = subject.startDate;
+      this.examineInfo.endDate = subject.endDate;
+    },
+    async getTeamList() {
+      const reponse = await homeTeamList({ batchId: this.queryParams.inspectBatchId });
+      if (!reponse.data) {
+        this.$message.error(`当前批次下没有督察组，请添加督察组`);
+      }
+      this.inspectNameList = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.inspectTeamName = undefined;
+      this.queryParams.clueName = undefined;
+    },
+    handleNewly() {
+      this.open = true;
+      this.handleformClear("dialogForm");
+      this.getTeamList();
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.dialogParamsClear();
+    },
+    handleInspectChange(inspectTeamId) {
+      this.getNameList(inspectTeamId);
+    },
+    async getNameList(inspectTeamId) {
+      this.nameParams.inspectTeamId = inspectTeamId;
+      const reponse = await threadRelationPull(this.nameParams);
+      this.nameList = reponse.data.list;
+    },
+    async handleClueNameChange(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.clueNum = subject.clueNum;
+      this.dialogParams.clueSourceName = subject.clueSourceName;
+      this.dialogParams.pollutionTypeName = subject.pollutionTypeName;
+      this.dialogParams.problemType = subject.problemType;
+      this.dialogParams.city = subject.city;
+      this.dialogParams.county = subject.county;
+      this.dialogParams.town = subject.town;
+      this.dialogParams.address = subject.address;
+      this.dialogParams.clueContent = subject.clueContent;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.dialogParams.attachmentName = subject.attachmentName;
+      this.dialogParams.longitude = subject.longitude;
+      this.dialogParams.latitude = subject.latitude;
+    },
+    dialogParamsClear() {
+      this.dialogParams.id = undefined;
+      this.dialogParams.clueName = undefined;
+      this.dialogParams.clueNum = undefined;
+      this.dialogParams.clueSourceName = undefined;
+      this.dialogParams.pollutionTypeName = undefined;
+      this.dialogParams.problemType = undefined;
+      this.dialogParams.city = undefined;
+      this.dialogParams.county = undefined;
+      this.dialogParams.town = undefined;
+      this.dialogParams.address = undefined;
+      this.dialogParams.clueContent = undefined;
+      this.dialogParams.attachmentId = undefined;
+      this.dialogParams.attachmentName = undefined;
+      this.dialogParams.longitude = undefined;
+      this.dialogParams.latitude = undefined;
+    },
+    async handleSee(data) {
+      const { id } = data;
+      this.clewId = id;
+      this.lookOpen = true;
+      this.$nextTick(() => {
+        this.$refs.clewRef.handleEdit();
+      });
+    },
+    handleLookClose() {
+      this.lookOpen = false;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await threadRelationSave({
+            id: this.dialogParams.id,
+            inspectTeamId: this.nameParams.inspectTeamId,
+            relationId: this.dialogParams.id,
+            relationName: "TClueMain"
+          });
+          this.open = false;
+          this.dialogParamsClear();
+          loading.close();
+          this.getList();
+        }
+      });
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id, inspectTeamId } = data;
+        const reponse = await threadRelationDelete({
+          id,
+          inspectTeamId,
+          relationId: id
+        });
+        this.getList();
+      });
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .meet-address-input {
+      width: 19%;
+    }
+    .meet-address-input4 {
+      width: 43%;
+    }
+  }
+}
+
+.examine-item-sort {
+  width: 25%!important;
+}
+
+.examine-item-turn {
+  width: 25%!important;
+}
+
+.examine-item-start {
+  width: 25%!important;
+}
+
+.examine-item-end {
+  width: 25%!important;
+}
+</style>

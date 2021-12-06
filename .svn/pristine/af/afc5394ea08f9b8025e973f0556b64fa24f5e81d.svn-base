@@ -1,0 +1,175 @@
+<template>
+  <div>
+    <el-dialog
+      title="取证笔录预览"
+      :visible.sync="previewOpen"
+      :before-close="handleDialogPreviewClose"
+      width="80%"
+      append-to-body
+    >
+      <div ref="print">
+        <div class="print-box print-box-top">
+          <div class="turn-dialog-top">
+            <h1 class="turn-dialog-title">
+              {{ inspectInfo.suite.provinceName }}环境保护督察组调查询问笔录
+            </h1>
+          </div>
+          <div class="turn-dialog-box">
+            <span class="turn-dialog-name">{{ inspectName }}</span>
+            <span class="turn-dialog-number"
+              >{{ dialogRecordParams.showNum }}
+            </span>
+          </div>
+          <div class="turn-dialog-content">
+            <p class="turn-dialog-item">
+              时间：<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.startTime.year
+              }}</span
+              >年<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.startTime.month
+              }}</span
+              >月<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.startTime.day
+              }}</span
+              >日<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.startTime.hour
+              }}</span
+              >时<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.startTime.min
+              }}</span
+              >分至<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.endTime.year
+              }}</span
+              >年<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.endTime.month
+              }}</span
+              >月<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.endTime.day
+              }}</span
+              >日<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.endTime.hour
+              }}</span
+              >时<span class="dialog-item-fill dialog-item-filla">{{
+                previewData.endTime.min
+              }}</span
+              >分
+            </p>
+            <p class="turn-dialog-item">
+              问询主题：<span class="dialog-item-fill dialog-item-address">{{
+                dialogRecordParams.theme
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              询问人姓名：<span class="dialog-item-fill dialog-item-jilu">{{
+                previewData.actualSpeakerNmae
+              }}</span
+              >记录人：<span class="dialog-item-fill dialog-item-jilu">{{
+                previewData.actualRecordName
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              被询问人姓名：<span class="dialog-item-fill dialog-item-jilu">{{
+                dialogRecordParams.actualInterviewee
+              }}</span
+              >年龄：<span class="dialog-item-fill dialog-item-jilu">{{
+                dialogRecordParams.actualIntervieweeAge
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              公民身份证号码：<span class="dialog-item-fill dialog-item-jilu">{{
+                dialogRecordParams.actualIntervieweeIdcard
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              工作单位：<span class="dialog-item-fill dialog-item-tall">{{
+                dialogRecordParams.actualIntervieweeUnit
+              }}</span
+              >职务：<span class="dialog-item-fill dialog-item-tall">{{
+                dialogRecordParams.actualIntervieweePost
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              地址：<span class="dialog-item-fill dialog-item-unit"
+                >{{ previewData.city }}{{ previewData.county
+                }}{{ dialogRecordParams.actualAddress }}</span
+              >邮编：<span class="dialog-item-fill dialog-item-unit">{{
+                dialogRecordParams.actualIntervieweePostcode
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              电话：<span class="dialog-item-fill dialog-item-jilu">{{
+                dialogRecordParams.actualIntervieweePhone
+              }}</span>
+            </p>
+            <p class="turn-dialog-item">
+              其他参加人姓名：<span
+                class="dialog-item-fill dialog-item-other"
+                >{{ dialogRecordParams.otherHander }}</span
+              >
+            </p>
+          </div>
+        </div>
+        <div class="print-box">
+          <div
+            class="turn-dialog-content print-item"
+            v-for="item in dialogRecordParams.recordList"
+            :key="item.id"
+          >
+            <p class="turn-dialog-item">问题：{{ item.question }}</p>
+            <p class="turn-dialog-item">答案：{{ item.answer }}</p>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from "vuex";
+export default {
+  props: {
+    previewOpen: {
+      type: Boolean
+    },
+    previewData: {
+      type: Object
+    },
+    inspectName: {
+      type: String
+    },
+    dialogRecordParams: {
+      type: Object
+    }
+  },
+  computed: {
+    ...mapGetters(["inspectInfo"])
+  },
+  methods: {
+    handleDialogPreviewClose() {
+      this.$emit("handlePreviewClose");
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.dialog-item-address {
+  width: 900px !important;
+}
+.dialog-item-jilu {
+  width: 405px !important;
+}
+.dialog-item-tall {
+  width: 420px !important;
+}
+.dialog-item-unit {
+  width: 442px !important;
+}
+.dialog-item-other {
+  width: 830px !important;
+}
+.dialog-item-filla {
+  width: 72px !important;
+  text-align: center !important;
+}
+</style>

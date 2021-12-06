@@ -1,0 +1,1543 @@
+<template>
+  <div class="information-inner information-change">
+    <h1 class="information-title active">线索来源</h1>
+    <div class="tab-list-content">
+      <div class="box-body" v-show="showSearch">
+        <el-form :model="queryParams" label-width="120px">
+          <el-row>
+            <el-col :span="8">
+              <el-form-item label="线索编号：">
+                <el-input
+                  v-model="queryParams.clueNum"
+                  placeholder="请输入线索编号"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="污染类型：">
+                <el-select
+                  v-model="queryParams.pollutionType"
+                  placeholder="请选择污染类型"
+                >
+                  <el-option
+                    v-for="item in pollutantArry"
+                    :key="item.id"
+                    :label="item.label"
+                    :value="item.value"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="线索内容：">
+                <el-input
+                  v-model="queryParams.clueContent"
+                  placeholder="请输入线索内容"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-form-item class="pull-right">
+              <el-button type="primary" @click="onQuery">查询</el-button>
+              <el-button type="primary" @click="onClear">清空</el-button>
+            </el-form-item>
+          </el-row>
+        </el-form>
+      </div>
+      <el-row :gutter="10" class="mb8">
+        <el-button size="small" @click="handleNewly" type="primary"
+          >新增</el-button
+        >
+        <el-button size="small" @click="handleImport" type="primary"
+          >导入</el-button
+        >
+        <right-toolbar
+          :showSearch.sync="showSearch"
+          @queryTable="getList"
+        ></right-toolbar>
+      </el-row>
+      <el-table v-loading="loading" :data="List" border :stripe="true">
+        <el-table-column width="50" label="序号">
+          <template scope="scope">
+            <span>{{
+              (queryParams.pageNo - 1) * queryParams.pageSize + scope.$index + 1
+            }}</span>
+          </template></el-table-column
+        >
+        <el-table-column label="线索名称" min-width="200px">
+          <template v-slot="scope">
+            <span class="accounChunk" @click="handleSee(scope.row)">{{
+              scope.row.clueName
+            }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="clueNum"
+          label="线索编号"
+          width="160px"
+        ></el-table-column>
+        <el-table-column
+          prop="pollutionTypeName"
+          label="污染类型"
+          width="100px"
+        ></el-table-column>
+        <el-table-column
+          label="线索来源地"
+          :show-overflow-tooltip="true"
+          min-width="280px"
+        >
+          <template v-slot="scope">
+            {{ scope.row.city }}{{ scope.row.county }}{{ scope.row.town
+            }}{{ scope.row.address }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="clueContent"
+          label="线索内容"
+          min-width="200px"
+        ></el-table-column>
+        <el-table-column
+          prop="pollutionTypeName"
+          label="重点关注"
+          width="100px"
+        ></el-table-column>
+        <el-table-column label="操作" width="240">
+          <template v-slot="scope">
+            <el-button size="mini" type="success" @click="handleTail(scope.row)"
+              >线索跟踪</el-button
+            >
+            <el-button size="mini" type="primary" @click="handleEdit(scope.row)"
+              >修改</el-button
+            >
+            <el-button
+              size="mini"
+              type="danger"
+              @click="handleDelete(scope.row)"
+              >删除</el-button
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :pageNo.sync="queryParams.pageNo"
+        :limit.sync="queryParams.pageSize"
+        @pagination="getList"
+      />
+    </div>
+    <el-dialog
+      :title="dialogTitle"
+      :visible.sync="open"
+      :before-close="handleDialogClose"
+      width="80%"
+      append-to-body
+    >
+      <el-form
+        ref="dialogForm"
+        :model="dialogParams"
+        :rules="dialogRules"
+        label-width="80px"
+        class="dialogForm twoLayoutForm mt22"
+      >
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索名称：" prop="clueName">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                placeholder="请输入线索名称"
+                v-model="dialogParams.clueName"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索编号：" prop="clueNum">
+              <el-input
+                maxlength="60"
+                show-word-limit
+                placeholder="请输入线索编号"
+                v-model="dialogParams.clueNum"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="线索来源：" prop="clueSource">
+              <el-select
+                v-model="dialogParams.clueSource"
+                placeholder="请选择线索来源"
+              >
+                <el-option
+                  v-for="item in sourceArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="污染类型：" prop="pollutionType">
+              <el-select
+                v-model="dialogParams.pollutionType"
+                placeholder="请选择污染类型"
+              >
+                <el-option
+                  v-for="item in pollutantArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="问题属性：" prop="problemType">
+              <el-input
+                placeholder="请输入问题属性"
+                maxlength="10"
+                show-word-limit
+                v-model="dialogParams.problemType"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item
+              label="线索所在地："
+              class="meet-address"
+              prop="address"
+            >
+              <el-select
+                v-model="dialogParams.cityCode"
+                filterable
+                placeholder="请选择市"
+                @change="handleCityChange"
+              >
+                <el-option
+                  v-for="item in areaArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.countyCode"
+                filterable
+                placeholder="请选择区县"
+                @change="handleCountyChange"
+              >
+                <el-option
+                  v-for="item in countyArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-select
+                v-model="dialogParams.townCode"
+                filterable
+                placeholder="请选择镇"
+              >
+                <el-option
+                  v-for="item in townArry"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-input
+                v-model="dialogParams.address"
+                maxlength="250"
+                show-word-limit
+                placeholder="详细地址"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="经度：" prop="longitude">
+              <el-input
+                placeholder="请输入经度"
+                v-model="dialogParams.longitude"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="纬度：" prop="latitude">
+              <el-input
+                placeholder="请输入纬度"
+                v-model="dialogParams.latitude"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="24">
+            <el-form-item label="线索内容：" prop="clueContent">
+              <el-input
+                maxlength="460"
+                show-word-limit
+                placeholder="请输入线索内容"
+                type="textarea"
+                v-model="dialogParams.clueContent"
+              ></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="线索相关资料：" prop="attachmentId">
+              <upload
+                ref="uploadFile"
+                accept=".doc,.docx,.pdf"
+                :limit="5"
+                :fileId="dialogParams.attachmentId"
+                fromKey="attachmentId"
+                @setUrlPath="setUrlPath"
+                @deleteServeFile="deleteServeFile"
+              ></upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="重点关注：" prop="weatherFocus">
+              <el-select
+                v-model="dialogParams.weatherFocus"
+                placeholder="请选择重点关注"
+              >
+                <el-option label="是" value="1"></el-option>
+                <el-option label="否" value="0"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div class="dialogFormFooter">
+          <el-button type="primary" @click="dailogSubmit">保存</el-button>
+          <el-button type="primary" @click="handleDialogClose">关闭</el-button>
+        </div>
+      </el-form>
+    </el-dialog>
+    <el-dialog
+      title="查看"
+      :visible.sync="lookOpen"
+      :before-close="handleDialogLookClose"
+      width="80%"
+      append-to-body
+    >
+      <div class="manage-info">
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索名称：</span>
+            <span class="info-item-content">{{ manageInfo.clueName }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索编号：</span>
+            <span class="info-item-content">{{ manageInfo.clueNum }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">线索来源：</span>
+            <span class="info-item-content">{{
+              manageInfo.clueSourceName
+            }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">污染类型：</span>
+            <span class="info-item-content">{{
+              manageInfo.pollutionTypeName
+            }}</span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">问题属性：</span>
+            <span class="info-item-content">{{ manageInfo.problemType }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索所在地：</span>
+            <span class="info-item-content">
+              {{ manageInfo.city }}{{ manageInfo.county }}{{ manageInfo.town }}
+              {{ manageInfo.address }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">经度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.longitude }}
+            </span>
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">纬度：</span>
+            <span class="info-item-content">
+              {{ manageInfo.latitude }}
+            </span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">线索内容：</span>
+            <span class="info-item-content">{{ manageInfo.clueContent }}</span>
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-quare">
+            <span class="info-item-title">来信电子件：</span>
+            <span
+              class="info-item-content accounChunk"
+              @click="handleDownLoadDoc(manageInfo.attachmentId)"
+              >{{ manageInfo.attachmentName }}</span
+            >
+          </div>
+          <div class="info-item-quare">
+            <span class="info-item-title">重点关注：</span>
+            <span class="info-item-content">{{ manageInfo.weatherFocus }}</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="线索跟踪"
+      :visible.sync="tailOpen"
+      :before-close="handleDialogTailClose"
+      width="80%"
+      append-to-body
+    >
+      <h1 v-if="tailBoolean" style="text-align: center;font-size:20px;">
+        无线索
+      </h1>
+      <div class="tail-box">
+        <div class="tail-item" v-if="TClueMain.clueName">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">线索来源</span
+              ><span class="tail-top-time">{{ TClueMain.createDate }}</span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div class="tail-item-right-bottom">
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">线索编号：</label>
+                  <span class="tail-other-text">{{ TClueMain.clueNum }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">线索来源：</label>
+                  <span class="tail-other-text">{{
+                    TClueMain.clueSourceName
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">污染类型：</label>
+                  <span class="tail-other-text">{{
+                    TClueMain.pollutionTypeName
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">地址：</label>
+                  <span class="tail-other-text">{{ TClueMain.address }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="talkArry">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">谈话记录</span
+              ><span class="tail-top-time"></span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div
+              class="tail-item-right-bottom"
+              v-for="(item, index) in talkArry"
+              :key="index"
+            >
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">关联时间：</label>
+                  <span class="tail-other-text">{{ item.createDate }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">谈话时间：</label>
+                  <span class="tail-other-text">{{ item.time }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">谈话人员：</label>
+                  <span class="tail-other-text">{{ item.actualSpeaker }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">记录人员：</label>
+                  <span class="tail-other-text">{{ item.actualRecord }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">被谈话人：</label>
+                  <span class="tail-other-text">{{
+                    item.actualInterviewee
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">单位：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeUnit
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">谈话地点：</label>
+                  <span class="tail-other-text">{{ item.address }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="interviewArry">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">走访问询</span
+              ><span class="tail-top-time"></span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div
+              class="tail-item-right-bottom"
+              v-for="(item, index) in interviewArry"
+              :key="index"
+            >
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">关联时间：</label>
+                  <span class="tail-other-text">{{ item.createDate }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">问询主题：</label>
+                  <span class="tail-other-text">{{ item.theme }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">谈话时间：</label>
+                  <span class="tail-other-text">{{ item.time }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">询问人员：</label>
+                  <span class="tail-other-text">{{ item.actualSpeaker }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">记录人员：</label>
+                  <span class="tail-other-text">{{ item.actualRecord }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">被询问人：</label>
+                  <span class="tail-other-text">{{
+                    item.actualInterviewee
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">身份证号码：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeIdcard
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">年龄：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeAge
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">工作单位：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeUnit
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">职务：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePost
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">邮编：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePostcode
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">电话：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePhone
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">工作单位：</label>
+                  <span class="tail-other-text">{{ item.address }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="TInspectTeam.createDate">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">线索补充</span
+              ><span class="tail-top-time">{{ TInspectTeam.createDate }}</span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div class="tail-item-right-bottom">
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">线索编号：</label>
+                  <span class="tail-other-text">{{
+                    TInspectTeam.clueNum
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">线索来源：</label>
+                  <span class="tail-other-text">{{
+                    TInspectTeam.clueSourceName
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">污染类型：</label>
+                  <span class="tail-other-text">{{
+                    TInspectTeam.pollutionTypeName
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">地址：</label>
+                  <span class="tail-other-text">{{
+                    TInspectTeam.address
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="TCommonLinkAddress.createDate">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">下沉日志</span
+              ><span class="tail-top-time">{{
+                TCommonLinkAddress.createDate
+              }}</span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div class="tail-item-right-bottom">
+              <h1 class="examineInfo-title">下沉基本信息</h1>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">下沉组名称：</label>
+                  <span class="tail-other-text">{{
+                    TCommonLinkAddress.teamName
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">日志时间：</label>
+                  <span class="tail-other-text">{{
+                    TCommonLinkAddress.sinkDate
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">下沉人员：</label>
+                  <span class="tail-other-text">{{
+                    TCommonLinkAddress.sinkPerson
+                  }}</span>
+                </div>
+              </div>
+              <h1 class="examineInfo-title">下沉日志信息</h1>
+              <div
+                class="log-box"
+                v-for="(item, index) in TCommonLinkAddress.addressList"
+                :key="index"
+              >
+                <div class="tail-group">
+                  <div class="tail-other-item">
+                    <label class="tail-other-label">下沉地点：</label>
+                    <span class="tail-other-text"
+                      >{{ item.province }}{{ item.county
+                      }}{{ item.address }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="TInspectProblem.createDate">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">问题聚焦</span
+              ><span class="tail-top-time">{{
+                TInspectProblem.createDate
+              }}</span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div class="tail-item-right-bottom">
+              <h1 class="examineInfo-title">下沉基本信息</h1>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">下沉组名称：</label>
+                  <span class="tail-other-text">{{
+                    TInspectProblem.name
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">下沉时间：</label>
+                  <span class="tail-other-text">{{
+                    TInspectProblem.time
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">下沉旗县：</label>
+                  <span class="tail-other-text">{{
+                    TInspectProblem.areaName
+                  }}</span>
+                </div>
+              </div>
+              <h1 class="examineInfo-title">问题聚焦信息</h1>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">问题名称：</label>
+                  <span class="tail-other-text">{{
+                    TInspectProblem.problemDescript
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">问题描述：</label>
+                  <span class="tail-other-text">{{
+                    TInspectProblem.problemContent
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tail-item" v-if="TInspectTalk3">
+          <div class="tail-item-left">
+            <span class="tail-item-left-line"></span>
+          </div>
+          <div class="tail-item-right">
+            <div class="tail-item-right-top">
+              <span class="tail-top-name">询问笔录</span
+              ><span class="tail-top-time"></span
+              ><span class="tail-top-text">{{ clueName }}</span>
+            </div>
+            <div
+              class="tail-item-right-bottom"
+              v-for="(item, index) in TInspectTalk3"
+              :key="index"
+            >
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">关联时间：</label>
+                  <span class="tail-other-text">{{ item.createDate }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">问询主题：</label>
+                  <span class="tail-other-text">{{ item.theme }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">谈话时间：</label>
+                  <span class="tail-other-text">{{ item.time }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">询问人员：</label>
+                  <span class="tail-other-text">{{ item.actualSpeaker }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">记录人员：</label>
+                  <span class="tail-other-text">{{ item.actualRecord }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">被询问人：</label>
+                  <span class="tail-other-text">{{
+                    item.actualInterviewee
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">身份证号码：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeIdcard
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">年龄：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeAge
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">工作单位：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweeUnit
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">职务：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePost
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">邮编：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePostcode
+                  }}</span>
+                </div>
+                <div class="tail-other-item">
+                  <label class="tail-other-label">电话：</label>
+                  <span class="tail-other-text">{{
+                    item.actualIntervieweePhone
+                  }}</span>
+                </div>
+              </div>
+              <div class="tail-group">
+                <div class="tail-other-item">
+                  <label class="tail-other-label">工作单位：</label>
+                  <span class="tail-other-text">{{ item.address }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <import-dialog
+      :importOpen="importOpen"
+      :importUrl="importUrl"
+      :importDownUrl="importDownUrl"
+      :importPattern="importPattern"
+      title="线索导入"
+      @changeOpen="changeImportOpen"
+      @update="getList"
+    ></import-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  threadList,
+  threadSave,
+  threadDelete,
+  threadTrackList
+} from "@/api/InspectorClues";
+import { threadSee } from "@/api/burg/prepare";
+import { dictListType } from "@/api/styem/dict/type";
+import { getSingleInfo } from "@/utils/styem";
+import { mapGetters } from "vuex";
+import { getFileInfo } from "@/api/file";
+import { areaTreeNew } from "@/api/styem/dept";
+import importDialog from "@/components/importDialog";
+export default {
+  components: {
+    importDialog
+  },
+  data() {
+    return {
+      showSearch: true,
+      tailOpen: false,
+      pollutantArry: [],
+      queryParams: {
+        pageNo: 1,
+        pageSize: 10,
+        clueNum: undefined,
+        pollutionType: undefined,
+        clueContent: undefined
+      },
+      List: [],
+      total: 0,
+      loading: true,
+      open: false,
+      dialogParams: {
+        id: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSource: undefined,
+        pollutionType: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentId: undefined,
+        weatherFocus: undefined,
+        longitude: undefined,
+        latitude: undefined
+      },
+      manageInfo: {
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        problemType: undefined,
+        cityCode: undefined,
+        countyCode: undefined,
+        townCode: undefined,
+        address: undefined,
+        clueContent: undefined,
+        attachmentName: undefined,
+        weatherFocus: undefined,
+        longitude: undefined,
+        latitude: undefined
+      },
+      dialogRules: {
+        clueName: [{ required: true, message: "请输入线索名称" }],
+        clueNum: [{ required: true, message: "请输入线索编号" }],
+        clueSource: [{ required: true, message: "请选择线索来源" }],
+        pollutionType: [{ required: true, message: "请选择污染类型" }],
+        problemType: [{ required: true, message: "请输入问题属性" }],
+        address: [{ required: true, message: "请输入地址" }],
+        longitude: [
+          { required: true, message: "请输入经度" },
+          {
+            validator: function(rule, value, callback) {
+              if (isNaN(value)) {
+                callback(new Error("请输入数字"));
+              } else if (value < 0 || value > 180) {
+                callback(new Error("请输入有效经度"));
+              } else {
+                callback();
+              }
+            }
+          }
+        ],
+        latitude: [
+          { required: true, message: "请输入纬度" },
+          {
+            validator: function(rule, value, callback) {
+              if (isNaN(value)) {
+                callback(new Error("请输入数字"));
+              } else if (value < 0 || value > 90) {
+                callback(new Error("请输入有效纬度"));
+              } else {
+                callback();
+              }
+            }
+          }
+        ],
+        clueContent: [{ required: true, message: "请输入线索内容" }],
+        attachmentId: [{ required: true, message: "请上传线索相关资料" }],
+        weatherFocus: [{ required: true, message: "请选择重点关注" }]
+      },
+      dialogTitle: "新增",
+      countyArry: [],
+      townArry: [],
+      lookOpen: false,
+      importOpen: false,
+      importPattern: false,
+      importUrl: "/center/clue/main/tClueMain/importData",
+      importDownUrl: "/template/线索导入模板.xlsx",
+      sourceArry: [],
+      clueName: undefined,
+      TClueMain: {
+        createDate: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        address: undefined
+      },
+      talkArry: undefined,
+      interviewArry: undefined,
+      TInspectTeam: {
+        createDate: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        address: undefined
+      },
+      TCommonLinkAddress: {
+        createDate: undefined,
+        sinkPerson: undefined,
+        teamName: undefined,
+        addressList: undefined
+      },
+      TInspectProblem: {
+        createDate: undefined,
+        name: undefined,
+        time: undefined,
+        problemDescript: undefined,
+        problemContent: undefined
+      },
+      TInspectTalk3: undefined,
+      tailBoolean: false
+    };
+  },
+  created() {
+    this.getList();
+    this.getDictPollutant();
+    this.getDictSource();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo", "areaArry"])
+  },
+  methods: {
+    async getList() {
+      this.loading = true;
+      const reponse = await threadList(this.queryParams);
+      this.List = reponse.data.list;
+      this.total = reponse.data.count;
+      this.loading = false;
+    },
+    async getDictPollutant() {
+      const reponse = await dictListType({ type: "clue_pollution_type" });
+      this.pollutantArry = reponse.data;
+    },
+    async getDictSource() {
+      const reponse = await dictListType({ type: "clue_source" });
+      this.sourceArry = reponse.data;
+    },
+    async handleCityChange(code) {
+      this.countyArry = [];
+      this.dialogParams.countyCode = undefined;
+      this.townArry = [];
+      this.dialogParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCityChangeb(code) {
+      this.countyArry = [];
+      this.townArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.countyArry = reponse.data;
+    },
+    async handleCountyChange(code) {
+      this.townArry = [];
+      this.dialogParams.townCode = undefined;
+      const reponse = await areaTreeNew({ parentId: code });
+      this.townArry = reponse.data;
+    },
+    async handleCountyChangeb(code) {
+      this.townArry = [];
+      const reponse = await areaTreeNew({ parentId: code });
+      this.townArry = reponse.data;
+    },
+    onQuery() {
+      this.getList();
+      this.queryParams.pageNo = 1;
+    },
+    onClear() {
+      this.queryParams.clueNum = undefined;
+      this.queryParams.pollutionType = undefined;
+      this.queryParams.clueContent = undefined;
+    },
+    handleNewly() {
+      this.dialogTitle = "新增";
+      this.open = true;
+      this.dialogParams.cityCode = undefined;
+      this.dialogParams.countyCode = undefined;
+      this.dialogParams.townCode = undefined;
+      this.handleformClear("dialogForm");
+    },
+    handleImport() {
+      this.importOpen = true;
+    },
+    changeImportOpen() {
+      this.importOpen = false;
+    },
+    dailogSubmit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          const loading = this.$loading({
+            lock: true,
+            text: "正在保存提交，请稍等...",
+            spinner: "el-icon-loading",
+            background: "rgba(0, 0, 0, 0.1)"
+          });
+          const reponse = await threadSave(this.dialogParams);
+          loading.close();
+          this.open = false;
+
+          this.getList();
+        }
+      });
+    },
+    async handleEdit({ id }) {
+      this.dialogTitle = "修改";
+      this.open = true;
+      this.getDialogInfo(id);
+    },
+    async getDialogInfo(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.dialogParams.id = subject.id;
+      this.dialogParams.clueName = subject.clueName;
+      this.dialogParams.clueNum = subject.clueNum;
+      this.dialogParams.clueSource = subject.clueSource;
+      this.dialogParams.pollutionType = subject.pollutionType;
+      this.dialogParams.problemType = subject.problemType;
+      this.dialogParams.cityCode = subject.cityCode;
+      this.dialogParams.countyCode = subject.countyCode;
+      this.dialogParams.townCode = subject.townCode;
+      this.dialogParams.address = subject.address;
+      this.dialogParams.clueContent = subject.clueContent;
+      this.dialogParams.attachmentId = subject.attachmentId;
+      this.dialogParams.weatherFocus = subject.weatherFocus;
+      this.dialogParams.longitude = subject.longitude;
+      this.dialogParams.latitude = subject.latitude;
+      this.handleCityChangeb(subject.cityCode);
+      this.handleCountyChangeb(subject.countyCode);
+      this.$nextTick(() => {
+        this.$refs.uploadFile && this.$refs.uploadFile.getFileMessageInfo();
+      });
+    },
+    handleSee({ id }) {
+      this.lookOpen = true;
+      this.getDetailInfo(id);
+    },
+    async getDetailInfo(id) {
+      const reponse = await threadSee({ id });
+      const subject = reponse.data;
+      this.manageInfo.clueName = subject.clueName;
+      this.manageInfo.clueNum = subject.clueNum;
+      this.manageInfo.clueSourceName = subject.clueSourceName;
+      this.manageInfo.pollutionTypeName = subject.pollutionTypeName;
+      this.manageInfo.problemType = subject.problemType;
+      this.manageInfo.city = subject.city;
+      this.manageInfo.county = subject.county;
+      this.manageInfo.town = subject.town;
+      this.manageInfo.address = subject.address;
+      this.manageInfo.clueContent = subject.clueContent;
+      this.manageInfo.weatherFocus = subject.weatherFocus === "1" ? "是" : "否";
+      this.manageInfo.attachmentId = subject.attachmentId;
+      this.manageInfo.attachmentName = subject.attachmentName;
+      this.manageInfo.longitude = subject.longitude;
+      this.manageInfo.latitude = subject.latitude;
+    },
+    handleDialogLookClose() {
+      this.lookOpen = false;
+      this.dialogParamsClear();
+    },
+    dialogParamsClear() {
+      this.manageInfo.clueName = undefined;
+      this.manageInfo.clueNum = undefined;
+      this.manageInfo.clueSourceName = undefined;
+      this.manageInfo.pollutionTypeName = undefined;
+      this.manageInfo.problemType = undefined;
+      this.manageInfo.city = undefined;
+      this.manageInfo.county = undefined;
+      this.manageInfo.town = undefined;
+      this.manageInfo.address = undefined;
+      this.manageInfo.clueContent = undefined;
+      this.manageInfo.attachmentId = undefined;
+      this.manageInfo.attachmentName = undefined;
+      this.manageInfo.longitude = undefined;
+      this.manageInfo.latitude = undefined;
+    },
+    async handleTail(data) {
+      this.tailOpen = true;
+      const { id, clueName } = data;
+      this.clueName = clueName;
+      const reponse = await threadTrackList({ clueId: id });
+      if (!reponse.data) {
+        this.tailBoolean = true;
+        return;
+      }
+      this.tailBoolean = false;
+      //TClueMain 线索来源
+      const TClueMain = reponse.data.TClueMain && reponse.data.TClueMain;
+      if (TClueMain) {
+        const TClueMainObj = {
+          createDate: TClueMain.createDate,
+          clueName: TClueMain.clueName,
+          clueNum: TClueMain.clueNum,
+          clueSourceName: TClueMain.clueSourceName,
+          pollutionTypeName: TClueMain.pollutionTypeName,
+          address:
+            TClueMain.city +
+            TClueMain.county +
+            TClueMain.town +
+            TClueMain.address
+        };
+        this.TClueMain = TClueMainObj;
+      }
+      //TInspectTalk1 谈话记录
+      const TInspectTalk1 =
+        reponse.data.TInspectTalk1 && reponse.data.TInspectTalk1;
+      if (TInspectTalk1) {
+        const talkArry = [];
+        for (const item in TInspectTalk1) {
+          const subject = TInspectTalk1[item];
+          const temp = {
+            createDate: subject.createDate,
+            time: subject.startTime + "至" + subject.endTime,
+            actualSpeaker: subject.actualSpeaker,
+            actualRecord: subject.actualRecord,
+            actualInterviewee: subject.actualInterviewee,
+            actualIntervieweeUnit: subject.actualIntervieweeUnit,
+            address:
+              subject.actualCityName +
+              subject.actualCountyName +
+              subject.actualAddress
+          };
+          talkArry.push(temp);
+        }
+        this.talkArry = talkArry;
+      }
+      //TInspectTalk2 走访问询
+      const TInspectTalk2 =
+        reponse.data.TInspectTalk2 && reponse.data.TInspectTalk2;
+      if (TInspectTalk2) {
+        const talkArry = [];
+        for (const item in TInspectTalk2) {
+          const subject = TInspectTalk2[item];
+          const temp = {
+            createDate: subject.createDate,
+            theme: subject.theme,
+            time: subject.startTime + "至" + subject.endTime,
+            actualSpeaker: subject.actualSpeaker,
+            actualRecord: subject.actualRecord,
+            actualInterviewee: subject.actualInterviewee,
+            actualIntervieweeIdcard: subject.actualIntervieweeIdcard,
+            actualIntervieweeAge: subject.actualIntervieweeAge,
+            actualIntervieweeUnit: subject.actualIntervieweeUnit,
+            actualIntervieweePost: subject.actualIntervieweePost,
+            actualIntervieweePostcode: subject.actualIntervieweePostcode,
+            actualIntervieweePhone: subject.actualIntervieweePhone,
+            address:
+              subject.actualCityName +
+              subject.actualCountyName +
+              subject.actualAddress
+          };
+          talkArry.push(temp);
+        }
+        this.interviewArry = talkArry;
+      }
+      //TInspectTeam 线索补充
+      const TInspectTeam =
+        reponse.data.TInspectTeam && reponse.data.TInspectTeam;
+      if (TInspectTeam) {
+        const TInspectTeamObj = {
+          createDate: TInspectTeam.createDate,
+          clueName: TInspectTeam.clueName,
+          clueNum: TInspectTeam.clueNum,
+          clueSourceName: TInspectTeam.clueSourceName,
+          pollutionTypeName: TInspectTeam.pollutionTypeName,
+          address:
+            TInspectTeam.city +
+            TInspectTeam.county +
+            TInspectTeam.town +
+            TInspectTeam.address
+        };
+        this.TInspectTeam = TInspectTeamObj;
+      }
+      //TCommonLinkAddress 下沉日志
+      const TCommonLinkAddress =
+        reponse.data.TCommonLinkAddress && reponse.data.TCommonLinkAddress;
+      if (TCommonLinkAddress) {
+        const TCommonLinkAddressObj = {
+          createDate: TCommonLinkAddress.createDate,
+          teamName: TCommonLinkAddress.teamName,
+          sinkDate: TCommonLinkAddress.sinkDate,
+          sinkPerson: TCommonLinkAddress.sinkPerson,
+          addressList: undefined
+        };
+        const addressArry = [];
+        for (const item in TCommonLinkAddress.addressList) {
+          const subject = TCommonLinkAddress.addressList[item];
+          const temp = {
+            province: subject.province,
+            county: subject.county,
+            address: subject.address
+          };
+          addressArry.push(temp);
+        }
+        console.log(addressArry);
+        TCommonLinkAddressObj.addressList = addressArry;
+        this.TCommonLinkAddress = TCommonLinkAddressObj;
+      }
+      //TInspectProblem 问题聚焦
+      const TInspectProblem =
+        reponse.data.TInspectProblem && reponse.data.TInspectProblem;
+      if (TInspectProblem) {
+        const TInspectProblemObj = {
+          createDate: TInspectProblem.problem.createDate,
+          name: TInspectProblem.xcTeamInfo.name,
+          time:
+            TInspectProblem.xcTeamInfo.xcStartDate +
+            "至" +
+            TInspectProblem.xcTeamInfo.xcEndDate,
+          areaName: TInspectProblem.xcTeamInfo.areaName,
+          problemDescript: TInspectProblem.problem.problemDescript,
+          problemContent: TInspectProblem.problem.problemContent
+        };
+        this.TInspectProblem = TInspectProblemObj;
+      }
+      //TInspectTalk3 询问笔录
+      const TInspectTalk3 =
+        reponse.data.TInspectTalk3 && reponse.data.TInspectTalk3;
+      if (TInspectTalk3) {
+        const talkArry = [];
+        for (const item in TInspectTalk3) {
+          const subject = TInspectTalk3[item];
+          const temp = {
+            createDate: subject.createDate,
+            theme: subject.theme,
+            time: subject.startTime + "至" + subject.endTime,
+            actualSpeaker: subject.actualSpeaker,
+            actualRecord: subject.actualRecord,
+            actualInterviewee: subject.actualInterviewee,
+            actualIntervieweeIdcard: subject.actualIntervieweeIdcard,
+            actualIntervieweeAge: subject.actualIntervieweeAge,
+            actualIntervieweeUnit: subject.actualIntervieweeUnit,
+            actualIntervieweePost: subject.actualIntervieweePost,
+            actualIntervieweePostcode: subject.actualIntervieweePostcode,
+            actualIntervieweePhone: subject.actualIntervieweePhone,
+            address:
+              subject.actualCityName +
+              subject.actualCountyName +
+              subject.actualAddress
+          };
+          talkArry.push(temp);
+        }
+        this.TInspectTalk3 = talkArry;
+      }
+    },
+    handleDialogTailClose() {
+      this.tailOpen = false;
+      this.tailBoolean = false;
+      this.clueName = undefined;
+      this.TClueMain = {
+        createDate: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        address: undefined
+      };
+      this.talkArry = undefined;
+      this.interviewArry = undefined;
+      this.TInspectTeam = {
+        createDate: undefined,
+        clueName: undefined,
+        clueNum: undefined,
+        clueSourceName: undefined,
+        pollutionTypeName: undefined,
+        address: undefined
+      };
+      this.TCommonLinkAddress = {
+        createDate: undefined,
+        sinkPerson: undefined,
+        teamName: undefined,
+        addressList: undefined
+      };
+      this.TInspectProblem = {
+        createDate: undefined,
+        name: undefined,
+        time: undefined,
+        problemDescript: undefined,
+        problemContent: undefined
+      };
+      this.TInspectTalk3 = undefined;
+    },
+    handleDelete(data) {
+      this.$confirm("是否要删除", "确认信息", {
+        distinguishCancelAndClose: true,
+        confirmButtonText: "删除",
+        cancelButtonText: "取消"
+      }).then(async () => {
+        const { id } = data;
+        const reponse = await threadDelete({ id });
+        this.getList();
+      });
+    },
+    handleDialogClose() {
+      this.open = false;
+      this.$refs.uploadFile && this.$refs.uploadFile.handleClear();
+    },
+    handleformClear(formName) {
+      this.resetFieldsTap(formName);
+      this.dialogParams.id = undefined;
+    },
+    setUrlPath(file) {
+      this.dialogParams[file.fromKey] = file.fileId;
+    },
+    deleteServeFile(file) {
+      this.dialogParams[file.fromKey] = undefined;
+    },
+    handleDownLoadDoc(attachmentId) {
+      getSingleInfo(attachmentId);
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.twoLayoutForm {
+  .meet-address {
+    .el-form-item__content {
+      .el-select {
+        width: 19%;
+      }
+      .el-input {
+        width: 43%;
+      }
+    }
+  }
+}
+.manage-info {
+  .info-item {
+    .info-item-title {
+      width: 112px;
+    }
+  }
+}
+.tail-box {
+  display: flex;
+  flex-direction: column;
+  padding: 0 30px;
+  .tail-item {
+    display: flex;
+    flex-direction: row;
+
+    .tail-item-left {
+      width: 30px;
+      background: url("~@/assets/images/source-allow.png") no-repeat top center;
+      text-align: center;
+      margin-top: 15px;
+      .tail-item-left-line {
+        width: 1px;
+        height: 100%;
+        border: 1px solid #e4e4e4;
+        display: inline-block;
+        margin-top: 40px;
+      }
+    }
+    .tail-item-right {
+      flex: 1;
+      margin-left: 30px;
+      .tail-item-right-top {
+        background-color: #f8f8f8;
+        border: 1px solid #dcdcdc;
+        height: 50px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        border-radius: 6px;
+        font-size: 16px;
+        padding-left: 14px;
+        .tail-top-name {
+          color: #409eff;
+          margin-right: 18px;
+        }
+        .tail-top-time {
+          color: #409eff;
+          margin-right: 28px;
+        }
+        .tail-top-text {
+          color: #333333;
+          font-size: 14px;
+        }
+      }
+      .tail-item-right-bottom {
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 20px;
+        border-bottom: 1px dotted rgb(175, 168, 168);
+        &:last-child {
+          border-bottom: none;
+        }
+        .tail-group {
+          display: flex;
+          margin-top: 12px;
+          .tail-other-item {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            .tail-other-label {
+              font-size: 14px;
+              color: #999999;
+              width: 100px;
+              text-align: right;
+              font-weight: normal;
+            }
+            .tail-other-text {
+              flex: 1;
+              font-size: 14px;
+              color: #333333;
+              line-height: 22px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+.examineInfo-title {
+  font-size: 18px;
+  color: #409eff;
+  margin: 10px 0 0 0;
+}
+</style>

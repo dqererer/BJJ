@@ -1,0 +1,85 @@
+<template>
+  <div class="information-inner information-styem" ref="informationInner">
+    <el-row :gutter="20" class="information-styme-row">
+      <el-col :span="24"  class="information-styme-col">
+        <el-tabs
+          v-model="activeName"
+          type="card"
+          ref="tabs"
+          @tab-click="tabClick"
+        >
+          <el-tab-pane label="分系统表列表" name="list">
+            <bSys-list
+              ref="dataList"
+              @handleSeeAmend="handleSeeAmend"
+            ></bSys-list>
+          </el-tab-pane>
+          <el-tab-pane
+            ref="amendList"
+            :label="tabState == 'add' ? '分系统表添加' : '分系统表修改'"
+            name="add"
+          >
+            <bSys-amend @backHandle="backHandle"></bSys-amend>
+          </el-tab-pane>
+        </el-tabs>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script>
+import bSysList from "./bSysList";
+import bSysAmend from "./bSysAmend";
+import Bus from "@/utils/vueBus";
+export default {
+  components: {
+    bSysList,
+    bSysAmend
+  },
+  data() {
+    return {
+      activeName: "list",
+      tabState: "add",
+      noListLimits: true,
+      disabledBoolean: false
+    };
+  },
+  methods: {
+    tabClick(tab) {
+      if (this.disabledBoolean) {
+        //this.tabControlHide(1);
+        return;
+      }
+      if (tab.name === "list") {
+        this.tabState = "add";
+        this.tabControlShow(1);
+      } else if (tab.name === "add") {
+        Bus.$emit("outStyemComeId", "");
+      }
+    },
+    handleSeeAmend(stateObj) {
+      const tabState = stateObj.tabState;
+      const name = stateObj.name;
+      this.tabState = tabState;
+      this.activeName = name;
+      if (stateObj.name == false) {
+        this.tabControlHide(1);
+        this.disabledBoolean = true;
+      }
+    },
+    backHandle(name) {
+      this.activeName = "list";
+      if (this.disabledBoolean) {
+        //this.tabControlHide(1);
+        return;
+      }
+      this.tabState = "add";
+      this.tabControlShow(1);
+      if (name == "update") {
+        this.$refs.dataList.queryParams.pageNo = 1;
+        this.$refs.dataList.getList();
+      }
+    }
+  }
+};
+</script>

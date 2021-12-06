@@ -1,0 +1,681 @@
+<template>
+  <div class="implement">
+    <div class="type">
+      <title>任务来源分类</title>
+      <el-radio-group v-model="type" @change="handleTypeChange">
+        <el-radio-button
+          v-for="(item, index) in sourceChartArry"
+          :key="index"
+          :label="item.code"
+          >{{ item.name }}</el-radio-button
+        >
+      </el-radio-group>
+    </div>
+    <div class="top">
+      <div class="card card-l">
+        <title>整改任务推进情况</title>
+        <div class="content">
+          <div
+            class="item"
+            v-for="(item, index) in progressList"
+            v-bind:key="index"
+            @click="handleClick(index, item.label)"
+          >
+            <div>{{ item.num }}个</div>
+            <el-link :underline="false">
+              <i
+                v-if="index == '0'"
+                class="el-icon-circle-check"
+                :style="{ color: 'green' }"
+              ></i>
+              <i
+                v-if="index == '1'"
+                class="el-icon-video-play"
+                :style="{ color: 'green' }"
+              ></i>
+              <i
+                v-if="index == '2'"
+                class="el-icon-video-pause"
+                :style="{ color: 'red' }"
+              ></i>
+              <i
+                v-if="index == '3'"
+                class="el-icon-warning-outline"
+                :style="{ color: 'orange' }"
+              ></i>
+              <i
+                v-if="index == '4'"
+                class="el-icon-remove-outline"
+                :style="{ color: 'red' }"
+              ></i>
+              <i
+                v-if="index == '5'"
+                class="el-icon-circle-close"
+                :style="{ color: 'green' }"
+              ></i>
+              <span class="bold">{{ item.label }}</span></el-link
+            >
+          </div>
+        </div>
+      </div>
+      <div class="card card-m1" @click="handleClick(6, '超期预警任务')">
+        <title>超期任务</title>
+        <div class="content">
+          <div class="num">{{ polluteNum | 1000 }}</div>
+          <div id="circleCharts1"></div>
+        </div>
+      </div>
+      <div class="card card-m2" @click="handleClick(8, '超期预警任务')">
+        <title>预警任务</title>
+        <div class="content">
+          <div class="num">{{ yjNum | 1000 }}</div>
+          <div id="circleCharts2"></div>
+        </div>
+      </div>
+      <div class="card card-r" @click="handleClick(7, '本月上报率')">
+        <title>本月上报率</title>
+        <div class="content">
+          <div class="title">整改任务：</div>
+          <div class="line">
+            <el-progress
+              :percentage="taskRate"
+              :stroke-width="16"
+              :show-text="false"
+            ></el-progress>
+            <p>整体上报率为{{ taskRate }}%</p>
+          </div>
+        </div>
+        <div class="content">
+          <div class="title">月度报告：</div>
+          <div class="line">
+            <el-progress
+              :percentage="taskRate2"
+              :stroke-width="16"
+              :show-text="false"
+            ></el-progress>
+            <el-popover placement="top-start" width="200" trigger="hover">
+              <div>未上报地市：{{ citys }}</div>
+              <p class="city" slot="reference">未上报地市：{{ citys }}</p>
+            </el-popover>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="buttom">
+      <div class="card card-b">
+        <title><span class="red"> {{ dataType }}</span>任务情况分布情况</title>
+        <div class="content">
+          <div id="dispath"></div>
+          <section style="padding: 52px 0; width: 40%; height: 600px">
+            <el-table
+              :data="tableData"
+              border
+              style="width: 100%"
+              height="100%"
+            >
+              <el-table-column type="index" label="序号" width="60">
+              </el-table-column>
+
+              <el-table-column
+                prop="rectifyContent"
+                label="任务名称"
+                min-width="300"
+              >
+                <template slot-scope="scope">
+                  <el-popover
+                    placement="top-start"
+                    width="200"
+                    trigger="hover"
+                    :content="scope.row.rectifyContent"
+                  >
+                    <div slot="reference">
+                      {{ scope.row.rectifyContent }}
+                    </div>
+                  </el-popover>
+                </template>
+              </el-table-column>
+
+              <el-table-column
+                prop="taskTypeOneName"
+                label="任务类型"
+                width="160"
+              >
+                <template slot-scope="scope">
+                  <el-popover
+                    placement="top-start"
+                    width="120"
+                    trigger="hover"
+                    :content="scope.row.taskTypeOneName"
+                  >
+                    <div slot="reference">
+                      {{ scope.row.taskTypeOneName }}
+                    </div>
+                  </el-popover>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="finishSituationName"
+                label="完成情况"
+                width="120"
+              >
+              </el-table-column>
+            </el-table>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  getProgressData,
+  getTaskData,
+  getPieData1,
+  getPieData2,
+  getProgress,
+  getBarData,
+} from "@/api/change/dispatch";
+import { rectifySourceChartInfo } from "@/api/bigScreen";
+import * as echarts from "echarts";
+require("echarts/theme/macarons"); //引入主题
+export default {
+  data() {
+    return {
+      type: "",
+      status: "1",
+      progressList: [],
+      circleCharts1: null,
+      circleCharts2: null,
+      barCharts: null,
+      tableData: [],
+      polluteNum: "",
+      yjNum: "",
+      taskRate: 0,
+      taskRate2: 0,
+      citys: "",
+      xData: [],
+      yData: [],
+      yData2: [],
+      dataType: "已完成",
+      linkType: {
+        quarter: "",
+        month: "",
+        year: "",
+      },
+      sourceChartArry: [],
+    };
+  },
+  created() {
+    this.getRectifySourceChartInfo();
+    this.getRequest();
+  },
+  methods: {
+    getRequest: function () {
+      this.getProgressData();
+      this.getTaskData();
+      this.getPieData1();
+      this.getPieData2();
+      this.getProgress();
+      this.getBarData();
+      this.$nextTick(() => {
+        this.drawBar();
+      });
+    },
+    async getRectifySourceChartInfo() {
+      const reponse = await rectifySourceChartInfo({ cityCode: this.cityCode });
+      if (reponse.data) {
+        reponse.data.sourceData.unshift({
+          name: "全部",
+          code: "",
+        });
+        this.sourceChartArry = reponse.data.sourceData;
+      }
+    },
+    handleTypeChange: function (e) {
+      this.type = e;
+      this.getRequest();
+    },
+    getProgressData: function () {
+      getProgressData({
+        inspectType: this.type,
+      })
+        .then((res) => {
+          if (res.code == "200") {
+            this.progressList = res.data;
+          } else {
+            this.$message.error(res.msg);
+          }
+        })
+        .catch();
+    },
+    getTaskData: function () {
+      getTaskData({
+        inspectType: this.type,
+        finishSituation: this.status,
+      }).then((res) => {
+        if (res.code == "200") {
+          this.tableData = res.data;
+        } else {
+          this.$message.error(res.msg);
+        }
+      });
+    },
+    getPieData1: function () {
+      getPieData1({
+        inspectType: this.type,
+      }).then((res) => {
+        let arr = [];
+        this.polluteNum = res.data.total;
+        res.data.polluteType &&
+          res.data.polluteType.forEach((element) => {
+            let obj = {};
+            obj.value = element.num;
+            obj.name = element.label;
+            arr.push(obj);
+          });
+
+        this.pieData1 = arr;
+        this.$nextTick(() => {
+          this.drawPieChart("circleCharts1");
+        });
+      });
+    },
+    getPieData2: function () {
+      getPieData2({
+        inspectType: this.type,
+      }).then((res) => {
+        let arr = [];
+        this.yjNum = res.data.total;
+        res.data.polluteType &&
+          res.data.polluteType.forEach((element) => {
+            let obj = {};
+            obj.value = element.num;
+            obj.name = element.label;
+            arr.push(obj);
+          });
+
+        this.pieData1 = arr;
+        this.$nextTick(() => {
+          this.drawPieChart("circleCharts2");
+        });
+      });
+    },
+    getProgress: function () {
+      getProgress({
+        inspectType: this.type,
+      }).then((res) => {
+        this.taskRate = (res.data.taskRate * 100).toFixed(2);
+        this.taskRate2 = (res.data.reportRate * 100).toFixed(2);
+        let arr = [];
+        res.data.reportUnDoList.forEach((item) => {
+          arr.push(item.name);
+        });
+        this.citys = arr.join(",");
+      });
+    },
+    getBarData: function () {
+      getBarData({
+        finishSituation: this.status,
+        inspectType: this.type,
+      }).then((res) => {
+        let arr1 = [];
+        let arr2 = [];
+        let arr3 = [];
+        if (this.status == 8) {
+          res.data &&
+            res.data.forEach((item) => {
+              arr1.push(item.yesReportRate ? item.yesReportRate * 100 : 0);
+              arr2.push(item.write_city ? item.write_city : "");
+              arr3.push(item.noReportRate ? item.noReportRate * 100 : 0);
+            });
+          this.xData = arr2;
+          this.yData = arr1;
+          this.yData2 = arr3;
+          this.$nextTick(() => {
+            this.drawDoubleBar();
+          });
+        } else if (this.status == 7 || this.status == 9) {
+          res.data &&
+            res.data.forEach((item) => {
+              arr1.push(item.num ? item.num : 0);
+              arr2.push(item.taskCityName ? item.taskCityName : "");
+            });
+
+          this.xData = arr2;
+          this.yData = arr1;
+          this.$nextTick(() => {
+            this.drawBar();
+          });
+        } else {
+          res.data &&
+            res.data.forEach((item) => {
+              arr1.push(item.num ? item.num : 0);
+              arr2.push(item.write_city ? item.write_city : "");
+            });
+
+          this.xData = arr2;
+          this.yData = arr1;
+          this.$nextTick(() => {
+            this.drawBar();
+          });
+        }
+      });
+    },
+    clearLinkType: function (type) {
+      for (let i in this.linkType) {
+        if (i == type) {
+          this.$set(this.linkType, i, "primary");
+        } else {
+          this.$set(this.linkType, i, "");
+        }
+      }
+    },
+    drawPieChart: function (id) {
+      this.circleCharts = echarts.init(
+        document.getElementById(id),
+        "macarons",
+        {
+          width: 200,
+          height: 200,
+        }
+      );
+      this.circleCharts.setOption({
+        tooltip: {
+          trigger: "item",
+        },
+        series: [
+          {
+            type: "pie",
+            data: this.pieData1,
+            label: {
+              position: "inner",
+              fontSize: 10,
+            },
+            tooltip: {
+              trigger: "item",
+              formatter: "{b} : {c} ({d}%)",
+            },
+            labelLine: {
+              show: false,
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+          },
+        ],
+      });
+    },
+    drawBar() {
+      this.barCharts = echarts.init(
+        document.getElementById("dispath"),
+        "macarons"
+      );
+      this.barCharts.clear();
+      this.barCharts.setOption({
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: this.xData,
+        },
+        yAxis: {
+          type: "value",
+          minInterval: 1,
+        },
+        series: [
+          {
+            data: this.yData,
+            type: "bar",
+          },
+        ],
+      });
+    },
+    drawDoubleBar() {
+      this.isShowDouble = false;
+      this.barCharts = echarts.init(
+        document.getElementById("dispath"),
+        "macarons"
+      );
+      this.barCharts.clear();
+      this.barCharts.setOption({
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+          formatter: "{a0}: {c0}% <br />{a1}: {c1}%",
+        },
+        xAxis: {
+          type: "category",
+          data: this.xData,
+        },
+        yAxis: {
+          type: "value",
+          axisLabel: {
+            show: true,
+            interval: "auto",
+            formatter: "{value} %",
+          },
+        },
+        series: [
+          {
+            name: "已上报率",
+            data: this.yData,
+            type: "bar",
+            stack: "num",
+          },
+          {
+            name: "未上报率",
+            data: this.yData2,
+            type: "bar",
+            stack: "num",
+          },
+        ],
+      });
+    },
+    goToTask: function () {
+      let routeData = this.$router.resolve({ path: "/task" });
+      window.open(routeData.href, "_blank");
+    },
+    handleClick: function (idx, text) {
+      this.status = idx + 1;
+      this.dataType = text;
+      this.getBarData();
+      this.getTaskData();
+    },
+  },
+};
+</script>
+<style lang="scss" scoped>
+.implement {
+  padding: 10px;
+  height: 100%;
+  .type {
+    border-radius: 4px;
+    border: 1px solid #ebeef5;
+    background-color: #fff;
+    overflow: hidden;
+    color: #303133;
+    transition: 0.3s;
+    box-shadow: 0 2px 12px 0 #ebeef5;
+    padding: 0px 20px 10px;
+    margin-bottom: 10px;
+    title {
+      display: block;
+      border-bottom: 1px solid #ebeef5;
+      height: 50px;
+      line-height: 50px;
+      padding-left: 10px;
+      margin-bottom: 10px;
+      span {
+        color: red;
+      }
+    }
+    /deep/ .el-radio-button__inner {
+      border: 1px solid #dcdfe6;
+    }
+    /deep/ .el-radio-button {
+      margin: 5px;
+    }
+  }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    height: 268px;
+    .card {
+      height: 100%;
+      border-radius: 4px;
+      border: 1px solid #ebeef5;
+      background-color: #fff;
+      overflow: hidden;
+      color: #303133;
+      transition: 0.3s;
+      box-shadow: 0 2px 12px 0 #ebeef5;
+      padding: 0px 20px 10px;
+      title {
+        display: block;
+        border-bottom: 1px solid #ebeef5;
+        height: 50px;
+        line-height: 50px;
+        padding-left: 10px;
+        span {
+          color: red;
+        }
+      }
+    }
+    .card-l {
+      width: 26%;
+      .content {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        height: calc(100% - 50px);
+        align-items: center;
+        .item {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          align-items: center;
+          width: 33%;
+
+          div {
+            font-weight: bold;
+          }
+        }
+      }
+    }
+    .card-m1 {
+      width: 24.5%;
+      .content {
+        padding-bottom: 20px;
+        display: flex;
+        justify-content: space-around;
+        .num {
+          line-height: 200px;
+          color: red;
+          font-size: 28px;
+          font-weight: bold;
+        }
+        #circleCharts {
+          width: 200px;
+          height: 200px;
+        }
+      }
+    }
+    .card-m2 {
+      width: 24.5%;
+      .content {
+        padding-bottom: 20px;
+        display: flex;
+        justify-content: space-around;
+        .num {
+          line-height: 200px;
+          color: red;
+          font-size: 28px;
+          font-weight: bold;
+        }
+        #circleCharts {
+          width: 200px;
+          height: 200px;
+        }
+      }
+    }
+    .card-r {
+      width: 23.5%;
+      cursor: pointer;
+      .content {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 30px 0 0;
+
+        .title {
+          font-weight: bold;
+          font-size: 16px;
+        }
+        .line {
+          width: calc(100% - 100px);
+          p {
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            word-wrap: break-word;
+            word-break: break-all;
+          }
+        }
+      }
+    }
+  }
+  .buttom {
+    // height: calc(100% - 372px);
+    padding-top: 10px;
+    .card {
+      height: 100%;
+      border-radius: 4px;
+      border: 1px solid #ebeef5;
+      background-color: #fff;
+      color: #303133;
+      transition: 0.3s;
+      box-shadow: 0 2px 12px 0 #ebeef5;
+      padding: 10px 20px;
+      title {
+        display: block;
+        border-bottom: 1px solid #ebeef5;
+        height: 50px;
+        line-height: 50px;
+        padding-left: 10px;
+      }
+    }
+    .card-b {
+      width: 100%;
+      .content {
+        display: flex;
+        #dispath {
+          height: 600px;
+          width: 60%;
+        }
+      }
+    }
+  }
+}
+.red {
+  color: red;
+}
+.bold {
+  font-weight: bold;
+}
+</style>
+
+

@@ -1,0 +1,839 @@
+<template>
+  <div class="rectity-content">
+    <div class="rectity-city-tab" ref="rectityCityTab">
+      <span
+        class="rectity-item"
+        :class="cityCode == '' ? 'active' : ''"
+        @click="handleCityClick('')"
+      >全省</span>
+      <span
+        class="rectity-item"
+        :class="cityCode == item.id ? 'active' : ''"
+        @click="handleCityClick(item.id, item.label)"
+        v-for="(item, index) in areaArry"
+        :key="index"
+      >{{ item.label }}</span>
+    </div>
+    <!-- taskContentH -->
+    <div class="styem-content" :style="{ height: contentAllH + 'px' }">
+      <div class="styem-content-left">
+        <div class="styem-ctop">
+          <h1 class="styem-ctop-title" ref="ctopTitle">任务来源分类</h1>
+          <div class="styem-ctop-content ctop-box" :style="{ height: taskContentH + 'px' }">
+            <span
+              class="ctop-item"
+              :class="inspectTypeArry.indexOf(item.code)>-1?'active':''"
+              v-for="(item,index) in sourceChartArry"
+              :key="index"
+              @click="handleSourceClick(item.code)"
+            >{{item.name}}</span>
+          </div>
+
+          <i class="ctop-border ctop-left-top"></i>
+          <i class="ctop-border ctop-right-top"></i>
+        </div>
+        <div class="styem-ctop">
+          <h1 class="styem-ctop-title">污染类型分类</h1>
+          <div class="styem-ctop-content" :style="{ height: polluteContentH + 'px' }">
+            <div class="styem-ctop-content-box" id="polluteSortEchart" v-show="polluteBoolean"></div>
+          </div>
+          <i class="ctop-border ctop-left-top"></i>
+          <i class="ctop-border ctop-right-top"></i>
+        </div>
+        <div class="styem-ctop">
+          <h1 class="styem-ctop-title">问责情况</h1>
+          <div class="inquire-content" :style="{ height: accountContentH + 'px' }">
+            <div class="inquire-group">
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.one }}</span>
+                <span class="inquire-text">正厅级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.two }}</span>
+                <span class="inquire-text">副厅级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.three }}</span>
+                <span class="inquire-text">正处级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.four }}</span>
+                <span class="inquire-text">副处级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+            </div>
+            <div class="inquire-group inquire-group-two">
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.five }}</span>
+                <span class="inquire-text">正科级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.six }}</span>
+                <span class="inquire-text">副科级</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.seven }}</span>
+                <span class="inquire-text">科员</span>
+                <span class="inquire-bottom"></span>
+              </div>
+              <div class="inquire-item">
+                <span class="inquire-num">{{ accountMap.eight }}</span>
+                <span class="inquire-text">其他</span>
+                <span class="inquire-bottom"></span>
+              </div>
+            </div>
+          </div>
+          <i class="ctop-border ctop-left-top"></i>
+          <i class="ctop-border ctop-right-top"></i>
+        </div>
+      </div>
+      <div class="styem-content-center">
+        <div class="reform-box" :style="{ height: reformContentH + 'px' }">
+          <div class="reform-top">
+            <div class="reform-top-item" @click="handleReformItemClick('1')">
+              <span class="reform-title">已完成</span>
+              <span class="reform-num">
+                <b>{{ finishData.one }}</b>
+                <i>件</i>
+              </span>
+            </div>
+            <div class="reform-top-item" @click="handleReformItemClick('2')">
+              <span class="reform-title">达到序时进度</span>
+              <span class="reform-num">
+                <b>{{ finishData.two }}</b>
+                <i>件</i>
+              </span>
+            </div>
+            <div class="reform-top-item" @click="handleReformItemClick('3')">
+              <span class="reform-title">未达序时进度</span>
+              <span class="reform-num">
+                <b>{{ finishData.three }}</b>
+                <i>件</i>
+              </span>
+            </div>
+            <div class="reform-top-item" @click="handleReformItemClick('4')">
+              <span class="reform-title">尚未启动</span>
+              <span class="reform-num">
+                <b>{{ finishData.four }}</b>
+                <i>件</i>
+              </span>
+            </div>
+            <div class="reform-top-item" @click="handleReformItemClick('5')">
+              <span class="reform-title">超期未完成</span>
+              <span class="reform-num">
+                <b>{{ finishData.five }}</b>
+                <i>件</i>
+              </span>
+            </div>
+            <div class="reform-top-item" @click="handleReformItemClick('6')">
+              <span class="reform-title">已销号</span>
+              <span class="reform-num">
+                <b>{{ finishData.six }}</b>
+                <i>件</i>
+              </span>
+            </div>
+          </div>
+          <div class="reform-bottom" @click="handleReformItemClick('')">
+            <h1 class="reform-bottom-title">{{ city }}</h1>
+            <span class="reform-bottom-num">
+              <b>{{ finishData.totalNum }}</b>
+              <i>件</i>
+            </span>
+          </div>
+        </div>
+        <div class="styem-ctop" style="padding:0 1%;">
+          <h1 class="styem-ctop-title">{{chartTitle}}</h1>
+          <div class="styem-ctop-content" :style="{ height: appearContentH + 'px' }">
+            <div class="styem-ctop-content-box" id="appearEchart" v-show="appearBoolean"></div>
+          </div>
+          <i class="ctop-border ctop-left-top"></i>
+          <i class="ctop-border ctop-right-top"></i>
+        </div>
+      </div>
+      <div class="styem-content-right">
+        <rectify-task-list
+          :inspectType="inspectType"
+          :writeCityCode="cityCode"
+          :finishSituation="finishSituation"
+        ></rectify-task-list>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  rectifySourceChartInfo,
+  rectifyChartInfo,
+  rectifyInfo,
+  rectifyMonthInfo
+} from "@/api/bigScreen";
+import rectifyTaskList from "./rectifyTaskList";
+import { mapGetters } from "vuex";
+
+export default {
+  components: {
+    rectifyTaskList
+  },
+  data() {
+    return {
+      city: "内蒙古自治区",
+      cityCode: "",
+      inspectType: undefined,
+      accountMap: {
+        one: 0,
+        two: 0,
+        three: 0,
+        four: 0,
+        five: 0,
+        six: 0,
+        seven: 0,
+        eight: 0
+      },
+      pollutionValueSortArry: undefined,
+
+      finishData: {
+        one: undefined,
+        two: undefined,
+        three: undefined,
+        four: undefined,
+        five: undefined,
+        totalNum: undefined
+      },
+      radarSortData: undefined,
+      monthData: undefined,
+      contentAllH: 0,
+      taskContentH: 0,
+      polluteContentH: 0,
+      accountContentH: 0,
+      reformContentH: 0,
+      appearContentH: 0,
+      finishSituation: undefined,
+      sourceData: undefined,
+      sourceChartArry: undefined,
+      inspectTypeArry: [],
+      polluteBoolean: false,
+      appearBoolean: false,
+      chartTitle:"本月上报情况"
+    };
+  },
+  created() {
+    this.getRectifySourceChartInfo();
+  },
+  mounted() {
+    this.handleContentSetHeight();
+  },
+  computed: {
+    ...mapGetters(["areaArry"])
+  },
+  methods: {
+    handleCityClick(code, label) {
+      if (code == "") {
+        this.cityCode = "";
+        this.city = "内蒙古自治区";
+        this.chartTitle = "本月上报情况";
+      } else {
+        this.chartTitle = "每月上报情况";
+        this.cityCode = code;
+        this.city = label;
+      }
+      this.getRectifySourceChartInfo();
+    },
+    async getRectifySourceChartInfo() {
+      const reponse = await rectifySourceChartInfo({ cityCode: this.cityCode });
+      if (reponse.data) {
+        this.sourceChartArry = reponse.data.sourceData;
+        const sourceChartCodeArry = [];
+        for (const item in reponse.data.sourceData) {
+          const subject = reponse.data.sourceData[item];
+          sourceChartCodeArry.push(subject.code);
+        }
+        this.inspectTypeArry = sourceChartCodeArry;
+        this.inspectType = sourceChartCodeArry.join(",");
+        this.getRectifyChartInfo();
+        this.getRectifyInfo();
+        this.getRectifyMonthInfo();
+        this.polluteBoolean = true;
+      } else {
+        this.polluteBoolean = false;
+        this.appearBoolean = false;
+        this.sourceChartArry = [];
+        this.accountMap = {
+          one: 0,
+          two: 0,
+          three: 0,
+          four: 0,
+          five: 0,
+          six: 0,
+          seven: 0,
+          eight: 0
+        };
+        this.finishData = {
+          one: 0,
+          two: 0,
+          three: 0,
+          four: 0,
+          five: 0,
+          totalNum: 0
+        };
+      }
+    },
+    handleSourceClick(code) {
+      const sourceChartCodeArry = this.inspectType.split(",");
+      const index = sourceChartCodeArry.indexOf(code);
+      if (sourceChartCodeArry.indexOf(code) > -1) {
+        const sourceOtherArry = sourceChartCodeArry.splice(index, 1);
+        this.inspectTypeArry = sourceChartCodeArry;
+        this.inspectType = sourceChartCodeArry.join(",");
+      } else {
+        sourceChartCodeArry.push(code);
+        this.inspectType = sourceChartCodeArry.join(",");
+        this.inspectTypeArry = sourceChartCodeArry;
+      }
+      this.getRectifyChartInfo();
+      this.getRectifyInfo();
+      this.getRectifyMonthInfo();
+    },
+    async getRectifyChartInfo() {
+      const reponse = await rectifyChartInfo({
+        cityCode: this.cityCode,
+        inspectType: this.inspectType
+      });
+      const subject = reponse.data;
+      if (subject.accountMap) {
+        const accountMapTemp = subject.accountMap;
+        this.accountMap = {
+          one: accountMapTemp["正厅级"] || 0,
+          two: accountMapTemp["副厅级"] || 0,
+          three: accountMapTemp["正处级"] || 0,
+          four: accountMapTemp["副处级"] || 0,
+          five: accountMapTemp["正科级"] || 0,
+          six: accountMapTemp["副科级"] || 0,
+          seven: accountMapTemp["科员"] || 0,
+          eight: accountMapTemp["其他"] || 0
+        };
+      }
+      this.pollutionValueSortArry = subject.pollutionData;
+      const pollutionValueSortArry = [];
+      const radarSortData = [];
+      for (const pollutionItem in subject.pollutionData) {
+        const subjectPollution = subject.pollutionData[pollutionItem];
+        pollutionValueSortArry.push(subjectPollution.value);
+      }
+      const pollutionMax = Math.max.apply(null, pollutionValueSortArry);
+      for (const pollutionItem in subject.pollutionData) {
+        const subjectPollution = subject.pollutionData[pollutionItem];
+        radarSortData.push({
+          name: subjectPollution.name,
+          max: pollutionMax
+        });
+      }
+      this.pollutionValueSortArry = pollutionValueSortArry;
+      this.radarSortData = radarSortData;
+
+      this.sourceData = subject.sourceData;
+      this.$nextTick(() => {
+        this.handlePolluteSortEchart();
+      });
+    },
+    async getRectifyInfo() {
+      const reponse = await rectifyInfo({
+        cityCode: this.cityCode,
+        inspectType: this.inspectType
+      });
+      const accountMapTemp = reponse.data.finishData || {};
+      if (accountMapTemp) {
+        this.finishData = {
+          one: accountMapTemp["已完成"] || 0,
+          two: accountMapTemp["达到序时进度"] || 0,
+          three: accountMapTemp["未达序时进度"] || 0,
+          four: accountMapTemp["尚未启动"] || 0,
+          five: accountMapTemp["超期未完成"] || 0,
+          six: accountMapTemp["已销号"] || 0,
+          totalNum: reponse.data.totalNum || 0
+        };
+      }
+    },
+    handleReformItemClick(value) {
+      this.finishSituation = value;
+    },
+    async getRectifyMonthInfo() {
+      const reponse = await rectifyMonthInfo({ cityCode: this.cityCode });
+      if (reponse.data) {
+        this.appearBoolean = true;
+        this.monthData = reponse.data;
+        this.$nextTick(() => {
+          this.handleAppearEchart();
+        });
+      }else{
+        this.appearBoolean = false;
+      }
+    },
+    handlePolluteSortEchart() {
+      let myChart = this.$echarts.init(
+        document.getElementById("polluteSortEchart")
+      );
+      let option = {
+        radar: {
+          // shape: 'circle',
+          indicator: this.radarSortData
+        },
+        tooltip: {
+          trigger: "axis"
+        },
+        series: [
+          {
+            tooltip: {
+              trigger: "item"
+            },
+            name: "污染类型",
+            type: "radar",
+            data: [
+              {
+                value: this.pollutionValueSortArry
+              }
+            ]
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    handleAppearEchart() {
+      let myChart = this.$echarts.init(document.getElementById("appearEchart"));
+      console.log(this.monthData);
+      let option = {
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow"
+          }
+        },
+        grid: {
+          top: "10px",
+          left: "0",
+          right: "0%",
+          bottom: "10px",
+          containLabel: true
+        },
+        yAxis: {
+          type: "value",
+          boundaryGap: [0, 0.01],
+          axisLabel: {
+            //修改坐标系字体颜色
+            show: true,
+            textStyle: {
+              color: "#8DB6DB",
+              fontSize: 12
+            }
+          }
+        },
+        xAxis: {
+          type: "category",
+          data: this.monthData.xData,
+          axisLabel: {
+            //修改坐标系字体颜色
+            show: true,
+            textStyle: {
+              color: "#8DB6DB",
+              fontSize: 13
+            }
+          }
+        },
+        series: [
+          {
+            name: "补报",
+            type: "bar",
+            data: this.monthData.addNums
+          },
+          {
+            name: "正常报",
+            type: "bar",
+            data: this.monthData.normalNums
+          },
+          {
+            name: "超期报",
+            type: "bar",
+            data: this.monthData.outOfDateNums
+          },
+          {
+            name: "未报",
+            type: "bar",
+            data: this.monthData.undoNums
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    handleContentSetHeight() {
+      const rectityCityTabH = this.$refs.rectityCityTab.offsetHeight;
+      const contentAllH = window.innerHeight - 90 - rectityCityTabH;
+      this.contentAllH = contentAllH;
+      const contentH = contentAllH - 30;
+      const ctopTitleH = this.$refs.ctopTitle.offsetHeight;
+      const taskCtopH = contentH * 0.31;
+      this.taskContentH = taskCtopH - ctopTitleH;
+      const polluteCtopH = contentH * 0.37;
+      this.polluteContentH = polluteCtopH - ctopTitleH;
+      const accountCtopH = contentH * 0.29;
+      this.accountContentH = accountCtopH - ctopTitleH;
+
+      const reformtH = taskCtopH + polluteCtopH + 13;
+      this.reformContentH = reformtH;
+      this.appearContentH = accountCtopH - ctopTitleH;
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.rectity-content {
+  width: 100%;
+  overflow: hidden;
+  .rectity-city-tab {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+    .rectity-item {
+      font-size: 12px;
+      color: #00d2ff;
+      height: 25px;
+      line-height: 25px;
+      width: 86px;
+      border: 1px solid #00d2ff;
+      box-sizing: border-box;
+      display: inline-block;
+      text-align: center;
+      margin-right: 10px;
+      cursor: pointer;
+      &.active {
+        color: #fff;
+        background-color: #0b9df4;
+      }
+    }
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+.styem-content {
+  width: 100%;
+  padding: 0 1.7%;
+  box-sizing: border-box;
+  overflow: hidden;
+  .styem-content-left {
+    width: 20%;
+    float: left;
+  }
+  .styem-content-center {
+    float: left;
+    width: 58%;
+    margin-left: 1%;
+    position: relative;
+    .reform-box {
+      padding: 0 4.5%;
+      background: url("~@/assets/images/center-bg.jpg") no-repeat center center;
+      margin-top: 10px;
+      border: 1px solid #135074;
+      box-sizing: border-box;
+      position: relative;
+      background-size: cover;
+      .reform-top {
+        height: 100px;
+        background: url("~@/assets/images/rectity-center-top-bg.png") no-repeat
+          center center;
+        display: flex;
+        justify-content: space-around;
+        background-size: 100%;
+        align-items: center;
+        margin-top: 20px;
+        .reform-top-item {
+          display: flex;
+          flex-direction: column;
+          cursor: pointer;
+          .reform-title {
+            font-size: 16px;
+            color: #ffffff;
+            text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+            // text-shadow: 0 0 0.2em rgba($color: #ffffff, $alpha: 0.3), -0 -0 0.2em rgba($color: #ffffff, $alpha: 0.3);
+          }
+          .reform-num {
+            color: #00ffff;
+            margin-top: 4px;
+            b {
+              font-size: 30px;
+              font-weight: normal;
+              text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+            }
+            i {
+              margin-left: 6px;
+              font-style: normal;
+              font-size: 14px;
+              text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+                0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+            }
+          }
+        }
+      }
+      .reform-bottom {
+        position: absolute;
+        bottom: 0;
+        width: 91%;
+        height: 220px;
+        background: url("~@/assets/images/center-bottom-bg.png") no-repeat
+          center center;
+        background-size: 41%;
+        text-align: center;
+        cursor: pointer;
+        .reform-bottom-title {
+          font-size: 18px;
+          color: #ffffff;
+          font-weight: normal;
+          margin: 0;
+          margin-top: 66px;
+          padding-left: 10px;
+          text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+            -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+            0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+            0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+        }
+        .reform-bottom-num {
+          color: #fcee21;
+          padding-left: 24px;
+          display: inline-block;
+          b {
+            font-weight: normal;
+            font-size: 30px;
+            text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+          }
+          i {
+            font-style: normal;
+            display: inline-block;
+            margin-left: 6px;
+            text-shadow: 0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              -0.2rem 0rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem 0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4),
+              0rem -0.2rem 0.5rem rgba($color: #ffffff, $alpha: 0.4);
+          }
+        }
+      }
+    }
+  }
+  .styem-content-right {
+    width: 20%;
+    float: right;
+    margin-top: 10px;
+  }
+}
+.styem-ctop {
+  margin-top: 10px;
+  border: 1px solid #135074;
+  position: relative;
+  padding: 0 3%;
+  box-sizing: border-box;
+  background-color: rgba($color: #0f031e, $alpha: 0.2);
+  .ctop-border {
+    width: 19px;
+    height: 21px;
+    display: block;
+    position: absolute;
+    &.ctop-left-top {
+      left: -3px;
+      top: -3px;
+      background: url("~@/assets/images/ctop-left-top.png") no-repeat center
+        center;
+    }
+    &.ctop-right-top {
+      right: -3px;
+      top: -3px;
+      background: url("~@/assets/images/ctop-left-right.png") no-repeat center
+        center;
+    }
+  }
+}
+.styem-ctop-title {
+  font-size: 16px;
+  color: #0feef2;
+  font-weight: normal;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  margin: 0;
+  line-height: 36px;
+}
+.inquire-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  .inquire-group {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    .inquire-item {
+      display: flex;
+      flex-direction: column;
+      width: 60px;
+      justify-content: center;
+      align-items: center;
+      margin-right: 10%;
+
+      .inquire-num {
+        font-size: 16px;
+        color: #edc32b;
+      }
+      .inquire-text {
+        font-size: 12px;
+        color: #ffffff;
+        display: block;
+        margin: 4px 0;
+      }
+      .inquire-bottom {
+        width: 100%;
+        height: 2px;
+        display: block;
+        background-color: #edc32b;
+      }
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+  .inquire-group-two {
+    margin-top: 8px;
+    .inquire-item {
+      .inquire-num {
+        color: #31f474;
+      }
+      .inquire-bottom {
+        background-color: #31f474;
+      }
+    }
+  }
+}
+.ctop-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  .ctop-item {
+    border: 1px solid #0e8583;
+    color: #fff;
+    border-radius: 4px;
+    text-align: center;
+    height: 30px;
+    line-height: 30px;
+    box-sizing: border-box;
+    font-size: 12px;
+    margin-right: 2px;
+    padding: 0 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    width: 122px;
+    &:nth-child(even) {
+      margin-right: 0;
+    }
+    &.active {
+      color: #00ffff;
+    }
+  }
+}
+@media screen and (min-width: 1700px) {
+  .ctop-box {
+    .ctop-item {
+      border-radius: 4px;
+      height: 36px;
+      line-height: 36px;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 12px;
+      width: 162px;
+    }
+  }
+  .inquire-content {
+    .inquire-group {
+      .inquire-item {
+        .inquire-num {
+          font-size: 20px;
+        }
+        .inquire-text {
+          font-size: 16px;
+          margin: 8px 0;
+        }
+      }
+    }
+    .inquire-group-two {
+      margin-top: 20px;
+    }
+  }
+  .rectity-content {
+    .rectity-city-tab {
+      .rectity-item {
+        font-size: 12px;
+        height: 25px;
+        line-height: 25px;
+        width: 122px;
+        margin-right: 10px;
+      }
+    }
+  }
+  .styem-content {
+    .styem-content-center {
+      .reform-box {
+        .reform-top {
+          height: 137px;
+          background-size: 100%;
+          margin-top: 20px;
+          .reform-top-item {
+            .reform-title {
+              font-size: 16px;
+              .reform-num {
+                b {
+                  font-size: 34px;
+                }
+                i {
+                  font-size: 16px;
+                }
+              }
+            }
+          }
+        }
+        .reform-bottom {
+          height: 319px;
+          background-size: 46%;
+          .reform-bottom-title {
+            font-size: 24px;
+            margin-top: 94px;
+          }
+          .reform-bottom-num {
+            // margin-left: 68px;
+            margin-top: 10px;
+            b {
+              font-size: 36px;
+            }
+            i {
+              font-size: 24px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+.styem-ctop-content-box {
+  width: 100%;
+  height: 100%;
+}
+</style>

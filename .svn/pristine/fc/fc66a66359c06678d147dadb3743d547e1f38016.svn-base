@@ -1,0 +1,545 @@
+<template>
+  <div>
+    <div class="burg-home">
+      <div class="burg-home-left">
+        <div class="home-box manage-box">
+          <div class="manage-left">
+            对接中央信访件总8000件
+          </div>
+          <div class="manage-right">
+            <div class="manage-item">
+              <span class="manage-item-name">回头看督察第一轮第二批</span>
+              <span class="manage-item-number">4000件</span>
+            </div>
+            <div class="manage-item">
+              <span class="manage-item-name">回头看督察第一轮第二批</span>
+              <span class="manage-item-number">4000件</span>
+            </div>
+            <div class="manage-item">
+              <span class="manage-item-name">回头看督察第一轮第二批</span>
+              <span class="manage-item-number">4000件</span>
+            </div>
+            <div class="manage-item">
+              <span class="manage-item-name">回头看督察第一轮第二批</span>
+              <span class="manage-item-number">4000件</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-box bulletin-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">转办情况</h1>
+          </div>
+          <div class="home-box-bottom"></div>
+        </div>
+      </div>
+      <div class="burg-home-right">
+        <div class="home-box work-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">任务类型分布情况</h1>
+          </div>
+          <div class="home-box-bottom">
+            <div
+              id="burgWorkEchart2"
+              class="work-echart"
+              v-show="meetBoolean"
+            ></div>
+            <div class="work-echart-content" v-show="!meetBoolean">
+              暂无数据
+            </div>
+          </div>
+        </div>
+        <div class="home-box tip-box">
+          <div class="home-box-top">
+            <h1 class="home-box-top-title">办理情况统计</h1>
+          </div>
+          <div class="home-box-bottom">
+            <div id="tipEchart" class="work-echart" v-show="tipBoolean"></div>
+            <div class="work-echart-content" v-show="!tipBoolean">
+              暂无数据
+            </div>
+          </div>
+        </div>
+        <div class="region-box">
+          <div class="district-box">
+            <div class="home-box-top">
+              <h1 class="home-box-top-title">问责情况地区统计</h1>
+            </div>
+            <div class="home-box-bottom">
+              <div
+                id="districtEchart"
+                class="work-echart"
+                v-show="districtBoolean"
+              ></div>
+              <div class="work-echart-content" v-show="!districtBoolean">
+                暂无数据
+              </div>
+            </div>
+          </div>
+          <div class="remind-box">
+            <div class="home-box-top">
+              <h1 class="home-box-top-title">督办提醒</h1>
+            </div>
+            <div class="home-box-bottom">
+              <el-table v-loading="loading" :data="List" border :stripe="true">
+                <el-table-column
+                  prop="areaName"
+                  label="受理编号"
+                  width="100px"
+                ></el-table-column>
+                <el-table-column
+                  prop="areaName"
+                  label="受理编号"
+                  width="100px"
+                ></el-table-column>
+                <el-table-column
+                  prop="leaderName"
+                  label="完成状态"
+                  width="100px"
+                ></el-table-column>
+                <el-table-column
+                  prop="deputyName"
+                  label="截止时间"
+                  width="120px"
+                  :show-overflow-tooltip="true"
+                ></el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {
+  homeTipCounts,
+  homeAccountCountByArea,
+  homeTipTopFive,
+  homeTransferByCity
+} from "@/api/national/home";
+import { mapGetters } from "vuex";
+import echarts from "echarts";
+export default {
+  data() {
+    return {
+      loading: true,
+      tipParams1: {
+        type: 1
+      },
+      tipParams2: {
+        type: 2
+      },
+      tipParams3: {
+        type: 3
+      },
+      basicQueryParams: {
+        inspectType: undefined,
+        turnId: undefined,
+        batchId: undefined
+      },
+      tipParams: {
+        inspectType: undefined,
+        turnId: undefined,
+        batchId: undefined
+      },
+      taskObj: {
+        taskKey: undefined,
+        taskValue: undefined
+      },
+      meetBoolean: false,
+      tipBoolean: true,
+      accountObj: {
+        accountKey: undefined,
+        accountValue: undefined
+      },
+      districtBoolean: false,
+      List: [],
+    };
+  },
+  created() {
+    this.getTipCounts1();
+    this.getTipCounts2();
+    this.getTipCounts3();
+    this.gethomeAccountCountByArea();
+  },
+  computed: {
+    ...mapGetters(["inspectInfo"])
+  },
+  methods: {
+    async getTipCounts1() {
+      const reponse = await homeTipCounts({
+        ...this.tipParams1,
+        ...this.basicQueryParams
+      });
+      console.log(reponse);
+    },
+    async getTipCounts2() {
+      const reponse = await homeTipCounts({
+        ...this.tipParams2,
+        ...this.basicQueryParams
+      });
+      const reponseData = reponse.data;
+      const taskKey = [];
+      const taskValue = [];
+      if (reponseData) {
+        this.meetBoolean = true;
+        for (const item in reponseData) {
+          const subject = reponseData[item];
+          taskKey.push(subject.name);
+          taskValue.push(subject.value);
+        }
+      } else {
+        this.meetBoolean = false;
+      }
+      this.taskObj.taskKey = taskKey;
+      this.taskObj.taskValue = taskValue;
+      this.$nextTick(function() {
+        this.meetBoolean && this.workChart2();
+      });
+    },
+    async getTipCounts3() {
+      const reponse = await homeTipCounts({
+        ...this.tipParams3,
+        ...this.basicQueryParams
+      });
+      // console.log(reponse);
+      this.getTipEchart();
+    },
+    async gethomeAccountCountByArea() {
+      const reponse = await homeAccountCountByArea(this.basicQueryParams);
+      console.log(reponse);
+      const reponseData = reponse.data;
+      const accountKey = [];
+      const accountValue = [];
+      if (reponseData) {
+        this.districtBoolean = true;
+        for (const item in reponseData) {
+          const subject = reponseData[item];
+          accountKey.push(subject.areaName);
+          accountValue.push(subject.value);
+        }
+      } else {
+        this.districtBoolean = false;
+      }
+      this.accountObj.accountKey = accountKey;
+      this.accountObj.accountValue = accountValue;
+      console.log(this.accountObj);
+      this.$nextTick(function() {
+        this.districtBoolean && this.getDistrictEchart();
+      });
+    },
+    workChart2() {
+      let myChart = this.$echarts.init(
+        document.getElementById("burgWorkEchart2")
+      );
+      let option = {
+        title: {
+          text: "深圳月最低生活费组成（单位:元）",
+          subtext: "From ExcelHome",
+          sublink: "http://e.weibo.com/1341556070/AjQH99che"
+        },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            // 坐标轴指示器，坐标轴触发有效
+            type: "shadow" // 默认为直线，可选为：'line' | 'shadow'
+          },
+          formatter: function(params) {
+            var tar = params[1];
+            return tar.name + "<br/>" + tar.seriesName + " : " + tar.value;
+          }
+        },
+        grid: {
+          left: "3%",
+          right: "4%",
+          bottom: "3%",
+          containLabel: true
+        },
+        xAxis: {
+          type: "category",
+          splitLine: { show: false },
+          data: this.taskObj.taskKey
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            name: "辅助",
+            type: "bar",
+            stack: "总量",
+            itemStyle: {
+              barBorderColor: "rgba(0,0,0,0)",
+              color: "rgba(0,0,0,0)"
+            },
+            emphasis: {
+              itemStyle: {
+                barBorderColor: "rgba(0,0,0,0)",
+                color: "rgba(0,0,0,0)"
+              }
+            },
+            data: this.taskObj.taskValue
+          },
+          {
+            name: "生活费",
+            type: "bar",
+            stack: "总量",
+            label: {
+              show: true,
+              position: "inside"
+            },
+            data: this.taskObj.taskValue
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    getTipEchart() {
+      let myChart = this.$echarts.init(document.getElementById("tipEchart"));
+      let option = {
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            // Use axis to trigger tooltip
+            type: "shadow" // 'shadow' as default; can also be 'line' or 'shadow'
+          }
+        },
+        legend: {
+          data: [
+            "Direct",
+            "Mail Ad",
+            "Affiliate Ad",
+            "Video Ad",
+            "Search Engine"
+          ]
+        },
+        grid: {
+          left: "3%",
+          right: "4%",
+          bottom: "3%",
+          containLabel: true
+        },
+        yAxis: {
+          type: "value"
+        },
+        xAxis: {
+          type: "category",
+          data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        },
+        series: [
+          {
+            name: "Direct",
+            type: "bar",
+            stack: "total",
+            label: {
+              show: true
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: [320, 302, 301, 334, 390, 330, 320]
+          },
+          {
+            name: "Mail Ad",
+            type: "bar",
+            stack: "total",
+            label: {
+              show: true
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: [120, 132, 101, 134, 90, 230, 210]
+          },
+          {
+            name: "Affiliate Ad",
+            type: "bar",
+            stack: "total",
+            label: {
+              show: true
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: [220, 182, 191, 234, 290, 330, 310]
+          },
+          {
+            name: "Video Ad",
+            type: "bar",
+            stack: "total",
+            label: {
+              show: true
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: [150, 212, 201, 154, 190, 330, 410]
+          },
+          {
+            name: "Search Engine",
+            type: "bar",
+            stack: "total",
+            label: {
+              show: true
+            },
+            emphasis: {
+              focus: "series"
+            },
+            data: [820, 832, 901, 934, 1290, 1330, 1320]
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    },
+    getDistrictEchart() {
+      console.log(this.accountObj);
+      let myChart = this.$echarts.init(
+        document.getElementById("districtEchart")
+      );
+      let option = {
+        xAxis: {
+          type: "category",
+          data: this.accountObj.accountKey
+        },
+        yAxis: {
+          type: "value"
+        },
+        series: [
+          {
+            data: this.accountObj.accountValue,
+            type: "bar"
+          }
+        ]
+      };
+      myChart.setOption(option, true);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.burg-home {
+  width: 100%;
+  padding: 0 10px 10px 10px;
+  background-color: #f6f8fb;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  .burg-home-left {
+    width: 39%;
+    .bulletin-box {
+      height: 480px;
+    }
+  }
+  .burg-home-right {
+    width: 60%;
+  }
+  .home-box {
+    border-radius: 6px;
+    background-color: #fff;
+    box-shadow: 1px 1px 10px rgba(244, 244, 244, 0.8);
+    margin-top: 10px;
+  }
+  .manage-box {
+    height: 400px;
+    display: flex;
+    padding: 10px;
+    justify-content: space-between;
+    .manage-left {
+      width: 28%;
+      display: flex;
+      align-items: center;
+      background-color: rgba(64, 158, 255, 1);
+      color: #fff;
+      text-align: center;
+      font-size: 22px;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+    .manage-right {
+      width: 70%;
+      display: flex;
+      flex-direction: column;
+      height: 380px;
+      justify-content: space-between;
+      .manage-item {
+        display: flex;
+        justify-content: space-between;
+        background-color: rgba(64, 158, 255, 0.2);
+        padding: 0 10px;
+        font-size: 16px;
+        height: 80px;
+        align-items: center;
+        cursor: pointer;
+        .manage-item-name {
+        }
+        .manage-item-number {
+        }
+      }
+    }
+  }
+  .home-box-top {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #dddddd;
+    padding: 0 10px;
+    .home-box-top-title {
+      border-left: 4px solid #3393cf;
+      font-size: 16px;
+      margin: 0;
+      font-weight: normal;
+      padding-left: 6px;
+    }
+  }
+  .home-box-bottom {
+    padding: 10px;
+  }
+  .work-box {
+    .home-box-bottom {
+      height: 220px;
+      .work-echart {
+        height: 220px;
+      }
+    }
+  }
+  .tip-box {
+    .home-box-bottom {
+      height: 284px;
+      .work-echart {
+        height: 284px;
+      }
+    }
+  }
+  .region-box {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    .district-box {
+      width: 49.5%;
+      background-color: #fff;
+      border-radius: 6px;
+      background-color: #fff;
+      box-shadow: 1px 1px 10px rgba(244, 244, 244, 0.8);
+      .home-box-bottom {
+        height: 222px;
+      }
+      .work-echart {
+        height: 222px;
+      }
+    }
+    .remind-box {
+      width: 49.5%;
+      background-color: #fff;
+      border-radius: 6px;
+      background-color: #fff;
+      box-shadow: 1px 1px 10px rgba(244, 244, 244, 0.8);
+      .home-box-bottom {
+        height: 222px;
+      }
+    }
+  }
+}
+</style>

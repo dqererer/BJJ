@@ -1,13 +1,6 @@
 <template>
   <header>
     <el-header>
-      <div class="header-logo">
-        <div class="title">内蒙古自治区生态环境保护督察信息化平台</div>
-        <div class="subtitle">
-          <div class="line"></div>
-          <div>{{subName}}</div></div
-        >
-      </div>
       <top-nav id="topmenu-container" class="topmenu-container" />
       <div class="option-area">
         <el-button

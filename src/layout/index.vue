@@ -1,11 +1,11 @@
 <template>
   <div class="app-wrapper">
-    <div class="fixed-header">
-      <nav-bar></nav-bar>
-    </div>
     <div class="main-container">
       <sidebar class="sidebar-container"></sidebar>
       <app-main />
+    </div>
+    <div class="fixed-header">
+      <nav-bar></nav-bar>
     </div>
   </div>
 </template>
@@ -17,27 +17,25 @@ export default {
   components: {
     NavBar,
     Sidebar,
-    AppMain
-  }
+    AppMain,
+  },
 };
 </script>
 
 <style lang="scss" scoped>
- @import "~@/assets/styles/mixin.scss";
- @import "~@/assets/styles/variables.scss";
+@import "~@/assets/styles/mixin.scss";
+@import "~@/assets/styles/variables.scss";
 
 .app-wrapper {
   @include clearfix;
-  position: relative;
-  height: 100%;
-  width: 100%;
+  display: flex;
+  min-height: 100%;
+  .main-container {
+    min-height: 100%;
+    width: 210px;
+  }
 }
 .fixed-header {
-  position: fixed;
-  top: 0;
-  right: 0;
-  z-index: 9;
-  width: 100%;
-  transition: width 0.28s;
+  flex:1
 }
 </style>

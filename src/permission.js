@@ -4,122 +4,33 @@ import { Message } from 'element-ui'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { getToken } from '@/utils/auth'
-import { getSubSystem } from "@/api/findeSystem";
-import { getStorageRouters, setItem } from "@/utils/storage";
-import {
-    acceptDeleteLock
-} from "@/api/burg/garrison";
+import { objChnage } from '@/utils/util'
 
-const whiteList = ['/login', '/forget'] //白名单
-let isFirst = true;
-router.beforeEach(async (to, from, next) => {
-    // if (from.path === '/' && from.matched && from.matched.length === 0) {
-    //     const lockFlagId = sessionStorage.getItem('lockFlagId');
-    //     if (lockFlagId) {
-    //         const reponse = await acceptDeleteLock({ id: lockFlagId });
-    //         sessionStorage.removeItem('lockFlagId');
-    //     }
-    // }
+const whiteList = ['/login'] //白名单
+
+router.beforeEach((to, from, next) => {
     NProgress.start();
     if (getToken()) {
         if (to.path == "/login") {
-            router.push({ path: '/onemap' })
+            next({ path: '/index' })
             NProgress.done();
         } else {
-            if (to.matched.length === 0) {  //如果未匹配到路由
-                if (isFirst) {
-                    store
-                        .dispatch("findSysByUser")
-                        .then((res) => {
-                            isFirst = false;
-                            if (res == "empty") {
-                                this.$message.error(
-                                    "您暂无本系统权限，请联系管理员添加权限"
-                                );
-                                return;
-                            }
-                            router.addRoutes(res.systemRoutes);
-                            const isOneMap = res.systemData.find(
-                                (item) => item.name == "onemap"
-                            );
-                            if (isOneMap) {
-                                //有一张图权限
-                                router.push({ path: isOneMap.path });
-                            } else {
-                                // 只有一个权限
-                                if (
-                                    res.systemData.length == 1 &&
-                                    !res.systemData[0].child
-                                ) {
-                                    store
-                                        .dispatch("getSystemMenu", res.systemData[0].id)
-                                        .then((resource) => {
-                                            setItem("backPath", "none");
-                                            router.addRoutes(resource);
-                                            this.$router.push({ path: resource[0].path });
-                                        });
-                                    // this.$router.push({ path: res.systemData[0].path });
-                                } else if (
-                                    res.systemData.length == 1 &&
-                                    res.systemData[0].child &&
-                                    res.systemData[0].children.length == 1
-                                ) {
-                                    let item = res.systemData[0].children[0];
-                                    getSubSystem().then((resource) => {
-                                        if (resource.code == "200") {
-                                            Object.assign(item, resource.data[item.code]);
-                                            setItem("superviseItem", JSON.stringify(item));
-                                            let key = item.id;
-                                            let code = item.code;
-                                            store
-                                                .dispatch("InspectUserInfo", { code })
-                                                .then(() => {
-                                                    store
-                                                        .dispatch("getSystemMenu", key)
-                                                        .then((res) => {
-                                                            setItem("backPath", "none");
-                                                            router.addRoutes(res);
-                                                            router.push({ path: res[0].path });
-                                                        });
-                                                });
-                                        }
-                                    });
-                                } else {
-                                    // 跳大首页
-                                    this.$router.push({ path: "/platform" });
-                                }
-                            }
-                        })
-                        .catch((err) => { });
-
-                } else {
-                    Message.error('未匹配到地址')
-                }
-
+            if (store.getters.asyncRouterMap.length === 0) {
+                store.dispatch('GetPermissionList').then(() => {
+                    store.dispatch('GenerateRoutes').then(accessRoutes => {
+                        const accessedChangeRoutes = objChnage(accessRoutes);
+                        router.addRoutes(accessedChangeRoutes)
+                        next({ ...to, replace: true })
+                    })
+                }).catch(err => {
+                    store.dispatch('Logout').then(() => {
+                        Message.error(err)
+                        next({ path: '/login' })
+                    })
+                })
             } else {
-                next();    //如果匹配到正确跳转
+                next()
             }
-            NProgress.done();
-            // if (store.getters.sidebarRouters.length === 0) {
-            //     store.dispatch('GetInfo').then((res) => {
-            //         const { id } = res.data
-            //         store.dispatch('InspectUserInfo', id).then(() => {
-            //             store.dispatch('GenerateRoutes').then(accessRoutes => {
-            //                 console.log('permission',router, accessRoutes)
-            //                 router.addRoutes(accessRoutes)
-            //                 next({ ...to, replace: true }) //设置replace: true，这样导航就不会留下历史记录
-            //                 store.dispatch('GetAreaInfo')
-            //             })
-            //         })
-            //     }).catch(err => {
-            //         store.dispatch('LogOut').then(() => {
-            //             Message.error(err)
-            //             next({ path: '/login' })
-            //         })
-            //     })
-            // } else {
-            //     next()
-            // }
         }
     } else {
         if (whiteList.indexOf(to.path) !== -1) {

@@ -31,7 +31,6 @@
 const avatar = require("@/assets/images/user-icon.png");
 import { mapGetters } from "vuex";
 import TopNav from "@/components/TopNav";
-import { getItem } from "../../utils/storage";
 
 export default {
   components: {
@@ -39,16 +38,14 @@ export default {
   },
   data: function () {
     return {
-      path: "",
-      subName: '',
+
     };
   },
   computed: {
     ...mapGetters(["userInfo"]),
   },
   created: function () {
-    this.path = getItem("backPath");
-    this.subName = getItem("subName");
+ 
   },
   methods: {
     async logout() {
@@ -67,7 +64,7 @@ export default {
       });
     },
     goback() {
-      this.$router.push({ path: "/" + this.path });
+      this.$router.push({ path: "/index" });
     },
   },
 };

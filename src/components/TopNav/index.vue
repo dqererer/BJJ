@@ -32,6 +32,8 @@ export default {
   computed: {
     topMenus() {
       const topMenus = [];
+      console.log(this.routers)
+      debugger
       this.routers.map(menu => {
         if (menu.hidden !== true) {
           if (menu.path === "/") {
@@ -44,6 +46,7 @@ export default {
       return topMenus;
     },
     routers() {
+      debugger
       return this.$store.state.permission.topbarRouters;
     },
     childrenMenus() {
@@ -75,11 +78,6 @@ export default {
         const tmpPath = path.substring(1, path.length);
         activePath = "/" + tmpPath.substring(0, tmpPath.indexOf("/"));
       } else if ("/index" == path || "" == path) {
-        // if (!this.isFrist) {
-        //   this.isFrist = true;
-        // } else {
-        //   activePath = "index";
-        // }
       }
       var routes = this.activeRoutes(activePath);
       if (routes.length === 0) {

@@ -19,6 +19,14 @@ export default {
     Sidebar,
     AppMain,
   },
+  created: function () {
+    this.$store
+      .dispatch("getSystemMenu", '923947984784203841')
+      .then((resource) => {
+        router.addRoutes(resource);
+        this.$router.push({ path: resource[0].path });
+      });
+  },
 };
 </script>
 
@@ -36,6 +44,6 @@ export default {
   }
 }
 .fixed-header {
-  flex:1
+  flex: 1;
 }
 </style>

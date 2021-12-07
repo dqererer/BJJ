@@ -1,50 +1,38 @@
 <template>
   <div class="login-body">
-    <div class="header">
-      <img
-        src="../assets/images/platform/platform-title.png"
-        style="margin-bottom: 20px"
-      />
-      <img src="../assets/images/platform/platform-my.png" />
-    </div>
-    <div class="login-box">
-      <div class="login-content">
-        <div class="title">
-          <img src="../assets/images/login-left.png" alt />
-          <span>账号登录</span>
-          <img src="../assets/images/login-right.png" alt />
-        </div>
-        <!-- <div class="form"> -->
-        <el-form ref="loginFrom" :rules="rules" class="login-form" :model="form">
-          <el-form-item>
-            <el-select v-model="form.loginType" class="login-select" placeholder="请选择登录方式">
-              <el-option value="0" label="用户名密码登录"></el-option>
-              <el-option value="1" label="邮箱密码登录"></el-option>
-              <el-option value="2" label="手机号密码登录"></el-option>
-              <el-option value="3" label="身份证号密码"></el-option>
-            </el-select>
-          </el-form-item>
+    <h1 class="login-logo">
+      <img src="../assets/images/login-logo.png" />
+    </h1>
+    <div class="login-content">
+      <div class="login-box">
+        <h1 class="login-title">用户登录</h1>
+        <el-form
+          ref="loginFrom"
+          :rules="rules"
+          class="login-form"
+          :model="form"
+        >
           <el-form-item prop="username">
-            <el-input v-model="form.username" placeholder="请输入账号" prefix-icon="el-icon-user"></el-input>
+            <el-input
+              v-model="form.username"
+              placeholder="请输入账号"
+              prefix-icon="el-icon-user"
+            ></el-input>
           </el-form-item>
           <el-form-item prop="password">
             <el-input
               v-model="form.password"
               placeholder="请输入密码"
+              show-password
               prefix-icon="el-icon-lock"
-              :type="type"
-            >
-              <i
-                slot="suffix"
-                class="icon-style"
-                :class="elIcon"
-                autocomplete="auto"
-                @click="flag = !flag"
-              />
-            </el-input>
+            ></el-input>
           </el-form-item>
           <el-form-item prop="code" class="formCode">
-            <el-input v-model="form.code" placeholder="请输入验证码" prefix-icon="el-icon-key"></el-input>
+            <el-input
+              v-model="form.code"
+              placeholder="请输入验证码"
+              prefix-icon="el-icon-key"
+            ></el-input>
             <img
               @click="validateCodeLoad"
               class="codeImg"
@@ -52,34 +40,20 @@
               alt
             />
           </el-form-item>
-          <!-- <router-link class="forget-link" :to="{ path: 'forget' }"
-            >忘记密码？</router-link
-          > -->
-          <el-form-item class="login-btn">
-            <el-button @click="loginClick('loginFrom')" type="primary">登 录</el-button>
+          <el-form-item>
+            <el-button @click="loginClick('loginFrom')" type="primary"
+              >登录</el-button
+            >
           </el-form-item>
         </el-form>
-        <!-- </div> -->
       </div>
-    </div>
-    <div class="info">
-      <p>
-        <span style="margin-right: 20px">版权所有©内蒙古自治区生态环境厅督察办</span>
-        <span>内蒙古自治区生态环境保护督察信息化平台</span>
-      </p>
-      <p>
-        <span>技术支持©北京华志信科技股份有限公司</span>
-      </p>
     </div>
   </div>
 </template>
 
-
 <script>
 import { mapActions } from "vuex";
-import { getStorageRouters, setItem } from "../utils/storage";
-import router from "../router";
-import { getSubSystem } from "@/api/findeSystem";
+import { Notification } from "element-ui";
 import {
   validateCode,
   checkValidateCode,
@@ -87,7 +61,6 @@ import {
   getToken
 } from "@/api/login";
 import { setToken, setName } from "@/utils/auth";
-import { fastFile } from "@/api/file";
 export default {
   name: "Login",
   data() {
@@ -103,7 +76,6 @@ export default {
         };
         checkValidateCode(codeData).then(res => {
           if (res.code == 500) {
-            this.validateCodeLoad();
             callback(new Error(res.msg));
           } else {
             callback();
@@ -113,7 +85,6 @@ export default {
     };
     return {
       form: {
-        loginType: "0",
         username: undefined,
         password: undefined,
         code: undefined,
@@ -122,126 +93,20 @@ export default {
       rules: {
         username: [{ required: true, message: "请输入账号", trigger: "blur" }],
         password: [{ required: true, message: "请输入密码", trigger: "blur" }],
-        code: [{ validator: validateCode, trigger: "change" }]
+        code: [{ validator: validateCode, trigger: "click" }]
       },
-      codeImg: "",
-      redirect: undefined,
-      flag: false,
+      codeImg: ""
     };
-  },
-  watch: {
-    $route: {
-      handler: function(route) {
-        this.redirect = route.query && route.query.redirect;
-      },
-      immediate: true
-    }
-  },
-  computed: {
-    type() {
-      return this.flag ? "text" : "password";
-    },
-    elIcon() {
-      return this.flag ? "el-icon-view" : "el-icon-more";
-    },
   },
   methods: {
     ...mapActions(["Login"]),
     loginClick(forName) {
       this.$refs[forName].validate(valid => {
         if (valid) {
-          this.$store
-            .dispatch("Login", this.form)
-            .then(() => {
-              this.getFastFile();
-              this.$store
-                .dispatch("GetInfo")
-                .then(res => {
-                  this.$store.dispatch("GetAreaInfo");
-                })
-                .catch(err => {
-                  this.$store.dispatch("LogOut").then(() => {
-                    Message.error(err);
-                    next({ path: "/login" });
-                  });
-                });
-              //  获取一级路由
-              this.$store
-                .dispatch("findSysByUser")
-                .then(res => {
-                  if (res == "empty") {
-                    this.$message.error(
-                      "您暂无本系统权限，请联系管理员添加权限"
-                    );
-                    return;
-                  }
-                  router.addRoutes(res.systemRoutes);
-                  const isOneMap = res.systemData.find(
-                    item => item.name == "onemap"
-                  );
-                  if (isOneMap) {
-                    //有一张图权限
-                    this.$router.push({ path: isOneMap.path });
-                  } else {
-                    // 只有一个权限
-                    if (
-                      res.systemData.length == 1 &&
-                      !res.systemData[0].child
-                    ) {
-                      this.$store
-                        .dispatch("getSystemMenu", res.systemData[0].id)
-                        .then(resource => {
-                          setItem("backPath", "none");
-                          router.addRoutes(resource);
-                          this.$router.push({ path: resource[0].path });
-                        });
-                      // this.$router.push({ path: res.systemData[0].path });
-                    } else if (
-                      res.systemData.length == 1 &&
-                      res.systemData[0].child &&
-                      res.systemData[0].children.length == 1
-                    ) {
-                      let item = res.systemData[0].children[0];
-                      getSubSystem().then(resource => {
-                        if (resource.code == "200") {
-                          Object.assign(item, resource.data[item.code]);
-                          setItem("superviseItem", JSON.stringify(item));
-                          let key = item.id;
-                          let code = item.code;
-                          this.$store
-                            .dispatch("InspectUserInfo", { code })
-                            .then(() => {
-                              this.$store
-                                .dispatch("getSystemMenu", key)
-                                .then(res => {
-                                  setItem("backPath", "none");
-                                  router.addRoutes(res);
-                                  if (
-                                    res.length == 1 &&
-                                    res[0].children.length == 1 &&
-                                    res[0].children[0].children.length == 1
-                                  ) {
-                                    const path =
-                                      res[0].path +
-                                      "/" +
-                                      res[0].children[0].path +
-                                      "/" +
-                                      res[0].children[0].children[0].path;
-                                    this.$router.push({ path });
-                                  } else {
-                                    this.$router.push({ path: res[0].path });
-                                  }
-                                });
-                            });
-                        }
-                      });
-                    } else {
-                      // 跳大首页
-                      this.$router.push({ path: "/platform" });
-                    }
-                  }
-                })
-                .catch(err => {});
+          this.Login(this.form)
+            .then(res => {
+              const pathUrl = this.$route.query.redirect || "/index";
+              this.$router.push({ path: pathUrl });
             })
             .catch(err => {
               this.validateCodeLoad();
@@ -260,10 +125,6 @@ export default {
         this.codeImg = res.img;
         this.form.uuid = res.uuid;
       });
-    },
-    async getFastFile(){
-      const reponse = await fastFile()
-      localStorage.setItem("fastInfo", JSON.stringify(reponse.data));
     }
   },
   created() {
@@ -280,111 +141,68 @@ export default {
 };
 </script>
 
-<style lang="scss" scope>
+<style lang="scss">
 .login-body {
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
   background: url("../assets/images/bgd-img_6.jpg") no-repeat center center /
     cover;
-  padding: 60px 0 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  img {
-    margin: 0 auto;
-    display: block;
-    height: 44px;
+  .login-logo {
+    text-align: center;
+    margin: 4% auto 3% auto;
+  }
+  .login-img {
+    width: 50%;
+    margin-left: 6%;
+    float: left;
+    img {
+      width: 100%;
+    }
   }
   .login-box {
-    background: url("../assets/images/login-bg.png") no-repeat center center /
-      cover;
+    width: 360px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 1px 1px 10px #0a48ad;
     margin: 0 auto;
-    height: 412px;
-    width: 722px;
-    .login-content {
-      float: right;
-      height: 100%;
-      width: 380px;
-      padding: 50px;
-      .title {
-        display: flex;
-        justify-content: center;
-        img {
-          height: 12px;
-        }
-        span {
-          font-size: 16px;
-          font-weight: bolder;
-          color: #333333;
-          margin: 0 20px;
-        }
-      }
-      // .form {
-      //   /deep/ .el-input__inner {
-      //     border-radius: 0;
-      //     border: none;
-      //     border-bottom: 1px solid gray;
-      //   }
-      // }
-      .login-form {
-        width: 300px;
-        margin: 20px auto;
-        .login-select {
-          width: 100%;
-        }
-      }
-      .el-button {
-        width: 100%;
-        border-radius: 6px;
-        background-color: #409eff;
-        color: #fff;
-        font-size: 18px;
-        font-weight: bolder;
-      }
-      .login-btn {
-        margin-top: 22px;
-      }
-      .formCode {
+    overflow: hidden;
+    .login-title {
+      text-align: center;
+      font-size: 22px;
+      color: #3a6fca;
+      padding-top: 30px;
+      margin: 0px;
+    }
+    .login-form {
+      width: 78%;
+      margin: 20px auto 0 auto;
+    }
+    .el-button {
+      width: 100%;
+      border-radius: 30px;
+      background-color: #3a6fca;
+      color: #fff;
+      font-size: 18px;
+    }
+    .formCode {
+      display: flex;
+      flex-direction: row;
+      .el-form-item__content {
         display: flex;
         flex-direction: row;
-        .el-form-item__content {
-          display: flex;
-          flex-direction: row;
-          width: 100%;
-          .el-input {
-            width: 60%;
-          }
-          .codeImg {
-            flex: 1;
-            height: 100%;
-            margin-left: 10px;
-          }
+        width: 100%;
+        .el-input {
+          width: 60%;
+        }
+        .codeImg {
+          flex: 1;
+          height: 100%;
+          margin-left: 10px;
         }
       }
     }
-    .el-form-item {
-      margin-bottom: 12px !important;
-    }
-    .forget-link {
-      float: right;
-      font-size: 14px;
-      margin-bottom: 10px;
-    }
   }
-  .info {
-    color: #546001;
-    padding-top: 30px;
-    font-size: 13px;
-    p {
-      margin: 0;
-      text-align: center;
-    }
-  }
-}
-.icon-style {
-  font-size: 18px;
-  margin-right: 6px;
-  line-height: 40px;
 }
 </style>
